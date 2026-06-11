@@ -10,6 +10,7 @@ from nexocred_core.modelos import (
     Imputacion,
     SaldoExigible,
 )
+from nexocred_core.errores import ImporteNegativoError
 from nexocred_core.money import CERO, redondear, restar, sumar
 
 
@@ -26,6 +27,8 @@ def calcular_saldo_exigible(
     fecha_negocio: date,
     tasa_punitorio_diario: Decimal,
 ) -> SaldoExigible:
+    if tasa_punitorio_diario < Decimal("0"):
+        raise ImporteNegativoError("tasa_punitorio_diario no puede ser negativa")
     cuotas_exigibles: list[EstadoCuotaExigible] = []
     capital_no_vencido = CERO
     interes_no_vencido = CERO

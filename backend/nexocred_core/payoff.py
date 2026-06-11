@@ -3,6 +3,7 @@
 from datetime import date
 from decimal import Decimal
 
+from nexocred_core.errores import ImporteNegativoError
 from nexocred_core.modelos import Cronograma, Imputacion, ResultadoPayoff
 from nexocred_core.money import sumar
 from nexocred_core.saldo import calcular_saldo_exigible
@@ -14,6 +15,8 @@ def calcular_payoff(
     fecha_negocio: date,
     tasa_punitorio_diario: Decimal,
 ) -> ResultadoPayoff:
+    if tasa_punitorio_diario < Decimal("0"):
+        raise ImporteNegativoError("tasa_punitorio_diario no puede ser negativa")
     saldo = calcular_saldo_exigible(cronograma, imputaciones, fecha_negocio, tasa_punitorio_diario)
 
     punitorio = sumar(*(c.punitorio for c in saldo.cuotas)) if saldo.cuotas else sumar()

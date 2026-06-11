@@ -1,7 +1,10 @@
 from datetime import date
 from decimal import Decimal
 
+import pytest
+
 from nexocred_core.cronograma import calcular_cronograma
+from nexocred_core.errores import ImporteNegativoError
 from nexocred_core.modelos import Periodicidad, TerminosPrestamo
 from nexocred_core.payoff import calcular_payoff
 
@@ -33,3 +36,8 @@ def test_payoff_incluye_punitorio_de_cuotas_vencidas():
     res = calcular_payoff(_cronograma(), (), date(2026, 1, 20), Decimal("0.001"))
     assert res.punitorio == Decimal("20.00")
     assert res.total == Decimal("11020.00")
+
+
+def test_rechaza_tasa_punitorio_negativa():
+    with pytest.raises(ImporteNegativoError):
+        calcular_payoff(_cronograma(), (), date(2026, 1, 20), Decimal("-0.001"))

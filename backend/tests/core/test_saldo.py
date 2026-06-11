@@ -1,7 +1,10 @@
 from datetime import date
 from decimal import Decimal
 
+import pytest
+
 from nexocred_core.cronograma import calcular_cronograma
+from nexocred_core.errores import ImporteNegativoError
 from nexocred_core.modelos import (
     ConceptoImputacion,
     Imputacion,
@@ -65,3 +68,8 @@ def test_imputacion_previa_reduce_lo_exigible():
     saldo = calcular_saldo_exigible(_cronograma(), imps, date(2026, 1, 10), Decimal("0.001"))
     # cuota 1 ya saldada -> no exigible
     assert all(c.numero != 1 or c.total_exigible == Decimal("0.00") for c in saldo.cuotas)
+
+
+def test_rechaza_tasa_punitorio_negativa():
+    with pytest.raises(ImporteNegativoError):
+        calcular_saldo_exigible(_cronograma(), (), date(2026, 1, 20), Decimal("-0.001"))
