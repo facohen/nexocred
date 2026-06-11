@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
-from app.bcra.router import router_bcra, router_personas as bcra_personas_router
+from app.bcra.router import router_bcra
+from app.bcra.router import router_personas as bcra_personas_router
 from app.m01_personas.router import router as m01_router
 from app.m12_auth.router import router as m12_router
 
