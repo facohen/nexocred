@@ -1,5 +1,8 @@
 from decimal import Decimal
 
+import pytest
+
+from nexocred_core.errores import ImporteNegativoError
 from nexocred_core.tolerancia import aplicar_tolerancia
 
 
@@ -39,3 +42,18 @@ def test_sobrepago_no_es_diferencia_a_tolerar():
     assert res.diferencia == Decimal("0.00")
     assert res.cuota_cerrada is True
     assert res.ajuste == Decimal("0.00")
+
+
+def test_rechaza_cuota_exigible_negativa():
+    with pytest.raises(ImporteNegativoError):
+        aplicar_tolerancia(Decimal("-1.00"), Decimal("0.00"), Decimal("1.00"))
+
+
+def test_rechaza_monto_pagado_negativo():
+    with pytest.raises(ImporteNegativoError):
+        aplicar_tolerancia(Decimal("2200.00"), Decimal("-1.00"), Decimal("1.00"))
+
+
+def test_rechaza_tolerancia_negativa():
+    with pytest.raises(ImporteNegativoError):
+        aplicar_tolerancia(Decimal("2200.00"), Decimal("2200.00"), Decimal("-1.00"))
