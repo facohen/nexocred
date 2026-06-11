@@ -1,5 +1,6 @@
 import json
 import uuid
+from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -16,6 +17,8 @@ from app.m15_catalogo.modelos import (
     ProductoVersion,
 )
 from app.m15_catalogo.schemas import (
+    AjusteTasaIn,
+    CambioTasaOut,
     CeldaComisionIn,
     CeldaTasaIn,
     ProductoCreate,
@@ -235,6 +238,76 @@ async def upsert_matriz_comisiones(
 async def listar_matriz_comisiones(session: AsyncSession) -> list[MatrizComision]:
     res = await session.execute(select(MatrizComision))
     return list(res.scalars().all())
+
+
+# ---------- repricing ----------
+async def _tasa_actual(
+    session: AsyncSession, producto_id: uuid.UUID, perfil_id: uuid.UUID, plazo: int
+) -> Decimal | None:
+    res = await session.execute(
+        select(MatrizTasa.tasa).where(
+            MatrizTasa.producto_id == producto_id,
+            MatrizTasa.perfil_id == perfil_id,
+            MatrizTasa.plazo == plazo,
+        )
+    )
+    return res.scalar_one_or_none()
+
+
+async def repricing_preview(
+    session: AsyncSession, ajustes: list[AjusteTasaIn]
+) -> list[CambioTasaOut]:
+    """Vista previa de un repricing masivo de tasas.
+
+    Forma de entrada elegida (consistente con PUT /matrices/tasas): cada ajuste
+    referencia una celda por coordenada (producto_id, perfil_id, plazo) y la nueva
+    tasa. No muta la matriz; devuelve por celda la tasa anterior y la nueva como
+    strings de 4 decimales.
+    """
+    cambios: list[CambioTasaOut] = []
+    for a in ajustes:
+        anterior = await _tasa_actual(session, a.producto_id, a.perfil_id, a.plazo)
+        cambios.append(
+            CambioTasaOut(
+                producto_id=a.producto_id,
+                perfil_id=a.perfil_id,
+                plazo=a.plazo,
+                tasa_anterior=anterior,
+                tasa_nueva=a.tasa,
+            )
+        )
+    return cambios
+
+
+async def repricing_confirmar(
+    session: AsyncSession, ajustes: list[AjusteTasaIn], *, actor_id: uuid.UUID | None
+) -> tuple[list[CambioTasaOut], list[uuid.UUID]]:
+    """Aplica el repricing: upsert de celdas de tasa (con nueva vigencia) y genera
+    una nueva version por cada producto afectado (bump de version_vigente)."""
+    cambios = await repricing_preview(session, ajustes)
+    celdas = [
+        CeldaTasaIn(
+            producto_id=a.producto_id, perfil_id=a.perfil_id, plazo=a.plazo, tasa=a.tasa
+        )
+        for a in ajustes
+    ]
+    await upsert_matriz_tasas(session, celdas, actor_id=actor_id)
+
+    productos_ids = list(dict.fromkeys(a.producto_id for a in ajustes))
+    versionados: list[uuid.UUID] = []
+    for pid in productos_ids:
+        producto = await obtener_producto(session, pid)
+        if producto is None:
+            continue
+        await actualizar_producto(session, producto, {}, actor_id=actor_id)
+        versionados.append(pid)
+
+    await escribir_evento(
+        session, actor_id=actor_id, accion="repricing_confirmacion",
+        entidad="matriz_tasa",
+        metadata_json={"celdas": len(ajustes), "productos": len(versionados)},
+    )
+    return cambios, versionados
 
 
 # ---------- simuladores (delegan al core) ----------

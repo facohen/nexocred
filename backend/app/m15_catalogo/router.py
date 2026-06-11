@@ -17,6 +17,9 @@ from app.m15_catalogo.schemas import (
     ProductoCreate,
     ProductoOut,
     ProductoUpdate,
+    RepricingIn,
+    RepricingPreviewOut,
+    RepricingResultadoOut,
     SimuladorInternoIn,
     SimuladorLibreIn,
     SimuladorOut,
@@ -55,6 +58,26 @@ async def crear_producto(
 async def listar_productos(session: SessionDep, _: CurrentUser) -> list[ProductoOut]:
     productos = await servicio.listar_productos(session)
     return [await _producto_out(session, p) for p in productos]
+
+
+# ---------- repricing ----------
+@router.post("/productos/repricing", response_model=RepricingPreviewOut)
+async def repricing_preview(
+    datos: RepricingIn, session: SessionDep, _: AdminUser
+) -> RepricingPreviewOut:
+    cambios = await servicio.repricing_preview(session, datos.ajustes)
+    return RepricingPreviewOut(cambios=cambios)
+
+
+@router.post("/productos/repricing/confirmar", response_model=RepricingResultadoOut)
+async def repricing_confirmar(
+    datos: RepricingIn, session: SessionDep, actor: AdminUser
+) -> RepricingResultadoOut:
+    cambios, versionados = await servicio.repricing_confirmar(
+        session, datos.ajustes, actor_id=actor.id
+    )
+    await session.commit()
+    return RepricingResultadoOut(cambios=cambios, productos_versionados=versionados)
 
 
 @router.get("/productos/{producto_id}", response_model=ProductoOut)

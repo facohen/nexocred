@@ -115,6 +115,35 @@ class CeldaComisionOut(BaseModel):
     comision: TasaStr
 
 
+# ---------- repricing ----------
+class AjusteTasaIn(BaseModel):
+    producto_id: uuid.UUID
+    perfil_id: uuid.UUID
+    plazo: int
+    tasa: TasaStr
+
+
+class RepricingIn(BaseModel):
+    ajustes: list[AjusteTasaIn] = Field(min_length=1)
+
+
+class CambioTasaOut(BaseModel):
+    producto_id: uuid.UUID
+    perfil_id: uuid.UUID
+    plazo: int
+    tasa_anterior: TasaStr | None = None
+    tasa_nueva: TasaStr
+
+
+class RepricingPreviewOut(BaseModel):
+    cambios: list[CambioTasaOut]
+
+
+class RepricingResultadoOut(BaseModel):
+    cambios: list[CambioTasaOut]
+    productos_versionados: list[uuid.UUID]
+
+
 # ---------- simuladores ----------
 class SimuladorLibreIn(BaseModel):
     capital: MontoStr
