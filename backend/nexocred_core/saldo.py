@@ -3,6 +3,7 @@
 from datetime import date
 from decimal import Decimal
 
+from nexocred_core.errores import ImporteNegativoError
 from nexocred_core.modelos import (
     ConceptoImputacion,
     Cronograma,
@@ -10,7 +11,6 @@ from nexocred_core.modelos import (
     Imputacion,
     SaldoExigible,
 )
-from nexocred_core.errores import ImporteNegativoError
 from nexocred_core.money import CERO, redondear, restar, sumar
 
 

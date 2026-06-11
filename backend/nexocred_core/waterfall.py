@@ -2,6 +2,7 @@
 
 from decimal import Decimal
 
+from nexocred_core.errores import ImporteNegativoError
 from nexocred_core.modelos import (
     ConceptoImputacion,
     EntradaPago,
@@ -10,7 +11,6 @@ from nexocred_core.modelos import (
     ResultadoPago,
     SaldoExigible,
 )
-from nexocred_core.errores import ImporteNegativoError
 from nexocred_core.money import CERO
 
 _MODOS_CANCELATORIOS = {ModoPago.CANCELACION_ANTICIPADA, ModoPago.NOVACION}
