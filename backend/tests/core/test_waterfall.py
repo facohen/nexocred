@@ -1,6 +1,9 @@
 from datetime import date
 from decimal import Decimal
 
+import pytest
+
+from nexocred_core.errores import ImporteNegativoError
 from nexocred_core.modelos import (
     ConceptoImputacion,
     EntradaPago,
@@ -80,6 +83,17 @@ def test_cancelacion_anticipada_imputa_no_vencido():
     # 50+200+2000 exigible + 800 int no venc + 8000 cap no venc = 11050
     assert res.excedente == Decimal("0.00")
     assert res.total_imputado == Decimal("11050.00")
+
+
+def test_rechaza_monto_negativo():
+    with pytest.raises(ImporteNegativoError):
+        aplicar_pago(_saldo_una_cuota(), EntradaPago(Decimal("-1.00"), date(2026, 1, 20)))
+
+
+def test_monto_cero_no_imputa_y_excedente_cero():
+    res = aplicar_pago(_saldo_una_cuota(), EntradaPago(Decimal("0.00"), date(2026, 1, 20)))
+    assert res.imputaciones == ()
+    assert res.excedente == Decimal("0.00")
 
 
 def test_pago_anticipado_no_cancelatorio_no_toca_no_vencido():
