@@ -1,0 +1,48 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      NEXOCRED_AMBIENTE: local
+      DATABASE_URL: postgresql+asyncpg://nexocred:nexocred@db:5432/nexocred
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET_KEY: change-me-in-local-env
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./backend:/app/backend
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: nexocred
+      POSTGRES_USER: nexocred
+      POSTGRES_PASSWORD: nexocred
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres18_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexocred -d nexocred"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres18_data:

@@ -1,0 +1,25 @@
+[project]
+name = "nexocred"
+version = "0.1.0"
+description = "NexoCred POC"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+pythonpath = ["backend"]
+addopts = "-q"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["backend"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pyright]
+include = ["backend"]
+pythonVersion = "3.12"
+typeCheckingMode = "basic"
+extraPaths = ["backend"]
