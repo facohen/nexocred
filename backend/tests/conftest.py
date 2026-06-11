@@ -1,11 +1,15 @@
 import os
 import subprocess
 from collections.abc import AsyncGenerator
+from pathlib import Path
 
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+# backend/tests/conftest.py -> parents[1] == backend/ (independiente del cwd de invocacion).
+BACKEND_DIR = Path(__file__).resolve().parents[1]
 
 ADMIN_URL = "postgresql+asyncpg://nexocred:nexocred@localhost:5432/nexocred"
 TEST_DB = "nexocred_test"
@@ -22,7 +26,7 @@ async def _crear_db_de_test():
     await admin.dispose()
     subprocess.run(
         ["alembic", "upgrade", "head"],
-        cwd="backend",
+        cwd=BACKEND_DIR,
         check=True,
         env={**os.environ, "DATABASE_URL_SYNC": TEST_URL_SYNC},
     )
