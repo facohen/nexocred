@@ -39,8 +39,8 @@ def test_sumar_y_restar_quedan_quantizados():
 
 
 def test_constantes():
-    assert CERO == Decimal("0.00")
-    assert CENTAVO == Decimal("0.01")
+    assert CERO == Decimal("0.00")  # noqa: SIM300
+    assert CENTAVO == Decimal("0.01")  # noqa: SIM300
 
 
 def test_dinero_negativo_permitido_por_defecto_pero_validable():

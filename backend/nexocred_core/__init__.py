@@ -1,4 +1,4 @@
-"""nexocred_core: motor financiero puro y deterministico (Decimal, sin I/O)."""
+"""Core financiero puro de NexoCred."""
 
 from nexocred_core.correccion import corregir_pago
 from nexocred_core.cronograma import calcular_cronograma
