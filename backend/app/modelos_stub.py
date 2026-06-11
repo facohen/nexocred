@@ -45,6 +45,13 @@ class SolicitudCredito(Base):
     monto: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
     estado: Mapped[str] = mapped_column(Text, nullable=False, server_default="borrador")
     vendedor_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("usuario.id"))
+    perfil_pricing_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("perfil_pricing.id")
+    )
+    tasa_resuelta: Mapped[Decimal | None] = mapped_column(Numeric(10, 4))
+    score: Mapped[int | None] = mapped_column(Integer)
+    motivo_rechazo: Mapped[str | None] = mapped_column(Text)
+    cantidad_cuotas: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = _created_at()
 
 
@@ -60,6 +67,13 @@ class Prestamo(Base):
     )
     capital: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
     estado: Mapped[str] = mapped_column(Text, nullable=False, server_default="vigente")
+    snapshot_terminos: Mapped[dict | None] = mapped_column(JSONB)
+    fecha_desembolso: Mapped[date | None] = mapped_column(Date)
+    tasa_punitorio_diario: Mapped[Decimal] = mapped_column(
+        Numeric(10, 4), nullable=False, server_default="0"
+    )
+    vendedor_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("usuario.id"))
+    monto_desembolsado: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
     created_at: Mapped[datetime] = _created_at()
 
 
@@ -71,6 +85,10 @@ class Cuota(Base):
     vencimiento: Mapped[date | None] = mapped_column(Date)
     capital: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
     interes: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    cuota: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    punitorio_acumulado: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2), nullable=False, server_default="0"
+    )
     estado: Mapped[str] = mapped_column(Text, nullable=False, server_default="pendiente")
     created_at: Mapped[datetime] = _created_at()
 
@@ -111,10 +129,15 @@ class ParadaRuta(Base):
 class MovimientoCaja(Base):
     __tablename__ = "movimiento_caja"
     id: Mapped[uuid.UUID] = uuid_pk()
-    caja_id: Mapped[uuid.UUID | None] = mapped_column()
+    caja_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("caja.id"))
     tipo: Mapped[str | None] = mapped_column(Text)
     monto: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
     fecha_negocio: Mapped[date | None] = mapped_column(Date)
+    concepto: Mapped[str | None] = mapped_column(Text)
+    categoria: Mapped[str | None] = mapped_column(Text)
+    contraparte_caja_id: Mapped[uuid.UUID | None] = mapped_column()
+    pago_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("pago.id"))
+    referencia: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = _created_at()
 
 
@@ -125,8 +148,14 @@ class Pago(Base):
     parada_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("parada_ruta.id"))
     caja_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("movimiento_caja.id"))
     monto: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    excedente: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2), nullable=False, server_default="0"
+    )
     estado: Mapped[str] = mapped_column(Text, nullable=False, server_default="registrado")
     fecha_negocio: Mapped[date | None] = mapped_column(Date)
+    idempotency_key: Mapped[str | None] = mapped_column(Text)
+    canal: Mapped[str | None] = mapped_column(Text)
+    corrige_pago_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("pago.id"))
     created_at: Mapped[datetime] = _created_at()
 
 
@@ -138,6 +167,7 @@ class Imputacion(Base):
     concepto: Mapped[str | None] = mapped_column(Text)
     monto: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
     orden_waterfall: Mapped[int | None] = mapped_column(Integer)
+    cuota_numero: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = _created_at()
 
 
