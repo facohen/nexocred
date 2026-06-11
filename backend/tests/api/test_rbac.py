@@ -31,3 +31,14 @@ async def test_token_invalido_401(client):
     r = await client.get("/api/v1/usuarios", headers=_h("basura"))
     assert r.status_code == 401
     assert r.json()["error"]["code"] == "no_autenticado"
+
+
+async def test_analista_no_puede_listar_usuarios_403(client, analista_token):
+    r = await client.get("/api/v1/usuarios", headers=_h(analista_token))
+    assert r.status_code == 403
+    assert r.json()["error"]["code"] == "prohibido"
+
+
+async def test_admin_puede_listar_usuarios_200(client, admin_token):
+    r = await client.get("/api/v1/usuarios", headers=_h(admin_token))
+    assert r.status_code == 200

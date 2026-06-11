@@ -113,7 +113,7 @@ async def logout(
 # ---------- USUARIOS ----------
 @router.get("/usuarios", response_model=list[UsuarioOut], tags=["usuarios"])
 async def listar_usuarios(
-    session: SessionDep, _: CurrentUser
+    session: SessionDep, _: AdminUser
 ) -> list[UsuarioOut]:
     res = await session.execute(select(Usuario))
     return [_usuario_out(u) for u in res.scalars().all()]

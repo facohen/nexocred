@@ -14,5 +14,13 @@ dependencies:
   - alembic
   - httpx
   - uvicorn
+  - greenlet
   - pip:
       - pydantic-settings
+      - asyncpg
+      - psycopg[binary]
+      - pyjwt
+      - passlib[bcrypt]
+      - bcrypt
+      - python-multipart
+      - pytest-asyncio
