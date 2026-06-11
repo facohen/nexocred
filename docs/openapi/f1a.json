@@ -1,0 +1,3668 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "NexoCred API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Login",
+        "operationId": "login_api_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Refresh",
+        "operationId": "refresh_api_v1_auth_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Logout",
+        "operationId": "logout_api_v1_auth_logout_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Logout Api V1 Auth Logout Post"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/usuarios": {
+      "get": {
+        "tags": [
+          "usuarios"
+        ],
+        "summary": "Listar Usuarios",
+        "operationId": "listar_usuarios_api_v1_usuarios_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UsuarioOut"
+                  },
+                  "type": "array",
+                  "title": "Response Listar Usuarios Api V1 Usuarios Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "usuarios"
+        ],
+        "summary": "Crear Usuario",
+        "operationId": "crear_usuario_api_v1_usuarios_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsuarioCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/usuarios/{usuario_id}": {
+      "patch": {
+        "tags": [
+          "usuarios"
+        ],
+        "summary": "Actualizar Usuario",
+        "operationId": "actualizar_usuario_api_v1_usuarios__usuario_id__patch",
+        "parameters": [
+          {
+            "name": "usuario_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Usuario Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsuarioUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "usuarios"
+        ],
+        "summary": "Desactivar Usuario",
+        "operationId": "desactivar_usuario_api_v1_usuarios__usuario_id__delete",
+        "parameters": [
+          {
+            "name": "usuario_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Usuario Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Desactivar Usuario Api V1 Usuarios  Usuario Id  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auditoria": {
+      "get": {
+        "tags": [
+          "auditoria"
+        ],
+        "summary": "Listar Auditoria",
+        "operationId": "listar_auditoria_api_v1_auditoria_get",
+        "parameters": [
+          {
+            "name": "accion",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Accion"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditoriaOut"
+                  },
+                  "title": "Response Listar Auditoria Api V1 Auditoria Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/parametros": {
+      "get": {
+        "tags": [
+          "parametros"
+        ],
+        "summary": "Obtener Parametros",
+        "operationId": "obtener_parametros_api_v1_parametros_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Obtener Parametros Api V1 Parametros Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "parametros"
+        ],
+        "summary": "Actualizar Parametros",
+        "operationId": "actualizar_parametros_api_v1_parametros_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Cambios"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Actualizar Parametros Api V1 Parametros Patch"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/personas": {
+      "post": {
+        "tags": [
+          "personas"
+        ],
+        "summary": "Crear Persona",
+        "operationId": "crear_persona_api_v1_personas_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonaCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonaOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "personas"
+        ],
+        "summary": "Listar Personas",
+        "operationId": "listar_personas_api_v1_personas_get",
+        "parameters": [
+          {
+            "name": "nombre",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Nombre"
+            }
+          },
+          {
+            "name": "dni",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dni"
+            }
+          },
+          {
+            "name": "cuil",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cuil"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Per Page"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonaPagina"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/personas/buscar": {
+      "get": {
+        "tags": [
+          "personas"
+        ],
+        "summary": "Buscar Personas",
+        "operationId": "buscar_personas_api_v1_personas_buscar_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PersonaListItem"
+                  },
+                  "title": "Response Buscar Personas Api V1 Personas Buscar Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/personas/{persona_id}": {
+      "get": {
+        "tags": [
+          "personas"
+        ],
+        "summary": "Ficha Persona",
+        "operationId": "ficha_persona_api_v1_personas__persona_id__get",
+        "parameters": [
+          {
+            "name": "persona_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Persona Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonaOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "personas"
+        ],
+        "summary": "Actualizar Persona",
+        "operationId": "actualizar_persona_api_v1_personas__persona_id__patch",
+        "parameters": [
+          {
+            "name": "persona_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Persona Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonaUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonaOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/personas/{persona_id}/referencias": {
+      "post": {
+        "tags": [
+          "personas"
+        ],
+        "summary": "Agregar Referencia",
+        "operationId": "agregar_referencia_api_v1_personas__persona_id__referencias_post",
+        "parameters": [
+          {
+            "name": "persona_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Persona Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferenciaIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferenciaOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "personas"
+        ],
+        "summary": "Listar Referencias",
+        "operationId": "listar_referencias_api_v1_personas__persona_id__referencias_get",
+        "parameters": [
+          {
+            "name": "persona_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Persona Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReferenciaOut"
+                  },
+                  "title": "Response Listar Referencias Api V1 Personas  Persona Id  Referencias Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/personas/{persona_id}/referencias/{ref_id}": {
+      "delete": {
+        "tags": [
+          "personas"
+        ],
+        "summary": "Eliminar Referencia",
+        "operationId": "eliminar_referencia_api_v1_personas__persona_id__referencias__ref_id__delete",
+        "parameters": [
+          {
+            "name": "persona_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Persona Id"
+            }
+          },
+          {
+            "name": "ref_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Ref Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Eliminar Referencia Api V1 Personas  Persona Id  Referencias  Ref Id  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/personas/{persona_id}/marcas": {
+      "post": {
+        "tags": [
+          "personas"
+        ],
+        "summary": "Agregar Marca",
+        "operationId": "agregar_marca_api_v1_personas__persona_id__marcas_post",
+        "parameters": [
+          {
+            "name": "persona_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Persona Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarcaIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarcaOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "personas"
+        ],
+        "summary": "Listar Marcas",
+        "operationId": "listar_marcas_api_v1_personas__persona_id__marcas_get",
+        "parameters": [
+          {
+            "name": "persona_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Persona Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MarcaOut"
+                  },
+                  "title": "Response Listar Marcas Api V1 Personas  Persona Id  Marcas Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/personas/{persona_id}/deuda-bcra/sync": {
+      "post": {
+        "tags": [
+          "bcra"
+        ],
+        "summary": "Sync Deuda Bcra",
+        "operationId": "sync_deuda_bcra_api_v1_personas__persona_id__deuda_bcra_sync_post",
+        "parameters": [
+          {
+            "name": "persona_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Persona Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeudaBcraOut"
+                  },
+                  "title": "Response Sync Deuda Bcra Api V1 Personas  Persona Id  Deuda Bcra Sync Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/personas/{persona_id}/deuda-bcra": {
+      "get": {
+        "tags": [
+          "bcra"
+        ],
+        "summary": "Historial Deuda Bcra",
+        "operationId": "historial_deuda_bcra_api_v1_personas__persona_id__deuda_bcra_get",
+        "parameters": [
+          {
+            "name": "persona_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Persona Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeudaBcraOut"
+                  },
+                  "title": "Response Historial Deuda Bcra Api V1 Personas  Persona Id  Deuda Bcra Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/bcra/consultar/{persona_id}": {
+      "post": {
+        "tags": [
+          "bcra"
+        ],
+        "summary": "Consultar Bcra",
+        "operationId": "consultar_bcra_api_v1_bcra_consultar__persona_id__post",
+        "parameters": [
+          {
+            "name": "persona_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Persona Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeudaBcraOut"
+                  },
+                  "title": "Response Consultar Bcra Api V1 Bcra Consultar  Persona Id  Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/bcra/{persona_id}/historial": {
+      "get": {
+        "tags": [
+          "bcra"
+        ],
+        "summary": "Historial Bcra",
+        "operationId": "historial_bcra_api_v1_bcra__persona_id__historial_get",
+        "parameters": [
+          {
+            "name": "persona_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Persona Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeudaBcraOut"
+                  },
+                  "title": "Response Historial Bcra Api V1 Bcra  Persona Id  Historial Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/productos": {
+      "get": {
+        "tags": [
+          "catalogo"
+        ],
+        "summary": "Listar Productos",
+        "operationId": "listar_productos_api_v1_productos_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProductoOut"
+                  },
+                  "type": "array",
+                  "title": "Response Listar Productos Api V1 Productos Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "catalogo"
+        ],
+        "summary": "Crear Producto",
+        "operationId": "crear_producto_api_v1_productos_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductoCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductoOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/productos/{producto_id}": {
+      "get": {
+        "tags": [
+          "catalogo"
+        ],
+        "summary": "Detalle Producto",
+        "operationId": "detalle_producto_api_v1_productos__producto_id__get",
+        "parameters": [
+          {
+            "name": "producto_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Producto Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductoOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "catalogo"
+        ],
+        "summary": "Actualizar Producto",
+        "operationId": "actualizar_producto_api_v1_productos__producto_id__patch",
+        "parameters": [
+          {
+            "name": "producto_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Producto Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductoUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductoOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/productos/{producto_id}/publicar": {
+      "post": {
+        "tags": [
+          "catalogo"
+        ],
+        "summary": "Publicar Producto",
+        "operationId": "publicar_producto_api_v1_productos__producto_id__publicar_post",
+        "parameters": [
+          {
+            "name": "producto_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Producto Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductoOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/perfiles-pricing": {
+      "get": {
+        "tags": [
+          "catalogo"
+        ],
+        "summary": "Listar Perfiles",
+        "operationId": "listar_perfiles_api_v1_perfiles_pricing_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PerfilOut"
+                  },
+                  "type": "array",
+                  "title": "Response Listar Perfiles Api V1 Perfiles Pricing Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "catalogo"
+        ],
+        "summary": "Crear Perfil",
+        "operationId": "crear_perfil_api_v1_perfiles_pricing_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PerfilCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerfilOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/matrices/tasas": {
+      "get": {
+        "tags": [
+          "catalogo"
+        ],
+        "summary": "Listar Matriz Tasas",
+        "operationId": "listar_matriz_tasas_api_v1_matrices_tasas_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CeldaTasaOut"
+                  },
+                  "type": "array",
+                  "title": "Response Listar Matriz Tasas Api V1 Matrices Tasas Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "catalogo"
+        ],
+        "summary": "Actualizar Matriz Tasas",
+        "operationId": "actualizar_matriz_tasas_api_v1_matrices_tasas_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatrizTasaIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CeldaTasaOut"
+                  },
+                  "type": "array",
+                  "title": "Response Actualizar Matriz Tasas Api V1 Matrices Tasas Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/matrices/comisiones": {
+      "get": {
+        "tags": [
+          "catalogo"
+        ],
+        "summary": "Listar Matriz Comisiones",
+        "operationId": "listar_matriz_comisiones_api_v1_matrices_comisiones_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CeldaComisionOut"
+                  },
+                  "type": "array",
+                  "title": "Response Listar Matriz Comisiones Api V1 Matrices Comisiones Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "catalogo"
+        ],
+        "summary": "Actualizar Matriz Comisiones",
+        "operationId": "actualizar_matriz_comisiones_api_v1_matrices_comisiones_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatrizComisionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CeldaComisionOut"
+                  },
+                  "type": "array",
+                  "title": "Response Actualizar Matriz Comisiones Api V1 Matrices Comisiones Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/simulador/otorgante": {
+      "post": {
+        "tags": [
+          "catalogo"
+        ],
+        "summary": "Simulador Otorgante",
+        "operationId": "simulador_otorgante_api_v1_simulador_otorgante_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimuladorLibreIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimuladorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/simulador/cotizador": {
+      "post": {
+        "tags": [
+          "catalogo"
+        ],
+        "summary": "Simulador Cotizador",
+        "operationId": "simulador_cotizador_api_v1_simulador_cotizador_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimuladorLibreIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimuladorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/simulador/interno": {
+      "post": {
+        "tags": [
+          "catalogo"
+        ],
+        "summary": "Simulador Interno",
+        "operationId": "simulador_interno_api_v1_simulador_interno_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimuladorInternoIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimuladorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/healthcheck": {
+      "get": {
+        "tags": [
+          "sistema"
+        ],
+        "summary": "Healthcheck",
+        "operationId": "healthcheck_healthcheck_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Healthcheck Healthcheck Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AccessOut": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token"
+        ],
+        "title": "AccessOut"
+      },
+      "AuditoriaOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "actor_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Id"
+          },
+          "accion": {
+            "type": "string",
+            "title": "Accion"
+          },
+          "entidad": {
+            "type": "string",
+            "title": "Entidad"
+          },
+          "entidad_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entidad Id"
+          },
+          "resultado": {
+            "type": "string",
+            "title": "Resultado"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "metadata_json": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata Json"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "actor_id",
+          "accion",
+          "entidad",
+          "entidad_id",
+          "resultado",
+          "created_at"
+        ],
+        "title": "AuditoriaOut"
+      },
+      "CeldaComisionIn": {
+        "properties": {
+          "producto_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Producto Id"
+          },
+          "perfil_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Perfil Id"
+          },
+          "comision": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Comision"
+          }
+        },
+        "type": "object",
+        "required": [
+          "producto_id",
+          "perfil_id",
+          "comision"
+        ],
+        "title": "CeldaComisionIn"
+      },
+      "CeldaComisionOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "producto_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Producto Id"
+          },
+          "perfil_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Perfil Id"
+          },
+          "comision": {
+            "type": "string",
+            "title": "Comision"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "producto_id",
+          "perfil_id",
+          "comision"
+        ],
+        "title": "CeldaComisionOut"
+      },
+      "CeldaTasaIn": {
+        "properties": {
+          "producto_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Producto Id"
+          },
+          "perfil_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Perfil Id"
+          },
+          "plazo": {
+            "type": "integer",
+            "title": "Plazo"
+          },
+          "tasa": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Tasa"
+          }
+        },
+        "type": "object",
+        "required": [
+          "producto_id",
+          "perfil_id",
+          "plazo",
+          "tasa"
+        ],
+        "title": "CeldaTasaIn"
+      },
+      "CeldaTasaOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "producto_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Producto Id"
+          },
+          "perfil_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Perfil Id"
+          },
+          "plazo": {
+            "type": "integer",
+            "title": "Plazo"
+          },
+          "tasa": {
+            "type": "string",
+            "title": "Tasa"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "producto_id",
+          "perfil_id",
+          "plazo",
+          "tasa"
+        ],
+        "title": "CeldaTasaOut"
+      },
+      "DeudaBcraOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "persona_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Persona Id"
+          },
+          "entidad": {
+            "type": "string",
+            "title": "Entidad"
+          },
+          "monto": {
+            "type": "string",
+            "title": "Monto"
+          },
+          "situacion": {
+            "type": "integer",
+            "title": "Situacion"
+          },
+          "fecha_informe": {
+            "type": "string",
+            "format": "date",
+            "title": "Fecha Informe"
+          },
+          "fuente": {
+            "type": "string",
+            "title": "Fuente"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "persona_id",
+          "entidad",
+          "monto",
+          "situacion",
+          "fecha_informe",
+          "fuente"
+        ],
+        "title": "DeudaBcraOut"
+      },
+      "FilaCronogramaOut": {
+        "properties": {
+          "numero": {
+            "type": "integer",
+            "title": "Numero"
+          },
+          "vencimiento": {
+            "type": "string",
+            "format": "date",
+            "title": "Vencimiento"
+          },
+          "capital": {
+            "type": "string",
+            "title": "Capital"
+          },
+          "interes": {
+            "type": "string",
+            "title": "Interes"
+          },
+          "cuota": {
+            "type": "string",
+            "title": "Cuota"
+          }
+        },
+        "type": "object",
+        "required": [
+          "numero",
+          "vencimiento",
+          "capital",
+          "interes",
+          "cuota"
+        ],
+        "title": "FilaCronogramaOut"
+      },
+      "GastoIn": {
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "tipo": {
+            "type": "string",
+            "title": "Tipo"
+          },
+          "valor": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Valor"
+          },
+          "financiado": {
+            "type": "boolean",
+            "title": "Financiado",
+            "default": false
+          },
+          "jurisdiccion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jurisdiccion"
+          }
+        },
+        "type": "object",
+        "required": [
+          "nombre",
+          "tipo",
+          "valor"
+        ],
+        "title": "GastoIn"
+      },
+      "GastoOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "producto_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Producto Id"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "tipo": {
+            "type": "string",
+            "title": "Tipo"
+          },
+          "valor": {
+            "type": "string",
+            "title": "Valor"
+          },
+          "financiado": {
+            "type": "boolean",
+            "title": "Financiado"
+          },
+          "jurisdiccion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jurisdiccion"
+          },
+          "activo": {
+            "type": "boolean",
+            "title": "Activo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "producto_id",
+          "nombre",
+          "tipo",
+          "valor",
+          "financiado",
+          "jurisdiccion",
+          "activo"
+        ],
+        "title": "GastoOut"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LoginIn": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "LoginIn"
+      },
+      "MarcaIn": {
+        "properties": {
+          "tipo": {
+            "type": "string",
+            "title": "Tipo"
+          },
+          "motivo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Motivo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tipo"
+        ],
+        "title": "MarcaIn"
+      },
+      "MarcaOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "persona_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Persona Id"
+          },
+          "tipo": {
+            "type": "string",
+            "title": "Tipo"
+          },
+          "motivo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Motivo"
+          },
+          "activa": {
+            "type": "boolean",
+            "title": "Activa"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "persona_id",
+          "tipo",
+          "activa"
+        ],
+        "title": "MarcaOut"
+      },
+      "MatrizComisionIn": {
+        "properties": {
+          "celdas": {
+            "items": {
+              "$ref": "#/components/schemas/CeldaComisionIn"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Celdas"
+          }
+        },
+        "type": "object",
+        "required": [
+          "celdas"
+        ],
+        "title": "MatrizComisionIn"
+      },
+      "MatrizTasaIn": {
+        "properties": {
+          "celdas": {
+            "items": {
+              "$ref": "#/components/schemas/CeldaTasaIn"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Celdas"
+          }
+        },
+        "type": "object",
+        "required": [
+          "celdas"
+        ],
+        "title": "MatrizTasaIn"
+      },
+      "PerfilCreate": {
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "descripcion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descripcion"
+          },
+          "orden": {
+            "type": "integer",
+            "title": "Orden",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "nombre"
+        ],
+        "title": "PerfilCreate"
+      },
+      "PerfilOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "descripcion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descripcion"
+          },
+          "orden": {
+            "type": "integer",
+            "title": "Orden"
+          },
+          "activo": {
+            "type": "boolean",
+            "title": "Activo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "nombre",
+          "descripcion",
+          "orden",
+          "activo"
+        ],
+        "title": "PerfilOut"
+      },
+      "PersonaCreate": {
+        "properties": {
+          "apellido": {
+            "type": "string",
+            "title": "Apellido"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "dni": {
+            "type": "string",
+            "title": "Dni"
+          },
+          "cuil": {
+            "type": "string",
+            "title": "Cuil"
+          },
+          "fecha_nac": {
+            "type": "string",
+            "format": "date",
+            "title": "Fecha Nac"
+          },
+          "estado_civil": {
+            "type": "string",
+            "title": "Estado Civil"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "telefono": {
+            "type": "string",
+            "title": "Telefono"
+          },
+          "domicilio_calle": {
+            "type": "string",
+            "title": "Domicilio Calle"
+          },
+          "domicilio_numero": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domicilio Numero"
+          },
+          "domicilio_piso": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domicilio Piso"
+          },
+          "domicilio_localidad": {
+            "type": "string",
+            "title": "Domicilio Localidad"
+          },
+          "domicilio_provincia": {
+            "type": "string",
+            "title": "Domicilio Provincia",
+            "default": "Buenos Aires"
+          },
+          "observaciones_domicilio": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observaciones Domicilio"
+          },
+          "tipo_vivienda": {
+            "type": "string",
+            "title": "Tipo Vivienda"
+          },
+          "ingresos_declarados": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Ingresos Declarados"
+          },
+          "ingresos_en_blanco": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Ingresos En Blanco",
+            "default": "0"
+          },
+          "ingresos_totales": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Ingresos Totales"
+          },
+          "empleador": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Empleador"
+          },
+          "cuit_empleador": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cuit Empleador"
+          },
+          "fecha_ingreso_laboral": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fecha Ingreso Laboral"
+          },
+          "referido_por_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referido Por Id"
+          },
+          "redes_sociales": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redes Sociales"
+          },
+          "referencias": {
+            "items": {
+              "$ref": "#/components/schemas/ReferenciaIn"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Referencias"
+          }
+        },
+        "type": "object",
+        "required": [
+          "apellido",
+          "nombre",
+          "dni",
+          "cuil",
+          "fecha_nac",
+          "estado_civil",
+          "email",
+          "telefono",
+          "domicilio_calle",
+          "domicilio_localidad",
+          "tipo_vivienda",
+          "ingresos_declarados",
+          "ingresos_totales",
+          "referencias"
+        ],
+        "title": "PersonaCreate"
+      },
+      "PersonaListItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "apellido": {
+            "type": "string",
+            "title": "Apellido"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "dni": {
+            "type": "string",
+            "title": "Dni"
+          },
+          "cuil": {
+            "type": "string",
+            "title": "Cuil"
+          },
+          "activo": {
+            "type": "boolean",
+            "title": "Activo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "apellido",
+          "nombre",
+          "dni",
+          "cuil",
+          "activo"
+        ],
+        "title": "PersonaListItem"
+      },
+      "PersonaOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "apellido": {
+            "type": "string",
+            "title": "Apellido"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "dni": {
+            "type": "string",
+            "title": "Dni"
+          },
+          "cuil": {
+            "type": "string",
+            "title": "Cuil"
+          },
+          "fecha_nac": {
+            "type": "string",
+            "format": "date",
+            "title": "Fecha Nac"
+          },
+          "estado_civil": {
+            "type": "string",
+            "title": "Estado Civil"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "telefono": {
+            "type": "string",
+            "title": "Telefono"
+          },
+          "domicilio_calle": {
+            "type": "string",
+            "title": "Domicilio Calle"
+          },
+          "domicilio_numero": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domicilio Numero"
+          },
+          "domicilio_piso": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domicilio Piso"
+          },
+          "domicilio_localidad": {
+            "type": "string",
+            "title": "Domicilio Localidad"
+          },
+          "domicilio_provincia": {
+            "type": "string",
+            "title": "Domicilio Provincia"
+          },
+          "observaciones_domicilio": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observaciones Domicilio"
+          },
+          "tipo_vivienda": {
+            "type": "string",
+            "title": "Tipo Vivienda"
+          },
+          "ingresos_declarados": {
+            "type": "string",
+            "title": "Ingresos Declarados"
+          },
+          "ingresos_en_blanco": {
+            "type": "string",
+            "title": "Ingresos En Blanco"
+          },
+          "ingresos_totales": {
+            "type": "string",
+            "title": "Ingresos Totales"
+          },
+          "empleador": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Empleador"
+          },
+          "cuit_empleador": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cuit Empleador"
+          },
+          "fecha_ingreso_laboral": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fecha Ingreso Laboral"
+          },
+          "referido_por_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referido Por Id"
+          },
+          "activo": {
+            "type": "boolean",
+            "title": "Activo"
+          },
+          "referencias": {
+            "items": {
+              "$ref": "#/components/schemas/ReferenciaOut"
+            },
+            "type": "array",
+            "title": "Referencias"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "apellido",
+          "nombre",
+          "dni",
+          "cuil",
+          "fecha_nac",
+          "estado_civil",
+          "email",
+          "telefono",
+          "domicilio_calle",
+          "domicilio_numero",
+          "domicilio_piso",
+          "domicilio_localidad",
+          "domicilio_provincia",
+          "observaciones_domicilio",
+          "tipo_vivienda",
+          "ingresos_declarados",
+          "ingresos_en_blanco",
+          "ingresos_totales",
+          "empleador",
+          "cuit_empleador",
+          "fecha_ingreso_laboral",
+          "referido_por_id",
+          "activo"
+        ],
+        "title": "PersonaOut"
+      },
+      "PersonaPagina": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PersonaListItem"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "per_page": {
+            "type": "integer",
+            "title": "Per Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page"
+        ],
+        "title": "PersonaPagina"
+      },
+      "PersonaUpdate": {
+        "properties": {
+          "nombre": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nombre"
+          },
+          "apellido": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Apellido"
+          },
+          "estado_civil": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estado Civil"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "telefono": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telefono"
+          },
+          "domicilio_calle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domicilio Calle"
+          },
+          "domicilio_numero": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domicilio Numero"
+          },
+          "domicilio_piso": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domicilio Piso"
+          },
+          "domicilio_localidad": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domicilio Localidad"
+          },
+          "domicilio_provincia": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domicilio Provincia"
+          },
+          "observaciones_domicilio": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observaciones Domicilio"
+          },
+          "tipo_vivienda": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tipo Vivienda"
+          },
+          "ingresos_declarados": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ingresos Declarados"
+          },
+          "ingresos_en_blanco": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ingresos En Blanco"
+          },
+          "ingresos_totales": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ingresos Totales"
+          },
+          "empleador": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Empleador"
+          },
+          "cuit_empleador": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cuit Empleador"
+          },
+          "fecha_ingreso_laboral": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fecha Ingreso Laboral"
+          },
+          "activo": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activo"
+          }
+        },
+        "type": "object",
+        "title": "PersonaUpdate"
+      },
+      "ProductoCreate": {
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "descripcion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descripcion"
+          },
+          "periodicidad": {
+            "type": "string",
+            "title": "Periodicidad",
+            "default": "mensual"
+          },
+          "plazos_permitidos": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Plazos Permitidos"
+          },
+          "monto_minimo": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monto Minimo"
+          },
+          "monto_maximo": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monto Maximo"
+          },
+          "gastos": {
+            "items": {
+              "$ref": "#/components/schemas/GastoIn"
+            },
+            "type": "array",
+            "title": "Gastos"
+          }
+        },
+        "type": "object",
+        "required": [
+          "nombre"
+        ],
+        "title": "ProductoCreate"
+      },
+      "ProductoOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "descripcion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descripcion"
+          },
+          "estado": {
+            "type": "string",
+            "title": "Estado"
+          },
+          "version_vigente": {
+            "type": "integer",
+            "title": "Version Vigente"
+          },
+          "activo": {
+            "type": "boolean",
+            "title": "Activo"
+          },
+          "periodicidad": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Periodicidad"
+          },
+          "plazos_permitidos": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Plazos Permitidos"
+          },
+          "monto_minimo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monto Minimo"
+          },
+          "monto_maximo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monto Maximo"
+          },
+          "gastos": {
+            "items": {
+              "$ref": "#/components/schemas/GastoOut"
+            },
+            "type": "array",
+            "title": "Gastos"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "nombre",
+          "descripcion",
+          "estado",
+          "version_vigente",
+          "activo"
+        ],
+        "title": "ProductoOut"
+      },
+      "ProductoUpdate": {
+        "properties": {
+          "nombre": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nombre"
+          },
+          "descripcion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Descripcion"
+          },
+          "periodicidad": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Periodicidad"
+          },
+          "plazos_permitidos": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plazos Permitidos"
+          },
+          "monto_minimo": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monto Minimo"
+          },
+          "monto_maximo": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monto Maximo"
+          }
+        },
+        "type": "object",
+        "title": "ProductoUpdate"
+      },
+      "ReferenciaIn": {
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "apellido": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Apellido"
+          },
+          "telefono": {
+            "type": "string",
+            "title": "Telefono"
+          },
+          "vinculo": {
+            "type": "string",
+            "title": "Vinculo"
+          },
+          "es_alternativo": {
+            "type": "boolean",
+            "title": "Es Alternativo",
+            "default": true
+          },
+          "notas": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notas"
+          }
+        },
+        "type": "object",
+        "required": [
+          "nombre",
+          "telefono",
+          "vinculo"
+        ],
+        "title": "ReferenciaIn"
+      },
+      "ReferenciaOut": {
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "apellido": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Apellido"
+          },
+          "telefono": {
+            "type": "string",
+            "title": "Telefono"
+          },
+          "vinculo": {
+            "type": "string",
+            "title": "Vinculo"
+          },
+          "es_alternativo": {
+            "type": "boolean",
+            "title": "Es Alternativo",
+            "default": true
+          },
+          "notas": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notas"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "persona_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Persona Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "nombre",
+          "telefono",
+          "vinculo",
+          "id",
+          "persona_id"
+        ],
+        "title": "ReferenciaOut"
+      },
+      "RefreshIn": {
+        "properties": {
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "refresh_token"
+        ],
+        "title": "RefreshIn"
+      },
+      "SimuladorInternoIn": {
+        "properties": {
+          "capital": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Capital"
+          },
+          "producto_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Producto Id"
+          },
+          "perfil_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Perfil Id"
+          },
+          "cantidad_cuotas": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Cantidad Cuotas"
+          },
+          "periodicidad": {
+            "type": "string",
+            "title": "Periodicidad",
+            "default": "mensual"
+          },
+          "fecha_primera_cuota": {
+            "type": "string",
+            "format": "date",
+            "title": "Fecha Primera Cuota"
+          }
+        },
+        "type": "object",
+        "required": [
+          "capital",
+          "producto_id",
+          "perfil_id",
+          "cantidad_cuotas",
+          "fecha_primera_cuota"
+        ],
+        "title": "SimuladorInternoIn"
+      },
+      "SimuladorLibreIn": {
+        "properties": {
+          "capital": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Capital"
+          },
+          "tasa_interes_directo": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Tasa Interes Directo"
+          },
+          "cantidad_cuotas": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Cantidad Cuotas"
+          },
+          "periodicidad": {
+            "type": "string",
+            "title": "Periodicidad",
+            "default": "mensual"
+          },
+          "fecha_primera_cuota": {
+            "type": "string",
+            "format": "date",
+            "title": "Fecha Primera Cuota"
+          }
+        },
+        "type": "object",
+        "required": [
+          "capital",
+          "tasa_interes_directo",
+          "cantidad_cuotas",
+          "fecha_primera_cuota"
+        ],
+        "title": "SimuladorLibreIn"
+      },
+      "SimuladorOut": {
+        "properties": {
+          "capital": {
+            "type": "string",
+            "title": "Capital"
+          },
+          "tasa_interes_directo": {
+            "type": "string",
+            "title": "Tasa Interes Directo"
+          },
+          "cantidad_cuotas": {
+            "type": "integer",
+            "title": "Cantidad Cuotas"
+          },
+          "periodicidad": {
+            "type": "string",
+            "title": "Periodicidad"
+          },
+          "total_capital": {
+            "type": "string",
+            "title": "Total Capital"
+          },
+          "total_interes": {
+            "type": "string",
+            "title": "Total Interes"
+          },
+          "total_a_pagar": {
+            "type": "string",
+            "title": "Total A Pagar"
+          },
+          "cuotas": {
+            "items": {
+              "$ref": "#/components/schemas/FilaCronogramaOut"
+            },
+            "type": "array",
+            "title": "Cuotas"
+          }
+        },
+        "type": "object",
+        "required": [
+          "capital",
+          "tasa_interes_directo",
+          "cantidad_cuotas",
+          "periodicidad",
+          "total_capital",
+          "total_interes",
+          "total_a_pagar",
+          "cuotas"
+        ],
+        "title": "SimuladorOut"
+      },
+      "TokenOut": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "refresh_token"
+        ],
+        "title": "TokenOut"
+      },
+      "UsuarioCreate": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 6,
+            "title": "Password"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Roles"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "nombre",
+          "password"
+        ],
+        "title": "UsuarioCreate"
+      },
+      "UsuarioOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "nombre": {
+            "type": "string",
+            "title": "Nombre"
+          },
+          "activo": {
+            "type": "boolean",
+            "title": "Activo"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Roles"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "nombre",
+          "activo"
+        ],
+        "title": "UsuarioOut"
+      },
+      "UsuarioUpdate": {
+        "properties": {
+          "nombre": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nombre"
+          },
+          "roles": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roles"
+          }
+        },
+        "type": "object",
+        "title": "UsuarioUpdate"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
