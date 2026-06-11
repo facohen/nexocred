@@ -1182,6 +1182,88 @@
         }
       }
     },
+    "/api/v1/productos/repricing": {
+      "post": {
+        "tags": [
+          "catalogo"
+        ],
+        "summary": "Repricing Preview",
+        "operationId": "repricing_preview_api_v1_productos_repricing_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RepricingIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepricingPreviewOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/productos/repricing/confirmar": {
+      "post": {
+        "tags": [
+          "catalogo"
+        ],
+        "summary": "Repricing Confirmar",
+        "operationId": "repricing_confirmar_api_v1_productos_repricing_confirmar_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RepricingIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepricingResultadoOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/productos/{producto_id}": {
       "get": {
         "tags": [
@@ -1688,6 +1770,44 @@
         ],
         "title": "AccessOut"
       },
+      "AjusteTasaIn": {
+        "properties": {
+          "producto_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Producto Id"
+          },
+          "perfil_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Perfil Id"
+          },
+          "plazo": {
+            "type": "integer",
+            "title": "Plazo"
+          },
+          "tasa": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Tasa"
+          }
+        },
+        "type": "object",
+        "required": [
+          "producto_id",
+          "perfil_id",
+          "plazo",
+          "tasa"
+        ],
+        "title": "AjusteTasaIn"
+      },
       "AuditoriaOut": {
         "properties": {
           "id": {
@@ -1759,6 +1879,47 @@
           "created_at"
         ],
         "title": "AuditoriaOut"
+      },
+      "CambioTasaOut": {
+        "properties": {
+          "producto_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Producto Id"
+          },
+          "perfil_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Perfil Id"
+          },
+          "plazo": {
+            "type": "integer",
+            "title": "Plazo"
+          },
+          "tasa_anterior": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tasa Anterior"
+          },
+          "tasa_nueva": {
+            "type": "string",
+            "title": "Tasa Nueva"
+          }
+        },
+        "type": "object",
+        "required": [
+          "producto_id",
+          "perfil_id",
+          "plazo",
+          "tasa_nueva"
+        ],
+        "title": "CambioTasaOut"
       },
       "CeldaComisionIn": {
         "properties": {
@@ -3349,6 +3510,64 @@
           "refresh_token"
         ],
         "title": "RefreshIn"
+      },
+      "RepricingIn": {
+        "properties": {
+          "ajustes": {
+            "items": {
+              "$ref": "#/components/schemas/AjusteTasaIn"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Ajustes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ajustes"
+        ],
+        "title": "RepricingIn"
+      },
+      "RepricingPreviewOut": {
+        "properties": {
+          "cambios": {
+            "items": {
+              "$ref": "#/components/schemas/CambioTasaOut"
+            },
+            "type": "array",
+            "title": "Cambios"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cambios"
+        ],
+        "title": "RepricingPreviewOut"
+      },
+      "RepricingResultadoOut": {
+        "properties": {
+          "cambios": {
+            "items": {
+              "$ref": "#/components/schemas/CambioTasaOut"
+            },
+            "type": "array",
+            "title": "Cambios"
+          },
+          "productos_versionados": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Productos Versionados"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cambios",
+          "productos_versionados"
+        ],
+        "title": "RepricingResultadoOut"
       },
       "SimuladorInternoIn": {
         "properties": {
