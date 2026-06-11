@@ -95,6 +95,11 @@ async def refresh(datos: RefreshIn, request: Request, session: SessionDep) -> Ac
     if usuario is None or not usuario.activo:
         raise ErrorAPI("token_invalido", "usuario inexistente o inactivo", status=401)
     roles = [r.nombre for r in usuario.roles]
+    await escribir_evento(
+        session, actor_id=usuario.id, accion="refresh", entidad="usuario",
+        entidad_id=usuario.id, resultado="ok", **_ctx(request),
+    )
+    await session.commit()
     return AccessOut(access_token=crear_access_token(usuario.id, roles))
 
 

@@ -42,6 +42,21 @@ async def test_auditoria_solo_admin(client, analista_token):
     assert r.status_code == 403
 
 
+async def test_refresh_exitoso_genera_auditoria(client, usuario_seed):
+    r = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "admin@nexo.test", "password": "secreto123"},
+    )
+    refresh_token = r.json()["refresh_token"]
+    r = await client.post("/api/v1/auth/refresh", json={"refresh_token": refresh_token})
+    assert r.status_code == 200
+    access = r.json()["access_token"]
+    r = await client.get("/api/v1/auditoria?accion=refresh", headers=_h(access))
+    assert r.status_code == 200
+    eventos = r.json()
+    assert any(e["accion"] == "refresh" and e["resultado"] == "ok" for e in eventos)
+
+
 async def test_parametros_patch_audita(client, admin_token):
     r = await client.patch(
         "/api/v1/parametros", json={"bcra_vigencia_dias": 45}, headers=_h(admin_token)
