@@ -3,7 +3,7 @@
 from datetime import date, timedelta
 from decimal import Decimal
 
-from nexocred_core.errores import ErrorDominio
+from nexocred_core.errores import ErrorDominio, ImporteNegativoError
 from nexocred_core.modelos import (
     Cronograma,
     FilaCronograma,
@@ -42,6 +42,10 @@ def calcular_cronograma(terminos: TerminosPrestamo) -> Cronograma:
         raise ErrorDominio("cantidad_cuotas debe ser mayor a cero")
     if terminos.capital <= CERO:
         raise ErrorDominio("capital debe ser mayor a cero")
+    if terminos.tasa_interes_directo < Decimal("0"):
+        raise ImporteNegativoError("tasa_interes_directo no puede ser negativa")
+    if terminos.tasa_punitorio_diario < Decimal("0"):
+        raise ImporteNegativoError("tasa_punitorio_diario no puede ser negativa")
 
     interes_total = redondear(terminos.capital * terminos.tasa_interes_directo)
     capitales = _reparto_parejo(terminos.capital, terminos.cantidad_cuotas)

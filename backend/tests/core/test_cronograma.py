@@ -4,7 +4,7 @@ from decimal import Decimal
 import pytest
 
 from nexocred_core.cronograma import calcular_cronograma
-from nexocred_core.errores import ErrorDominio
+from nexocred_core.errores import ErrorDominio, ImporteNegativoError
 from nexocred_core.modelos import Periodicidad, TerminosPrestamo
 
 
@@ -71,3 +71,13 @@ def test_rechaza_cantidad_cuotas_invalida():
 def test_rechaza_capital_no_positivo():
     with pytest.raises(ErrorDominio):
         calcular_cronograma(_terminos(capital=Decimal("0.00")))
+
+
+def test_rechaza_tasa_interes_negativa():
+    with pytest.raises(ImporteNegativoError):
+        calcular_cronograma(_terminos(tasa_interes_directo=Decimal("-0.01")))
+
+
+def test_rechaza_tasa_punitorio_negativa():
+    with pytest.raises(ImporteNegativoError):
+        calcular_cronograma(_terminos(tasa_punitorio_diario=Decimal("-0.001")))
