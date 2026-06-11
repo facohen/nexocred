@@ -162,6 +162,17 @@ async def eliminar_referencia(
     ref = res.scalar_one_or_none()
     if ref is None:
         raise ErrorAPI("referencia_inexistente", "referencia no encontrada", status=404)
+    total = await session.execute(
+        select(func.count())
+        .select_from(PersonaReferencia)
+        .where(PersonaReferencia.persona_id == persona_id)
+    )
+    if total.scalar_one() <= 1:
+        raise ErrorAPI(
+            "referencia_minima",
+            "la persona debe conservar al menos una referencia",
+            status=409,
+        )
     await session.delete(ref)
     await escribir_evento(
         session,

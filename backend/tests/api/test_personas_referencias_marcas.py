@@ -52,6 +52,38 @@ async def test_eliminar_referencia(client, admin_token):
     assert ref_id not in {x["id"] for x in r.json()}
 
 
+async def test_eliminar_ultima_referencia_409(client, admin_token):
+    # La persona se crea con exactamente 1 referencia (ver _persona_payload).
+    pid = await _crear_persona(client, admin_token)
+    r = await client.get(f"/api/v1/personas/{pid}/referencias", headers=_h(admin_token))
+    assert len(r.json()) == 1
+    ref_id = r.json()[0]["id"]
+    r = await client.delete(
+        f"/api/v1/personas/{pid}/referencias/{ref_id}", headers=_h(admin_token)
+    )
+    assert r.status_code == 409
+    assert r.json()["error"]["code"] == "referencia_minima"
+    # No se elimino.
+    r = await client.get(f"/api/v1/personas/{pid}/referencias", headers=_h(admin_token))
+    assert len(r.json()) == 1
+
+
+async def test_eliminar_referencia_cuando_hay_mas_de_una_ok(client, admin_token):
+    pid = await _crear_persona(client, admin_token)
+    r = await client.post(
+        f"/api/v1/personas/{pid}/referencias",
+        json={"nombre": "Extra", "telefono": "555", "vinculo": "amigo"},
+        headers=_h(admin_token),
+    )
+    ref_id = r.json()["id"]
+    r = await client.delete(
+        f"/api/v1/personas/{pid}/referencias/{ref_id}", headers=_h(admin_token)
+    )
+    assert r.status_code in (200, 204)
+    r = await client.get(f"/api/v1/personas/{pid}/referencias", headers=_h(admin_token))
+    assert len(r.json()) == 1
+
+
 async def test_eliminar_referencia_inexistente_404(client, admin_token):
     pid = await _crear_persona(client, admin_token)
     import uuid
