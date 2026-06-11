@@ -9,6 +9,7 @@ dependencies = []
 testpaths = ["backend/tests"]
 pythonpath = ["backend"]
 addopts = "-q"
+asyncio_mode = "auto"
 
 [tool.ruff]
 target-version = "py312"
