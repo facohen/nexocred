@@ -1,0 +1,158 @@
+import os
+import subprocess
+from collections.abc import AsyncGenerator
+
+import pytest_asyncio
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+ADMIN_URL = "postgresql+asyncpg://nexocred:nexocred@localhost:5432/nexocred"
+TEST_DB = "nexocred_test"
+TEST_URL = f"postgresql+asyncpg://nexocred:nexocred@localhost:5432/{TEST_DB}"
+TEST_URL_SYNC = f"postgresql+psycopg://nexocred:nexocred@localhost:5432/{TEST_DB}"
+
+
+@pytest_asyncio.fixture(scope="session")
+async def _crear_db_de_test():
+    admin = create_async_engine(ADMIN_URL, isolation_level="AUTOCOMMIT")
+    async with admin.connect() as conn:
+        await conn.execute(text(f"DROP DATABASE IF EXISTS {TEST_DB} WITH (FORCE)"))
+        await conn.execute(text(f"CREATE DATABASE {TEST_DB}"))
+    await admin.dispose()
+    subprocess.run(
+        ["alembic", "upgrade", "head"],
+        cwd="backend",
+        check=True,
+        env={**os.environ, "DATABASE_URL_SYNC": TEST_URL_SYNC},
+    )
+    yield
+
+
+@pytest_asyncio.fixture
+async def session(_crear_db_de_test) -> AsyncGenerator[AsyncSession, None]:
+    engine = create_async_engine(TEST_URL)
+    maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    async with maker() as s:
+        yield s
+        await s.rollback()
+    await engine.dispose()
+
+
+@pytest_asyncio.fixture
+async def limpiar_db(_crear_db_de_test) -> AsyncGenerator[None, None]:
+    """Trunca todas las tablas de dominio antes de cada test que use el cliente HTTP,
+    para aislamiento (el cliente abre su propia sesion via get_session override)."""
+    engine = create_async_engine(TEST_URL, isolation_level="AUTOCOMMIT")
+    tablas = (
+        "imputacion, pago, cuota, parada_ruta, ruta_diaria, comision_devengo, "
+        "liquidacion_detalle, liquidacion_comision, documento_emitido, prestamo, "
+        "solicitud_credito, movimiento_caja, workflow_ejecucion, workflow_regla, "
+        "alerta, incidente, tarea, snapshot_cartera, "
+        "matriz_tasa, matriz_comision, gasto_originacion, producto_version, "
+        "producto_credito, perfil_pricing, "
+        "persona_deuda_bcra, persona_marca, persona_referencia, persona, "
+        "auditoria_evento, idempotency_key, usuario_rol, usuario, rol"
+    )
+    async with engine.connect() as conn:
+        await conn.execute(text(f"TRUNCATE {tablas} RESTART IDENTITY CASCADE"))
+    await engine.dispose()
+    yield
+
+
+@pytest_asyncio.fixture
+async def app(limpiar_db):
+    from app.db import get_session
+    from app.main import crear_app
+
+    engine = create_async_engine(TEST_URL)
+    maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    async def _get_session() -> AsyncGenerator[AsyncSession, None]:
+        async with maker() as s:
+            yield s
+
+    aplicacion = crear_app()
+    aplicacion.dependency_overrides[get_session] = _get_session
+    yield aplicacion
+    await engine.dispose()
+
+
+@pytest_asyncio.fixture
+async def client(app) -> AsyncGenerator[AsyncClient, None]:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as c:
+        yield c
+
+
+@pytest_asyncio.fixture
+async def roles_seed() -> None:
+    """Crea los 6 roles del sistema."""
+    from app.m12_auth.modelos import Rol
+
+    engine = create_async_engine(TEST_URL)
+    maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    async with maker() as s:
+        for nombre in ("admin", "analista", "cobrador", "vendedor", "operador", "tesoreria"):
+            existente = await s.execute(
+                text("SELECT 1 FROM rol WHERE nombre=:n"), {"n": nombre}
+            )
+            if existente.scalar() is None:
+                s.add(Rol(nombre=nombre))
+        await s.commit()
+    await engine.dispose()
+
+
+@pytest_asyncio.fixture
+async def usuario_seed(roles_seed) -> dict:
+    """Crea un usuario admin con password conocido."""
+    from app.m12_auth.servicio import crear_usuario
+
+    engine = create_async_engine(TEST_URL)
+    maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    async with maker() as s:
+        u = await crear_usuario(
+            s,
+            email="admin@nexo.test",
+            nombre="Admin",
+            password="secreto123",
+            roles=["admin"],
+            actor_id=None,
+        )
+        await s.commit()
+        datos = {"id": str(u.id), "email": u.email}
+    await engine.dispose()
+    return datos
+
+
+@pytest_asyncio.fixture
+async def admin_token(client, usuario_seed) -> str:
+    r = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "admin@nexo.test", "password": "secreto123"},
+    )
+    return r.json()["access_token"]
+
+
+@pytest_asyncio.fixture
+async def analista_token(client, roles_seed) -> str:
+    from app.m12_auth.servicio import crear_usuario
+
+    engine = create_async_engine(TEST_URL)
+    maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    async with maker() as s:
+        await crear_usuario(
+            s,
+            email="analista@nexo.test",
+            nombre="Analista",
+            password="secreto123",
+            roles=["analista"],
+            actor_id=None,
+        )
+        await s.commit()
+    await engine.dispose()
+    r = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "analista@nexo.test", "password": "secreto123"},
+    )
+    return r.json()["access_token"]
