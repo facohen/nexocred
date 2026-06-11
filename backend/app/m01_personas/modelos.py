@@ -15,7 +15,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.modelos_base import Base, TimestampMixin, uuid_pk
 
@@ -58,6 +58,10 @@ class Persona(Base, TimestampMixin):
     redes_sociales: Mapped[dict | None] = mapped_column(JSONB)
     # Control
     activo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
+
+    referencias_rel: Mapped[list["PersonaReferencia"]] = relationship(
+        cascade="all, delete-orphan", lazy="selectin"
+    )
 
     __table_args__ = (
         CheckConstraint(
