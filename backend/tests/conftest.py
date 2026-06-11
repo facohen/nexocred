@@ -11,6 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 # backend/tests/conftest.py -> parents[1] == backend/ (independiente del cwd de invocacion).
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 
+# Secreto JWT de test >= 32 bytes para evitar InsecureKeyLengthWarning de PyJWT.
+# Se setea antes de importar app.config (la config es un singleton de modulo).
+os.environ.setdefault(
+    "JWT_SECRET_KEY", "test-secret-key-para-pytest-0123456789-abcdef"
+)
+
 ADMIN_URL = "postgresql+asyncpg://nexocred:nexocred@localhost:5432/nexocred"
 TEST_DB = "nexocred_test"
 TEST_URL = f"postgresql+asyncpg://nexocred:nexocred@localhost:5432/{TEST_DB}"
