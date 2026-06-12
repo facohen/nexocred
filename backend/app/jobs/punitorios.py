@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auditoria import escribir_evento
+from app.logging_setup import log_job
 from app.m03_prestamos.reconstruccion import cronograma_desde_cuotas, imputaciones_core
 from app.modelos_stub import Cuota, Imputacion, Pago, Prestamo
 from nexocred_core import CERO, calcular_saldo_exigible, redondear
@@ -67,6 +68,7 @@ async def devengar_punitorios(
         entidad="cuota", entidad_id=None,
         metadata_json={"fecha_corte": fecha_corte.isoformat(), "cuotas": tocadas},
     )
+    log_job("punitorios", fecha=fecha_corte.isoformat(), cuotas=tocadas)
     return tocadas
 
 

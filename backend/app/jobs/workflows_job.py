@@ -11,6 +11,7 @@ from datetime import date
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.logging_setup import log_job
 from app.m07_riesgo.servicio import cartera_riesgo
 from app.workflows.motor import Efecto, evaluar
 from app.workflows.schemas import ContextoIn
@@ -36,6 +37,11 @@ async def barrer_workflows_job(
             datos={"dias_atraso": c.dias_atraso},
         )
         efectos.extend(await evaluar(session, ctx, actor_id=actor_id))
+    disparados = sum(1 for e in efectos if e.resultado == "ok")
+    log_job(
+        "barrer_workflows", fecha=fecha.isoformat(),
+        evaluados=len(cartera), disparados=disparados,
+    )
     return efectos
 
 

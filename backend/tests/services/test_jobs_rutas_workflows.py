@@ -15,6 +15,25 @@ from tests._seed_f1d import crear_persona, crear_prestamo, crear_producto
 pytestmark = pytest.mark.asyncio
 
 
+@pytest.fixture(autouse=True)
+async def _limpiar_commits(session):
+    """generar_ruta() commitea internamente; limpiamos las filas que escaparian
+    al rollback del fixture `session` para no contaminar otros tests (aislamiento)."""
+    yield
+    from sqlalchemy import text
+
+    await session.rollback()
+    await session.execute(
+        text(
+            "TRUNCATE parada_ruta, ruta_diaria, cuota, imputacion, pago, "
+            "prestamo, persona, producto_credito, usuario_rol, usuario, "
+            "workflow_ejecucion, workflow_regla, tarea, incidente, alerta, "
+            "auditoria_evento RESTART IDENTITY CASCADE"
+        )
+    )
+    await session.commit()
+
+
 async def _roles(session):
     from app.m12_auth.modelos import Rol
 

@@ -12,6 +12,7 @@ from datetime import date
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.logging_setup import log_job
 from app.m05_ruta.servicio import generar_ruta
 from app.m12_auth.modelos import Rol, Usuario
 from app.modelos_stub import RutaDiaria
@@ -45,6 +46,7 @@ async def generar_rutas_job(
             continue
         await generar_ruta(session, cobrador_id=cob.id, fecha=fecha, actor_id=actor_id)
         creadas += 1
+    log_job("generar_rutas", fecha=fecha.isoformat(), rutas_creadas=creadas)
     return creadas
 
 

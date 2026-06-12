@@ -11,6 +11,7 @@ from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auditoria import escribir_evento
+from app.logging_setup import log_job
 from app.m07_riesgo.metricas import aging
 from app.m07_riesgo.servicio import cartera_riesgo
 
@@ -27,6 +28,10 @@ async def recalcular_aging(
             "fecha_corte": fecha_corte.isoformat(),
             "buckets": {k: str(v) for k, v in buckets.items()},
         },
+    )
+    log_job(
+        "aging", fecha=fecha_corte.isoformat(),
+        buckets={k: str(v) for k, v in buckets.items()},
     )
     return buckets
 

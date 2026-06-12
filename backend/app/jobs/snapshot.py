@@ -14,6 +14,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auditoria import escribir_evento
+from app.logging_setup import log_job
 from app.m04_caja.servicio import posicion_consolidada
 from app.m07_riesgo.servicio import cartera_riesgo
 from app.modelos_stub import Imputacion, Pago, Prestamo, SnapshotCartera
@@ -108,6 +109,10 @@ async def generar_snapshot(
     snap = await session.get(SnapshotCartera, snap_id)
     assert snap is not None
     await session.refresh(snap)
+    log_job(
+        "snapshot", fecha=fecha_corte.isoformat(),
+        prestamos_vigentes=prestamos_vigentes, prestamos_en_mora=prestamos_en_mora,
+    )
     return snap
 
 
