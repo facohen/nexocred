@@ -74,8 +74,14 @@ async def cartera_riesgo(
     session: AsyncSession, fecha: date | None = None
 ) -> list[PrestamoRiesgo]:
     fecha = fecha or date.today()
+    # AS-OF: solo prestamos cuyo desembolso ya ocurrio a `fecha` (un desembolso
+    # POSTERIOR al corte no existe en una foto historica). Para el tablero LIVE
+    # (fecha=today) el filtro es inocuo: todo prestamo real ya esta desembolsado.
     res = await session.execute(
-        select(Prestamo).where(Prestamo.estado.in_(["vigente", "en_mora"]))
+        select(Prestamo).where(
+            Prestamo.estado.in_(["vigente", "en_mora"]),
+            Prestamo.fecha_desembolso <= fecha,
+        )
     )
     prestamos = list(res.scalars().all())
     snaps = []

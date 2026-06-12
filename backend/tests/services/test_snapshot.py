@@ -175,3 +175,39 @@ async def test_snapshot_es_as_of_fecha_corte_no_fin_de_mes(session):
     assert snap.colocacion_mes == Decimal("100000.00")
     assert snap.intereses_cobrados_mes == Decimal("5000.00")
     assert snap.punitorios_cobrados_mes == Decimal("3000.00")
+
+
+async def test_conteos_excluyen_prestamo_desembolsado_post_corte(session):
+    """MINOR (as-of leak): un prestamo con CAPITAL PENDIENTE pero desembolsado
+    DESPUES de fecha_corte NO debe contar en prestamos_vigentes/en_mora del
+    snapshot historico (su desembolso es futuro respecto del corte)."""
+    fecha = date(2026, 6, 11)
+    await _seed(session, fecha)  # P1 vigente + P2 en mora (ambos pre-corte)
+    await session.flush()
+
+    base = await generar_snapshot(session, fecha, actor_id=None)
+    await session.flush()
+    vigentes_base = base.prestamos_vigentes
+    mora_base = base.prestamos_en_mora
+
+    # Prestamo desembolsado DESPUES del corte, CON cuota futura (capital pendiente).
+    persona = await crear_persona(session)
+    producto = await crear_producto(session)
+    p_post = await crear_prestamo(
+        session, persona.id, producto.id, capital=Decimal("333333"),
+        fecha_desembolso=fecha + timedelta(days=3),
+        monto_desembolsado=Decimal("333333"),
+    )
+    session.add(Cuota(
+        prestamo_id=p_post.id, numero=1, vencimiento=fecha + timedelta(days=40),
+        capital=Decimal("333333"), interes=Decimal("1000"), cuota=Decimal("334333"),
+        estado="pendiente",
+    ))
+    await session.flush()
+
+    snap = await generar_snapshot(session, fecha, actor_id=None)
+    await session.flush()
+
+    # El prestamo post-corte NO incrementa los conteos as-of del snapshot.
+    assert snap.prestamos_vigentes == vigentes_base
+    assert snap.prestamos_en_mora == mora_base
