@@ -3,6 +3,7 @@ import { usePersona } from "@/lib/api/queries";
 import { MoneyText } from "@/components/MoneyText";
 import { Card, CardTitle } from "@/components/ui/card";
 import { BcraPanel } from "./bcra";
+import { TimelinePanel } from "@/features/crm/TimelinePanel";
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -79,12 +80,7 @@ export function PersonaDetailPage() {
         )}
       </Card>
 
-      <Card>
-        <CardTitle>Timeline</CardTitle>
-        <p className="text-sm text-foreground/50">
-          El historial de interacciones llega en una etapa posterior.
-        </p>
-      </Card>
+      <TimelinePanel personaId={personaId} />
 
       <BcraPanel personaId={personaId} />
     </div>

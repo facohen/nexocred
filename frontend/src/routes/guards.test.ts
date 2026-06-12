@@ -48,4 +48,61 @@ describe("route guards", () => {
     expect(() => enforceRoles([])).not.toThrow();
     clearToken();
   });
+
+  // ---- F1c / F1d RBAC ----
+  it("bloquea a un operador en La Ruta (solo cobrador/admin)", () => {
+    loginAs(["operador"]);
+    expect(() => enforceRoles(ROUTE_ROLES["/ruta"])).toThrow();
+    clearToken();
+  });
+
+  it("permite a un cobrador en La Ruta", () => {
+    loginAs(["cobrador"]);
+    expect(() => enforceRoles(ROUTE_ROLES["/ruta"])).not.toThrow();
+    clearToken();
+  });
+
+  it("bloquea a un cobrador en La Torre (admin/tesoreria)", () => {
+    loginAs(["cobrador"]);
+    expect(() => enforceRoles(ROUTE_ROLES["/torre"])).toThrow();
+    clearToken();
+  });
+
+  it("bloquea a un vendedor en Tesorería", () => {
+    loginAs(["vendedor"]);
+    expect(() => enforceRoles(ROUTE_ROLES["/tesoreria"])).toThrow();
+    clearToken();
+  });
+
+  it("permite a tesoreria en Tesorería y La Torre", () => {
+    loginAs(["tesoreria"]);
+    expect(() => enforceRoles(ROUTE_ROLES["/tesoreria"])).not.toThrow();
+    expect(() => enforceRoles(ROUTE_ROLES["/torre"])).not.toThrow();
+    clearToken();
+  });
+
+  it("bloquea a un cobrador en el CRM (operador/admin)", () => {
+    loginAs(["cobrador"]);
+    expect(() => enforceRoles(ROUTE_ROLES["/crm/inbox"])).toThrow();
+    clearToken();
+  });
+
+  it("solo admin entra a asignaciones masivas", () => {
+    loginAs(["operador"]);
+    expect(() => enforceRoles(ROUTE_ROLES["/crm/asignaciones"])).toThrow();
+    loginAs(["admin"]);
+    expect(() => enforceRoles(ROUTE_ROLES["/crm/asignaciones"])).not.toThrow();
+    clearToken();
+  });
+
+  it("toda ruta F1c/F1d nueva tiene roles definidos (no abierta por defecto)", () => {
+    for (const path of [
+      "/ruta", "/rendicion", "/crm/inbox", "/crm/incidentes", "/crm/asignaciones",
+      "/crm/prospectos", "/riesgo/tablero", "/riesgo/alertas", "/vendedores/comisiones",
+      "/vendedores/liquidaciones", "/tesoreria", "/torre", "/documentos",
+    ]) {
+      expect(ROUTE_ROLES[path]).toBeDefined();
+      expect(ROUTE_ROLES[path].length).toBeGreaterThan(0);
+    }
+  });
 });

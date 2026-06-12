@@ -33,6 +33,7 @@ import { ComisionesRoute } from "@/features/vendedores/ComisionesRoute";
 import { LiquidacionesPage } from "@/features/vendedores/LiquidacionesPage";
 import { TesoreriaDashboard } from "@/features/tesoreria/TesoreriaDashboard";
 import { TorreDashboard } from "@/features/torre/TorreDashboard";
+import { DocumentosRoute } from "@/features/documentos/DocumentosRoute";
 
 const rootRoute = createRootRoute({ component: () => <Outlet /> });
 
@@ -107,6 +108,7 @@ const routeTree = rootRoute.addChildren([
     page("/vendedores/liquidaciones", LiquidacionesPage),
     page("/tesoreria", TesoreriaDashboard),
     page("/torre", TorreDashboard),
+    page("/documentos", DocumentosRoute),
     page("/usuarios", function Usuarios() {
       return <div className="text-sm">Gestión de usuarios (admin).</div>;
     }),
