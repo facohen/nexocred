@@ -3,6 +3,7 @@ import { useNovacion } from "@/lib/api/queries";
 import { ApiError } from "@/lib/api/client";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { TransactionButton } from "@/components/TransactionButton";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
@@ -56,12 +57,12 @@ export function NovacionesPage() {
               onChange={(e) => setPrestamoId(e.target.value)}
             />
           </div>
-          <Button
+          <TransactionButton
             onClick={() => novacion.mutate({ tipo, body: { prestamo_id: prestamoId } })}
-            disabled={novacion.isPending}
+            pending={novacion.isPending}
           >
             {novacion.isPending ? "Ejecutando…" : "Ejecutar novación"}
-          </Button>
+          </TransactionButton>
         </div>
       </Card>
 

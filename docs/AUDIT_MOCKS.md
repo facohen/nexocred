@@ -72,17 +72,28 @@ comportamiento real alrededor de fakes de borde legitimos.
 `Button` y, mientras `pending`, lo deja `disabled` + `aria-busy` + muestra un
 spinner. El primer click previene un segundo submit del mismo mutador.
 
-Barrido de las pantallas y sus acciones que MUEVEN dinero/estado:
+Barrido de las pantallas y sus acciones que MUEVEN dinero/estado. TODAS usan
+`TransactionButton` (disable + spinner mientras la mutacion esta en vuelo). Son
+**9** acciones criticas, cada una con su test de disable-in-flight:
 
-| Pantalla | Accion critica | Guarda |
-|---|---|---|
-| `pagos/RegistrarPagoPage` | registrar pago | TransactionButton (`registrar.isPending`) |
-| `pagos/CorreccionDialog` | corregir pago | TransactionButton (`corregir.isPending`) |
-| `solicitudes/SolicitudDetailPage` | aprobar y desembolsar | TransactionButton (`accion.isPending`) + gating checklist/BCRA |
-| `documentos/DocumentosPage` | generar documento | TransactionButton (`generar.isPending`) |
-| `vendedores/LiquidacionesPage` | liquidacion pagar | TransactionButton (`pagar.isPending && variables===id`) |
-| `vendedores/LiquidacionesPage` | generar liquidacion | TransactionButton (`generar.isPending`) |
-| `ruta/RutaPage` | sincronizar (cobros offline) | TransactionButton (`sincronizando`) |
+| Pantalla | Accion critica | Guarda | Test de disable-in-flight |
+|---|---|---|---|
+| `pagos/RegistrarPagoPage` | registrar pago | TransactionButton (`registrar.isPending`) | `transactional-buttons.test.tsx` "registrar pago" |
+| `pagos/CorreccionDialog` | corregir pago | TransactionButton (`corregir.isPending`) | `transactional-buttons.test.tsx` "corregir pago" |
+| `solicitudes/SolicitudDetailPage` | aprobar y desembolsar | TransactionButton (`accion.isPending`) + gating checklist/BCRA | `transactional-buttons.test.tsx` "desembolsar" |
+| `documentos/DocumentosPage` | generar documento | TransactionButton (`generar.isPending`) | `transactional-buttons.test.tsx` "generar documento" |
+| `vendedores/LiquidacionesPage` | liquidacion pagar | TransactionButton (`pagar.isPending && variables===id`) | `transactional-buttons.test.tsx` "liquidacion pagar" |
+| `vendedores/LiquidacionesPage` | generar liquidacion | TransactionButton (`generar.isPending`) | `transactional-buttons.test.tsx` "generar liquidacion" |
+| `ruta/RutaPage` | sincronizar (cobros offline) | TransactionButton (`sincronizando`) | `transactional-buttons.test.tsx` "ruta sincronizar" |
+| `novaciones/NovacionesPage` | ejecutar novacion | TransactionButton (`novacion.isPending`) | `transactional-buttons.test.tsx` "ejecutar novacion" |
+| `ruta/RendicionPage` | presentar rendicion | TransactionButton (`cambiarEstado.isPending`) | `transactional-buttons.test.tsx` "presentar rendicion" |
+
+> Correccion (Stage 8 review): una version previa de este documento afirmaba un
+> test por las 7 acciones pero solo existian 5; ademas `novaciones/Ejecutar` y
+> `rendicion/Presentar` usaban un `Button` plano (sin guarda de doble-submit).
+> Resuelto: ambos migrados a `TransactionButton` y se agregaron los 4 tests
+> faltantes (generar liquidacion, ruta sincronizar, ejecutar novacion, presentar
+> rendicion). El conteo real ahora es **9 acciones, 9 tests**.
 
 Acciones no presentes en la UI del POC (no requieren guarda de boton):
 
@@ -95,5 +106,16 @@ Acciones no presentes en la UI del POC (no requieren guarda de boton):
   Sincronizar (ya guardado). No hay mutacion en vuelo en el guardar.
 
 Tests: `components/transactionbutton.test.tsx` (disable+spinner+anti-doble-submit)
-y `features/transactional-buttons.test.tsx` (un test por accion critica que
-afirma el boton DESHABILITADO con la mutacion en vuelo via handler MSW demorado).
+y `features/transactional-buttons.test.tsx` (un test por cada una de las **9**
+acciones criticas que afirma el boton DESHABILITADO con la mutacion en vuelo via
+handler MSW demorado).
+
+## Guard de conectividad de mostrador (decisión de negocio #3)
+
+`TransactionButton` consume `useConnectivity()` (`src/lib/connectivity.tsx`): si el
+contexto reporta `bloqueado`, el boton queda deshabilitado ademas de su estado
+`pending`. `AppShell` provee `bloqueado = !navigator.onLine && !esRutaDeCampo` y
+renderiza un banner "Esperando conexión". Las rutas de campo (`/ruta`, `/rendicion`)
+quedan EXENTAS (su flujo offline con cola idempotente es intencional). Tests:
+`components/layout/offline-guard.test.tsx` (offline-mostrador deshabilita + banner;
+offline-Ruta no bloquea; online no banner).

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { TransactionButton } from "@/components/TransactionButton";
 import { FormField } from "@/components/FormField";
 import { MoneyText } from "@/components/MoneyText";
 import { ApiError } from "@/lib/api/client";
@@ -95,12 +96,13 @@ export function RendicionPage({ rendicionId }: { rendicionId: string }) {
       </Card>
 
       <div className="flex gap-2">
-        <Button
+        <TransactionButton
           onClick={() => cambiarEstado.mutate("presentada")}
-          disabled={cambiarEstado.isPending || r.estado === "presentada"}
+          pending={cambiarEstado.isPending}
+          disabled={r.estado === "presentada"}
         >
           Presentar rendición
-        </Button>
+        </TransactionButton>
       </div>
     </div>
   );

@@ -6,12 +6,14 @@
  * de modo que un segundo click no puede re-enviar la operacion. Cada accion usa
  * el `TransactionButton` (disable + spinner) o el patron `isPending` equivalente.
  */
+import "fake-indexeddb/auto";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { http, HttpResponse, delay } from "msw";
 import { server } from "@/mocks/server";
 import { renderWithProviders } from "@/test/utils";
+import { setToken, setSessionUser } from "@/lib/auth";
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
@@ -22,6 +24,11 @@ vi.mock("@tanstack/react-router", () => ({
 const BASE = "http://localhost/api/v1";
 
 describe("Botones transaccionales: disable durante la mutacion en vuelo", () => {
+  beforeEach(() => {
+    setToken({ access_token: "t", refresh_token: "r", token_type: "bearer" });
+    setSessionUser({ email: "admin@nexocred.test", nombre: "Admin", roles: ["admin"] });
+  });
+
   it("registrar pago se deshabilita mientras postea", async () => {
     server.use(
       http.post(`${BASE}/pagos`, async () => {
@@ -123,6 +130,96 @@ describe("Botones transaccionales: disable durante la mutacion en vuelo", () => 
     const { LiquidacionesPage } = await import("./vendedores/LiquidacionesPage");
     renderWithProviders(<LiquidacionesPage />);
     const btn = await screen.findByRole("button", { name: /^pagar$/i });
+    await waitFor(() => expect(btn).not.toBeDisabled());
+    await userEvent.click(btn);
+    await waitFor(() => expect(btn).toBeDisabled());
+  });
+
+  it("generar liquidacion se deshabilita mientras postea", async () => {
+    server.use(
+      http.get(`${BASE}/comisiones/liquidaciones`, () => HttpResponse.json([])),
+      http.post(`${BASE}/comisiones/liquidaciones`, async () => {
+        await delay(200);
+        return HttpResponse.json(
+          { id: "liq-n", vendedor_id: "user-vendedor", periodo_desde: "2026-06-01",
+            periodo_hasta: "2026-06-30", monto_total: "0.00", estado: "borrador" },
+          { status: 201 },
+        );
+      }),
+    );
+    const { LiquidacionesPage } = await import("./vendedores/LiquidacionesPage");
+    renderWithProviders(<LiquidacionesPage />);
+    const btn = await screen.findByRole("button", { name: /^generar$/i });
+    await userEvent.click(btn);
+    await waitFor(() => expect(btn).toBeDisabled());
+  });
+
+  it("ejecutar novacion se deshabilita mientras postea", async () => {
+    server.use(
+      http.post(`${BASE}/novaciones/:tipo`, async () => {
+        await delay(200);
+        return HttpResponse.json(
+          { id: "nov-1", tipo: "refinanciar", estado: "ejecutada",
+            nuevo_prestamo_id: "pr-nuevo", origenes: ["prestamo-1"] },
+          { status: 201 },
+        );
+      }),
+    );
+    const { NovacionesPage } = await import("./novaciones/NovacionesPage");
+    renderWithProviders(<NovacionesPage />);
+    const btn = screen.getByRole("button", { name: /ejecutar novación/i });
+    await userEvent.click(btn);
+    await waitFor(() => expect(btn).toBeDisabled());
+  });
+
+  it("presentar rendicion se deshabilita mientras postea", async () => {
+    server.use(
+      http.get(`${BASE}/rendiciones/:id`, () =>
+        HttpResponse.json({
+          id: "rendicion-1", ruta_id: "ruta-1", estado: "borrador",
+          total_cobrado: "100.00", total_descargos: "0.00", diferencia: "100.00",
+          descargos: [],
+        }),
+      ),
+      http.patch(`${BASE}/rendiciones/:id`, async () => {
+        await delay(200);
+        return HttpResponse.json({
+          id: "rendicion-1", ruta_id: "ruta-1", estado: "presentada",
+          total_cobrado: "100.00", total_descargos: "0.00", diferencia: "100.00",
+        });
+      }),
+    );
+    const { RendicionPage } = await import("./ruta/RendicionPage");
+    renderWithProviders(<RendicionPage rendicionId="rendicion-1" />);
+    const btn = await screen.findByRole("button", { name: /presentar rendición/i });
+    await userEvent.click(btn);
+    await waitFor(() => expect(btn).toBeDisabled());
+  });
+
+  it("ruta sincronizar se deshabilita mientras postea", async () => {
+    // La Ruta: con un cobro encolado (pendiente > 0) el boton Sincronizar se
+    // habilita; mientras el POST /rutas/:id/sync esta en vuelo queda disabled.
+    const { _reset, encolarVisita } = await import("./ruta/queue");
+    await _reset();
+    await encolarVisita({
+      id: "uuidv7-tx-1", rutaId: "ruta-1", paradaId: "p1", prestamoId: "L1",
+      orden: 1, resultado: "pago", montoCobrado: "2200.00", pagoId: "uuidv7-pago-tx",
+      fotoUrl: null, lat: null, lng: null, notas: null,
+      visitadaEn: "2026-06-12T10:00:00Z",
+    });
+    server.use(
+      http.post(`${BASE}/rutas/:id/sync`, async () => {
+        await delay(200);
+        return HttpResponse.json({ aplicadas: 1, omitidas: 0, rechazadas: 0, detalles: [] });
+      }),
+    );
+    const { RutaPage } = await import("./ruta/RutaPage");
+    renderWithProviders(<RutaPage rutaId="ruta-1" />);
+    // Seleccionar caja: sin ella construirBatch rechaza (caja_requerida) ANTES
+    // del POST y el boton nunca llega a quedar en vuelo.
+    await screen.findByRole("option", { name: /caja central/i });
+    await userEvent.selectOptions(await screen.findByLabelText(/caja/i), "caja-1");
+    const btn = await screen.findByRole("button", { name: /sincronizar/i });
     await waitFor(() => expect(btn).not.toBeDisabled());
     await userEvent.click(btn);
     await waitFor(() => expect(btn).toBeDisabled());
