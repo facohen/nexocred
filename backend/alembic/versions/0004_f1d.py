@@ -78,8 +78,40 @@ def upgrade() -> None:
 
     # documento_emitido UNIQUE(tipo, numero) ya existe en el stub F1a; no-op aqui.
 
+    # ---------- documento_emitido: emitido_por/anulado_por apuntan al USUARIO ----------
+    # Desviacion documentada: el DDL ilustrativo referenciaba persona(id), pero el actor
+    # que emite/anula es un usuario del sistema (consistente con auditoria y comisiones).
+    op.drop_constraint(
+        "documento_emitido_emitido_por_fkey", "documento_emitido", type_="foreignkey"
+    )
+    op.drop_constraint(
+        "documento_emitido_anulado_por_fkey", "documento_emitido", type_="foreignkey"
+    )
+    op.create_foreign_key(
+        "documento_emitido_emitido_por_fkey", "documento_emitido", "usuario",
+        ["emitido_por"], ["id"],
+    )
+    op.create_foreign_key(
+        "documento_emitido_anulado_por_fkey", "documento_emitido", "usuario",
+        ["anulado_por"], ["id"],
+    )
+
 
 def downgrade() -> None:
+    op.drop_constraint(
+        "documento_emitido_emitido_por_fkey", "documento_emitido", type_="foreignkey"
+    )
+    op.drop_constraint(
+        "documento_emitido_anulado_por_fkey", "documento_emitido", type_="foreignkey"
+    )
+    op.create_foreign_key(
+        "documento_emitido_emitido_por_fkey", "documento_emitido", "persona",
+        ["emitido_por"], ["id"],
+    )
+    op.create_foreign_key(
+        "documento_emitido_anulado_por_fkey", "documento_emitido", "persona",
+        ["anulado_por"], ["id"],
+    )
     op.drop_constraint(
         "snapshot_cartera_fecha_corte_uq", "snapshot_cartera", type_="unique"
     )

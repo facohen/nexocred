@@ -5,12 +5,12 @@ conformidad_novacion). El contenido es determinista a partir de `datos` para que
 hash SHA-256 sea estable y auditable.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fpdf import FPDF
 
 # Fecha de creacion fija -> el PDF es deterministico y su hash SHA-256 es estable.
-_FECHA_FIJA = datetime(2020, 1, 1, tzinfo=timezone.utc)
+_FECHA_FIJA = datetime(2020, 1, 1, tzinfo=UTC)
 
 _TITULOS = {
     "recibo": "RECIBO DE PAGO",

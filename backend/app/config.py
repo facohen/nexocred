@@ -13,6 +13,7 @@ class Configuracion(BaseSettings):
     jwt_access_minutos: int = 30
     jwt_refresh_dias: int = 7
     bcra_vigencia_dias: int = 30
+    documentos_dir: str = "/tmp/nexocred_documentos"
 
     model_config = SettingsConfigDict(env_file=".env", env_prefix="", extra="ignore")
 

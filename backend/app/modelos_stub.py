@@ -306,9 +306,9 @@ class DocumentoEmitido(Base):
     numero: Mapped[int] = mapped_column(BigInteger, nullable=False)
     hash_sha256: Mapped[str] = mapped_column(Text, nullable=False)
     url_storage: Mapped[str | None] = mapped_column(Text)
-    emitido_por: Mapped[uuid.UUID] = mapped_column(ForeignKey("persona.id"), nullable=False)
+    emitido_por: Mapped[uuid.UUID] = mapped_column(ForeignKey("usuario.id"), nullable=False)
     anulado_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    anulado_por: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("persona.id"))
+    anulado_por: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("usuario.id"))
     created_at: Mapped[datetime] = _created_at()
 
     __table_args__ = (
