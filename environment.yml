@@ -15,6 +15,7 @@ dependencies:
   - httpx
   - uvicorn
   - greenlet
+  - pyyaml
   - pip:
       - pydantic-settings
       - asyncpg
