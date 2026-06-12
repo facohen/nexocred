@@ -1,17 +1,23 @@
 import { getToken, clearToken } from "@/lib/auth";
 
+/** Optional field-level validation details, e.g. { cuil: "dígito incorrecto" }. */
+export type ApiErrorDetails = Record<string, unknown>;
+
 export interface ApiErrorEnvelope {
-  error: { code: string; message: string };
+  error: { code: string; message: string; details?: ApiErrorDetails };
 }
 
 export class ApiError extends Error {
   code: string;
   status: number;
-  constructor(code: string, message: string, status: number) {
+  /** Optional per-field validation details, surfaced into forms. */
+  details?: ApiErrorDetails;
+  constructor(code: string, message: string, status: number, details?: ApiErrorDetails) {
     super(message);
     this.name = "ApiError";
     this.code = code;
     this.status = status;
+    this.details = details;
   }
 }
 
@@ -82,7 +88,7 @@ export async function apiFetch<T = unknown>(
   if (!res.ok) {
     const env = data as Partial<ApiErrorEnvelope> | undefined;
     if (env?.error?.code) {
-      throw new ApiError(env.error.code, env.error.message, res.status);
+      throw new ApiError(env.error.code, env.error.message, res.status, env.error.details);
     }
     throw new ApiError(
       "error_desconocido",

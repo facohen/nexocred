@@ -15,7 +15,15 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 
 export function PersonaDetailPage() {
   const { personaId } = useParams({ strict: false }) as { personaId: string };
-  const { data: persona, isLoading } = usePersona(personaId);
+  const { data: persona, isLoading, isError } = usePersona(personaId);
+
+  if (isError) {
+    return (
+      <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        No se pudo cargar la ficha de la persona. Reintentá más tarde.
+      </div>
+    );
+  }
 
   if (isLoading || !persona) {
     return <div className="animate-pulse text-foreground/40">Cargando ficha…</div>;

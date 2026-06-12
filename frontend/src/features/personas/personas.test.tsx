@@ -128,4 +128,15 @@ describe("PersonaDetail + BCRA", () => {
     expect(within(panel).getByText(/Banco Provincia/)).toBeInTheDocument();
     expect(within(panel).getByText("$ 450.000,00")).toBeInTheDocument();
   });
+
+  it("muestra un estado de error (no 'Cargando…' infinito) cuando la ficha falla", async () => {
+    server.use(
+      http.get(`${BASE}/personas/:id`, () =>
+        HttpResponse.json({ error: { code: "interno", message: "boom" } }, { status: 500 }),
+      ),
+    );
+    renderWithProviders(<PersonaDetailPage />);
+    expect(await screen.findByRole("alert")).toHaveTextContent(/no se pudo cargar la ficha/i);
+    expect(screen.queryByText(/cargando ficha/i)).not.toBeInTheDocument();
+  });
 });

@@ -49,6 +49,27 @@ describe("apiFetch", () => {
     );
   });
 
+  it("expone los details de validación por campo en el ApiError", async () => {
+    server.use(
+      http.post(`${BASE}/personas`, () =>
+        HttpResponse.json(
+          {
+            error: {
+              code: "validacion",
+              message: "Datos inválidos",
+              details: { cuil: "dígito verificador incorrecto" },
+            },
+          },
+          { status: 422 },
+        ),
+      ),
+    );
+    await expect(apiFetch("/personas", { method: "POST", body: {} })).rejects.toMatchObject({
+      code: "validacion",
+      details: { cuil: "dígito verificador incorrecto" },
+    });
+  });
+
   it("reenvia el header Idempotency-Key", async () => {
     let seen: string | null = null;
     server.use(
