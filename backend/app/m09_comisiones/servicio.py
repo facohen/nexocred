@@ -39,6 +39,7 @@ async def devengar_por_desembolso(
     *,
     prestamo: Prestamo,
     solicitud: SolicitudCredito | None,
+    fecha_negocio: date,
     actor_id: uuid.UUID | None,
 ) -> ComisionDevengo | None:
     """Devenga la comision del vendedor al desembolsar (NON-COMMITTING).
@@ -64,6 +65,7 @@ async def devengar_por_desembolso(
         estado="devengada",
         tipo="originacion",
         porcentaje=porcentaje,
+        fecha_negocio=fecha_negocio,
     )
     session.add(devengo)
     await session.flush()
@@ -160,10 +162,17 @@ async def generar_liquidacion(
         )
     )
     devengos = list(res.scalars().all())
+
+    def _fecha(d: ComisionDevengo) -> date | None:
+        # Periodo por fecha de negocio (= fecha de negocio del desembolso). Fallback a
+        # created_at para devengos historicos previos a la columna.
+        if d.fecha_negocio is not None:
+            return d.fecha_negocio
+        return d.created_at.date() if d.created_at is not None else None
+
     elegibles = [
         d for d in devengos
-        if d.created_at is not None
-        and periodo_desde <= d.created_at.date() <= periodo_hasta
+        if (f := _fecha(d)) is not None and periodo_desde <= f <= periodo_hasta
     ]
     montos = [d.monto or CERO for d in elegibles]
     total = redondear(sumar(*montos)) if montos else CERO
@@ -285,25 +294,38 @@ async def pagar_liquidacion(
             status=409,
         )
 
+    # Re-validar al momento de pagar: un devengo clawbackeado entre generar y pagar
+    # NO se paga. Se recomputa el total pagadero desde los detalles cuyo devengo sigue
+    # liquidable (estado devengada/confirmada). Los clawbackeados se excluyen del egreso
+    # y NO se fuerzan a 'liquidada'.
+    detalles = await detalle_liquidacion(session, liquidacion.id)
+    ids = [d.comision_devengo_id for d in detalles]
+    liquidables: list[ComisionDevengo] = []
+    if ids:
+        res = await session.execute(
+            select(ComisionDevengo).where(
+                ComisionDevengo.id.in_(ids),
+                ComisionDevengo.estado.in_(["devengada", "confirmada"]),
+            )
+        )
+        liquidables = list(res.scalars().all())
+    montos = [d.monto or CERO for d in liquidables]
+    total_pagadero = redondear(sumar(*montos)) if montos else CERO
+
     fneg = fecha_negocio or date.today()
     caja = await bloquear_caja(session, caja_id)
     egreso = await registrar_movimiento(
-        session, caja, tipo="egreso", monto=liquidacion.monto_total or CERO,
+        session, caja, tipo="egreso", monto=total_pagadero,
         fecha_negocio=fneg, concepto="liquidacion de comisiones",
         categoria="comisiones", referencia=str(liquidacion.id),
     )
     liquidacion.egreso_id = egreso.id
     liquidacion.estado = "pagada"
+    liquidacion.monto_total = total_pagadero
 
-    # Marcar los devengos incluidos como liquidada.
-    detalles = await detalle_liquidacion(session, liquidacion.id)
-    ids = [d.comision_devengo_id for d in detalles]
-    if ids:
-        res = await session.execute(
-            select(ComisionDevengo).where(ComisionDevengo.id.in_(ids))
-        )
-        for d in res.scalars().all():
-            d.estado = "liquidada"
+    # Solo los devengos efectivamente pagados pasan a 'liquidada'.
+    for d in liquidables:
+        d.estado = "liquidada"
     await session.flush()
 
     out = {"id": str(liquidacion.id), "egreso_id": str(egreso.id)}

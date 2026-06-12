@@ -163,7 +163,8 @@ async def desembolsar(
     from app.m09_comisiones.servicio import devengar_por_desembolso
 
     await devengar_por_desembolso(
-        session, prestamo=prestamo, solicitud=solicitud, actor_id=actor_id
+        session, prestamo=prestamo, solicitud=solicitud, fecha_negocio=fneg,
+        actor_id=actor_id,
     )
 
     out = DesembolsoOut(

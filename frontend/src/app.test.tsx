@@ -1,10 +1,12 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 import App from "./app";
 
 describe("App", () => {
-  it("muestra la marca", () => {
+  it("muestra la marca", async () => {
     render(<App />);
-    expect(screen.getByText(/NexoCred/i)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getAllByText(/NexoCred/i).length).toBeGreaterThan(0),
+    );
   });
 });

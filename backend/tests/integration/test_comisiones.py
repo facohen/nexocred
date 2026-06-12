@@ -34,7 +34,10 @@ async def _vendedor_id(session) -> str:
     return str(res.scalar_one())
 
 
-async def _prestamo_con_comision(client, token, session, dni, comision="0.05"):
+async def _prestamo_con_comision(
+    client, token, session, dni, comision="0.05", fecha_negocio=None
+):
+    fneg = fecha_negocio or date.today()
     await relajar_bcra(client, token)
     persona = await crear_persona(client, token, cuil=cuil_valido(dni), dni=dni)
     producto = await crear_producto(client, token)
@@ -60,8 +63,8 @@ async def _prestamo_con_comision(client, token, session, dni, comision="0.05"):
     caja = await _crear_caja(client, token)
     r = await client.post(
         f"/api/v1/solicitudes/{sid}/desembolsar",
-        json={"caja_id": caja, "fecha_negocio": date.today().isoformat(),
-              "fecha_primera_cuota": (date.today() + timedelta(days=30)).isoformat(),
+        json={"caja_id": caja, "fecha_negocio": fneg.isoformat(),
+              "fecha_primera_cuota": (fneg + timedelta(days=30)).isoformat(),
               "tasa_punitorio_diario": "0"},
         headers={**_h(token), "Idempotency-Key": f"des-com-{dni}"},
     )
@@ -175,3 +178,106 @@ async def test_liquidacion_pago_reconcilia_con_egreso(client, admin_token, sessi
         {"r": lid},
     )
     assert res.scalar_one() == 1
+
+
+async def test_pagar_excluye_devengo_clawbackeado_entre_generar_y_pagar(
+    client, admin_token, session
+):
+    # dos prestamos del MISMO vendedor -> dos devengos de 5000 c/u
+    p1, _c1, vendedor = await _prestamo_con_comision(
+        client, admin_token, session, "71000010"
+    )
+    p2, _c2, vendedor2 = await _prestamo_con_comision(
+        client, admin_token, session, "71000011"
+    )
+    assert vendedor == vendedor2
+    hoy = date.today()
+
+    gen = await client.post(
+        "/api/v1/comisiones/liquidaciones",
+        json={"vendedor_id": vendedor,
+              "periodo_desde": (hoy - timedelta(days=1)).isoformat(),
+              "periodo_hasta": (hoy + timedelta(days=1)).isoformat()},
+        headers=_h(admin_token),
+    )
+    assert gen.status_code == 201, gen.text
+    liq = gen.json()
+    lid = liq["id"]
+    assert liq["monto_total"] == "10000.00"
+    assert len(liq["detalle"]) == 2
+
+    ap = await client.patch(
+        f"/api/v1/comisiones/liquidaciones/{lid}/aprobar", headers=_h(admin_token)
+    )
+    assert ap.status_code == 200, ap.text
+
+    # clawback de uno de los devengos DESPUES de generar/aprobar, ANTES de pagar
+    cb = await client.post(
+        "/api/v1/comisiones/clawback",
+        json={"prestamo_id": p2, "motivo": "cancelacion temprana"},
+        headers=_h(admin_token),
+    )
+    assert cb.status_code == 201, cb.text
+
+    caja = await _crear_caja(client, admin_token, nombre="Caja Comisiones CB")
+    pay = await client.post(
+        f"/api/v1/comisiones/liquidaciones/{lid}/pagar",
+        json={"caja_id": caja, "fecha_negocio": hoy.isoformat()},
+        headers={**_h(admin_token), "Idempotency-Key": f"pay-cb-{lid}"},
+    )
+    assert pay.status_code == 200, pay.text
+    egreso_id = pay.json()["egreso_id"]
+
+    # el egreso SOLO paga el devengo aun liquidable (5000), no el clawbackeado
+    res = await session.execute(
+        text("SELECT monto, tipo FROM movimiento_caja WHERE id=:m"), {"m": egreso_id}
+    )
+    monto, tipo = res.one()
+    assert tipo == "egreso"
+    assert monto == Decimal("5000.00")
+
+    # monto_total de la liquidacion se recomputo a 5000
+    res = await session.execute(
+        text("SELECT monto_total FROM comision_liquidacion WHERE id=:l"), {"l": lid}
+    )
+    assert res.scalar_one() == Decimal("5000.00")
+
+    # el devengo de p1 quedo liquidada; el de p2 sigue en clawback (no forzado)
+    res = await session.execute(
+        text("SELECT estado FROM comision_devengo WHERE prestamo_id=:p AND tipo='originacion'"),
+        {"p": p1},
+    )
+    assert res.scalar_one() == "liquidada"
+    res = await session.execute(
+        text("SELECT estado FROM comision_devengo WHERE prestamo_id=:p AND tipo='originacion'"),
+        {"p": p2},
+    )
+    assert res.scalar_one() == "clawback"
+
+
+async def test_liquidacion_selecciona_por_fecha_negocio(client, admin_token, session):
+    # desembolso con fecha_negocio en el periodo pasado, pero created_at = hoy (fuera).
+    hace = date.today() - timedelta(days=40)
+    prestamo, _caja, vendedor = await _prestamo_con_comision(
+        client, admin_token, session, "71000020", fecha_negocio=hace
+    )
+    desde = hace - timedelta(days=2)
+    hasta = hace + timedelta(days=2)
+    gen = await client.post(
+        "/api/v1/comisiones/liquidaciones",
+        json={"vendedor_id": vendedor,
+              "periodo_desde": desde.isoformat(),
+              "periodo_hasta": hasta.isoformat()},
+        headers=_h(admin_token),
+    )
+    assert gen.status_code == 201, gen.text
+    liq = gen.json()
+    # el devengo cae en el periodo por fecha_negocio aunque created_at sea hoy
+    assert liq["monto_total"] == "5000.00"
+    assert len(liq["detalle"]) == 1
+    # control: el devengo del prestamo esta y su fecha_negocio == fecha del desembolso
+    res = await session.execute(
+        text("SELECT fecha_negocio FROM comision_devengo WHERE prestamo_id=:p"),
+        {"p": prestamo},
+    )
+    assert res.scalar_one() == hace

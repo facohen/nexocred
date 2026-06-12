@@ -49,6 +49,9 @@ def upgrade() -> None:
             nullable=True,
         ),
     )
+    # Fecha de negocio del devengo (= fecha de negocio del desembolso). Se usa para
+    # seleccionar el periodo de liquidacion, en vez de created_at.
+    op.add_column("comision_devengo", sa.Column("fecha_negocio", sa.Date()))
     op.create_check_constraint(
         "comision_devengo_estado_check",
         "comision_devengo",
@@ -242,5 +245,5 @@ def downgrade() -> None:
         ["id"],
     )
     op.drop_constraint("comision_devengo_estado_check", "comision_devengo")
-    for col in ("clawback_de_id", "porcentaje", "tipo"):
+    for col in ("fecha_negocio", "clawback_de_id", "porcentaje", "tipo"):
         op.drop_column("comision_devengo", col)

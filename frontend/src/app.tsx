@@ -1,7 +1,18 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { RouterProvider } from "@tanstack/react-router";
+import { SessionProvider } from "@/lib/session";
+import { router } from "@/routes/router";
+
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false, staleTime: 30_000 } },
+});
+
 export default function App() {
   return (
-    <div className="min-h-screen">
-      <h1 className="text-2xl font-bold">NexoCred</h1>
-    </div>
+    <QueryClientProvider client={queryClient}>
+      <SessionProvider>
+        <RouterProvider router={router} />
+      </SessionProvider>
+    </QueryClientProvider>
   );
 }

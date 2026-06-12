@@ -183,6 +183,7 @@ class ComisionDevengo(Base):
     clawback_de_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("comision_devengo.id")
     )
+    fecha_negocio: Mapped[date | None] = mapped_column(Date)
     created_at: Mapped[datetime] = _created_at()
 
 
