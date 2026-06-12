@@ -79,3 +79,6 @@ def configurar_logging(nivel: int = logging.INFO) -> None:
     handler.setFormatter(FormatterJSON())
     # Reemplaza handlers previos para evitar duplicados al reconfigurar.
     root.handlers = [handler]
+    # Silenciamos el ruido de librerias de cliente HTTP (no son logs de negocio).
+    for ruidoso in ("httpx", "httpcore"):
+        logging.getLogger(ruidoso).setLevel(logging.WARNING)
