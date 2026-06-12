@@ -1,0 +1,188 @@
+from tests.api.test_solicitudes import crear_persona
+
+
+def _h(token: str) -> dict:
+    return {"Authorization": f"Bearer {token}"}
+
+
+async def _crear_operador(client, admin_token, email="op1@nexo.test"):
+    r = await client.post(
+        "/api/v1/usuarios",
+        json={"email": email, "nombre": "Operador", "password": "secreto123",
+              "roles": ["operador"]},
+        headers=_h(admin_token),
+    )
+    assert r.status_code == 201, r.text
+    uid = r.json()["id"]
+    login = await client.post(
+        "/api/v1/auth/login", json={"email": email, "password": "secreto123"}
+    )
+    return uid, login.json()["access_token"]
+
+
+async def test_crear_y_completar_tarea_genera_interaccion(client, admin_token):
+    persona = await crear_persona(client, admin_token)
+    r = await client.post(
+        "/api/v1/tareas",
+        json={"persona_id": persona, "titulo": "Llamar al cliente"},
+        headers=_h(admin_token),
+    )
+    assert r.status_code == 201, r.text
+    tarea_id = r.json()["id"]
+    assert r.json()["estado"] == "pendiente"
+    assert r.json()["origen"] == "manual"
+
+    comp = await client.post(
+        f"/api/v1/tareas/{tarea_id}/completar",
+        json={"tipo": "llamada", "detalle": "atendio, paga el viernes"},
+        headers=_h(admin_token),
+    )
+    assert comp.status_code == 200, comp.text
+    assert comp.json()["tarea_id"] == tarea_id
+    assert comp.json()["tipo"] == "llamada"
+
+    det = await client.get(f"/api/v1/tareas/{tarea_id}", headers=_h(admin_token))
+    assert det.json()["estado"] == "completada"
+
+
+async def test_inbox_operador_solo_ve_propias(client, admin_token):
+    persona = await crear_persona(client, admin_token)
+    op1_id, op1_token = await _crear_operador(client, admin_token, "op_a@nexo.test")
+    op2_id, op2_token = await _crear_operador(client, admin_token, "op_b@nexo.test")
+
+    # tarea asignada a op1
+    await client.post(
+        "/api/v1/tareas",
+        json={"persona_id": persona, "titulo": "T1", "operador_id": op1_id},
+        headers=_h(admin_token),
+    )
+    # tarea asignada a op2
+    await client.post(
+        "/api/v1/tareas",
+        json={"persona_id": persona, "titulo": "T2", "operador_id": op2_id},
+        headers=_h(admin_token),
+    )
+
+    inbox1 = await client.get("/api/v1/tareas", headers=_h(op1_token))
+    titulos1 = {t["titulo"] for t in inbox1.json()}
+    assert titulos1 == {"T1"}
+
+    # admin ve todas
+    todas = await client.get("/api/v1/tareas", headers=_h(admin_token))
+    assert len({t["titulo"] for t in todas.json()}) == 2
+
+
+async def test_crear_interaccion_directa(client, admin_token):
+    persona = await crear_persona(client, admin_token)
+    r = await client.post(
+        "/api/v1/interacciones",
+        json={"persona_id": persona, "tipo": "nota", "detalle": "primera nota"},
+        headers=_h(admin_token),
+    )
+    assert r.status_code == 201, r.text
+    assert r.json()["tipo"] == "nota"
+
+
+async def test_tareas_de_persona(client, admin_token):
+    persona = await crear_persona(client, admin_token)
+    await client.post(
+        "/api/v1/tareas",
+        json={"persona_id": persona, "titulo": "TP"},
+        headers=_h(admin_token),
+    )
+    r = await client.get(
+        f"/api/v1/personas/{persona}/tareas", headers=_h(admin_token)
+    )
+    assert r.status_code == 200
+    assert len(r.json()) == 1
+
+
+async def test_incidente_crud(client, admin_token):
+    persona = await crear_persona(client, admin_token)
+    r = await client.post(
+        "/api/v1/incidentes",
+        json={"persona_id": persona, "tipo": "reclamo", "titulo": "Cobro duplicado",
+              "severidad": "alta"},
+        headers=_h(admin_token),
+    )
+    assert r.status_code == 201, r.text
+    iid = r.json()["id"]
+    assert r.json()["estado"] == "abierto"
+
+    pa = await client.patch(
+        f"/api/v1/incidentes/{iid}", json={"estado": "resuelto"},
+        headers=_h(admin_token),
+    )
+    assert pa.status_code == 200
+    assert pa.json()["estado"] == "resuelto"
+
+    lst = await client.get("/api/v1/incidentes?estado=resuelto", headers=_h(admin_token))
+    assert any(i["id"] == iid for i in lst.json())
+
+
+async def test_asignacion_individual_y_masiva(client, admin_token):
+    p1 = await crear_persona(client, admin_token, cuil="20111111112", dni="11111111")
+    p2 = await crear_persona(client, admin_token, cuil="20222222223", dni="22222222")
+    op_id, _ = await _crear_operador(client, admin_token, "op_asig@nexo.test")
+
+    r = await client.post(
+        "/api/v1/crm/asignaciones",
+        json={"persona_id": p1, "operador_id": op_id},
+        headers=_h(admin_token),
+    )
+    assert r.status_code == 201, r.text
+    assert r.json()["activo"] is True
+
+    m = await client.post(
+        "/api/v1/crm/asignaciones/masivo",
+        json={"persona_ids": [p1, p2], "operador_id": op_id},
+        headers=_h(admin_token),
+    )
+    assert m.status_code == 200, m.text
+    assert len(m.json()) == 2
+
+
+async def test_timeline_agrega_crm_y_credito(client, admin_token, session):
+    from datetime import date
+
+    from sqlalchemy import text
+
+    from tests.integration._helpers_f1c import relajar_bcra
+    from tests.integration.test_pagos_waterfall import _prestamo_desembolsado
+
+    await relajar_bcra(client, admin_token)
+    prestamo, caja = await _prestamo_desembolsado(
+        client, admin_token, session, fpc_offset=-30,
+        cuil="20444444445", dni="44444444",
+    )
+    # persona del prestamo
+    res = await session.execute(
+        text("SELECT persona_id FROM prestamo WHERE id=:p"), {"p": prestamo}
+    )
+    persona = str(res.scalar_one())
+
+    # un pago de mostrador
+    await client.post(
+        "/api/v1/pagos",
+        json={"prestamo_id": prestamo, "monto": "3000.00", "canal": "mostrador",
+              "caja_id": caja, "fecha_negocio": date.today().isoformat()},
+        headers={**_h(admin_token), "Idempotency-Key": "pago-tl"},
+    )
+    # una interaccion CRM
+    await client.post(
+        "/api/v1/interacciones",
+        json={"persona_id": persona, "tipo": "llamada", "detalle": "recordatorio"},
+        headers=_h(admin_token),
+    )
+
+    tl = await client.get(
+        f"/api/v1/personas/{persona}/timeline", headers=_h(admin_token)
+    )
+    assert tl.status_code == 200, tl.text
+    tipos = [e["tipo"] for e in tl.json()]
+    assert any(t.startswith("interaccion") for t in tipos)
+    assert "pago" in tipos
+    assert "desembolso" in tipos
+    # orden temporal ascendente
+    fechas = [e["fecha"] for e in tl.json()]
+    assert fechas == sorted(fechas)
