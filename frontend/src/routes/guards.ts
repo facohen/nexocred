@@ -20,6 +20,20 @@ export const ROUTE_ROLES: Record<string, Rol[]> = {
   "/caja": ["admin", "tesoreria", "operador"],
   "/novaciones": ["admin", "analista"],
   "/usuarios": ["admin"],
+  // ---- F1c / F1d ----
+  "/ruta": ["cobrador", "admin"],
+  "/rendicion": ["cobrador", "admin"],
+  "/crm/inbox": ["operador", "admin"],
+  "/crm/incidentes": ["operador", "admin"],
+  "/crm/asignaciones": ["admin"],
+  "/crm/prospectos": ["operador", "admin"],
+  "/riesgo/tablero": ["admin", "analista"],
+  "/riesgo/alertas": ["admin", "analista", "operador"],
+  "/vendedores/comisiones": ["admin", "vendedor"],
+  "/vendedores/liquidaciones": ["admin", "tesoreria"],
+  "/tesoreria": ["admin", "tesoreria"],
+  "/torre": ["admin", "tesoreria"],
+  "/documentos": ["admin", "analista", "operador"],
 };
 
 /**

@@ -1,0 +1,130 @@
+import { useEffect, useState, useCallback } from "react";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { MoneyText } from "@/components/MoneyText";
+import { useParadas } from "./hooks";
+import { useRutaSync } from "./useOnline";
+import { encolarVisita, contarPendientes, type VisitaEncolada } from "./queue";
+import { VisitaCaptureForm } from "./VisitaCaptureForm";
+
+function Skeleton() {
+  return (
+    <div className="space-y-2">
+      <div className="h-4 w-2/3 animate-pulse rounded bg-foreground/10" />
+      <div className="h-4 w-full animate-pulse rounded bg-foreground/10" />
+    </div>
+  );
+}
+
+/**
+ * La Ruta — the cobrador's offline-first field screen. Loads the assigned route,
+ * lists stops with their exigible saldo, captures visits into the IndexedDB
+ * queue, and shows live sync status. Offline submits only enqueue; online
+ * submits enqueue + sync. Mobile-first (max-w container, stacked cards).
+ */
+export function RutaPage({ rutaId }: { rutaId: string }) {
+  const paradasQ = useParadas(rutaId);
+  const { online, sincronizando, ultimo, error, sincronizarAhora } = useRutaSync(rutaId);
+  const [pendientes, setPendientes] = useState(0);
+  const [capturando, setCapturando] = useState<string | null>(null);
+
+  const refrescarPendientes = useCallback(async () => {
+    setPendientes(await contarPendientes());
+  }, []);
+
+  useEffect(() => {
+    void refrescarPendientes();
+  }, [refrescarPendientes, ultimo]);
+
+  const onGuardar = useCallback(
+    async (v: VisitaEncolada) => {
+      await encolarVisita(v);
+      await refrescarPendientes();
+      setCapturando(null);
+      // Online → enqueue + sync; offline → enqueue only (no POST).
+      if (online) {
+        await sincronizarAhora();
+        await refrescarPendientes();
+      }
+    },
+    [online, sincronizarAhora, refrescarPendientes],
+  );
+
+  const paradas = paradasQ.data?.data ?? [];
+
+  return (
+    <div data-testid="ruta-root" className="mx-auto max-w-md space-y-4 px-1 pb-24">
+      <header className="flex items-center justify-between">
+        <h1 className="text-lg font-bold">La Ruta</h1>
+        <div className="flex items-center gap-2">
+          <Badge tone={online ? "success" : "warning"}>
+            {online ? "En línea" : "Sin conexión"}
+          </Badge>
+          <span data-testid="sync-status" className="text-xs text-foreground/70">
+            {pendientes} pendiente{pendientes === 1 ? "" : "s"}
+          </span>
+        </div>
+      </header>
+
+      <div className="flex items-center gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => void sincronizarAhora()}
+          disabled={sincronizando || pendientes === 0}
+        >
+          {sincronizando ? "Sincronizando…" : "Sincronizar"}
+        </Button>
+        {ultimo?.enviado && (
+          <span className="text-xs text-foreground/60">
+            {ultimo.aplicadas} aplicadas · {ultimo.omitidas} omitidas · {ultimo.rechazadas} rechazadas
+          </span>
+        )}
+      </div>
+
+      {error && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-2 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      {paradasQ.isLoading ? (
+        <Skeleton />
+      ) : paradasQ.isError ? (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-2 text-sm text-red-700">
+          No se pudo cargar la ruta.
+        </div>
+      ) : paradas.length === 0 ? (
+        <p className="text-sm text-foreground/60">No hay paradas asignadas.</p>
+      ) : (
+        <ol className="space-y-3">
+          {paradas.map((p) => (
+            <li key={p.id}>
+              <Card className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{`#${p.orden} · Préstamo ${p.prestamo_id}`}</span>
+                  <MoneyText value={p.saldo_exigible} className="text-sm font-semibold" />
+                </div>
+                {p.resultado ? (
+                  <Badge tone="success">Visitada: {p.resultado}</Badge>
+                ) : capturando === p.id ? (
+                  <VisitaCaptureForm
+                    parada={p}
+                    rutaId={rutaId}
+                    onGuardar={onGuardar}
+                    onCancelar={() => setCapturando(null)}
+                  />
+                ) : (
+                  <Button size="sm" onClick={() => setCapturando(p.id)}>
+                    Registrar visita
+                  </Button>
+                )}
+              </Card>
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
+  );
+}
