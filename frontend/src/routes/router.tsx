@@ -22,6 +22,7 @@ import { RegistrarPagoPage } from "@/features/pagos/RegistrarPagoPage";
 import { CajaPage } from "@/features/caja/CajaPage";
 import { NovacionesPage } from "@/features/novaciones/NovacionesPage";
 import { RutaRoute } from "@/features/ruta/RutaRoute";
+import { RendicionRoute } from "@/features/ruta/RendicionRoute";
 
 const rootRoute = createRootRoute({ component: () => <Outlet /> });
 
@@ -85,6 +86,7 @@ const routeTree = rootRoute.addChildren([
     page("/caja", CajaPage),
     page("/novaciones", NovacionesPage),
     page("/ruta", RutaRoute),
+    page("/rendicion", RendicionRoute),
     page("/usuarios", function Usuarios() {
       return <div className="text-sm">Gestión de usuarios (admin).</div>;
     }),
