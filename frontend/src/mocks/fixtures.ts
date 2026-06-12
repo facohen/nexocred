@@ -146,7 +146,7 @@ export interface Producto {
   plazos_permitidos: number[];
   monto_minimo: string | null;
   monto_maximo: string | null;
-  gastos: { concepto: string; tipo: string; valor: string }[];
+  gastos: { nombre: string; tipo: string; valor: string }[];
 }
 
 export const productos: Producto[] = [
@@ -162,8 +162,8 @@ export const productos: Producto[] = [
     monto_minimo: "50000.00",
     monto_maximo: "2000000.00",
     gastos: [
-      { concepto: "Gasto de otorgamiento", tipo: "porcentaje", valor: "2.50" },
-      { concepto: "Seguro de vida", tipo: "porcentaje", valor: "0.30" },
+      { nombre: "Gasto de otorgamiento", tipo: "porcentaje", valor: "2.50" },
+      { nombre: "Seguro de vida", tipo: "porcentaje", valor: "0.30" },
     ],
   },
   {
@@ -177,7 +177,7 @@ export const productos: Producto[] = [
     plazos_permitidos: [12, 24, 36],
     monto_minimo: "200000.00",
     monto_maximo: "5000000.00",
-    gastos: [{ concepto: "Gasto de inscripción", tipo: "fijo", valor: "15000.00" }],
+    gastos: [{ nombre: "Gasto de inscripción", tipo: "fijo", valor: "15000.00" }],
   },
 ];
 
