@@ -114,7 +114,16 @@ async def obtener(
 def leer_bytes(doc: DocumentoEmitido) -> bytes:
     if doc.url_storage is None:
         raise ErrorAPI("sin_contenido", "el documento no tiene contenido", status=404)
-    return _storage.leer(doc.url_storage)
+    contenido = _storage.leer(doc.url_storage)
+    # Integridad: el documento es inmutable/auditable; verificamos que los bytes
+    # almacenados sigan correspondiendo al hash sellado en emision antes de servirlos.
+    if doc.hash_sha256 is not None and hash_sha256(contenido) != doc.hash_sha256:
+        raise ErrorAPI(
+            "documento_corrupto",
+            "el contenido almacenado no coincide con el hash del documento",
+            status=500,
+        )
+    return contenido
 
 
 async def anular(

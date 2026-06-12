@@ -113,3 +113,43 @@ async def test_listar_documentos_del_prestamo(client, admin_token):
     )
     assert r.status_code == 200, r.text
     assert len(r.json()) == 1
+
+
+async def test_descargar_detecta_corrupcion(client, admin_token):
+    """Si los bytes almacenados no coinciden con doc.hash_sha256, descargar falla
+    con documento_corrupto (500) en vez de servir contenido alterado."""
+    import uuid as _uuid
+
+    from app.errors import ErrorAPI
+    from app.m13_documentos import servicio
+    from app.modelos_stub import DocumentoEmitido
+
+    prestamo_id = await _seed_prestamo()
+    r = await client.post(
+        "/api/v1/documentos/generar",
+        json={"tipo": "pagare", "prestamo_id": prestamo_id},
+        headers=_h(admin_token),
+    )
+    doc_id = r.json()["id"]
+
+    engine = create_async_engine(TEST_URL)
+    maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    async with maker() as s:
+        doc = await s.get(DocumentoEmitido, _uuid.UUID(doc_id))
+        assert doc is not None
+        # Tamper de los bytes almacenados (mismo path/url, contenido distinto).
+        servicio._storage.guardar(
+            f"{doc.tipo}/{doc.tipo}-{doc.numero:08d}.pdf",
+            b"%PDF-CONTENIDO-ALTERADO",
+        )
+        with pytest.raises(ErrorAPI) as exc:
+            servicio.leer_bytes(doc)
+    await engine.dispose()
+    assert exc.value.code == "documento_corrupto"
+    assert exc.value.status == 500
+
+    # El endpoint tambien devuelve error (no sirve bytes corruptos).
+    r2 = await client.get(
+        f"/api/v1/documentos/{doc_id}/descargar", headers=_h(admin_token)
+    )
+    assert r2.status_code == 500
