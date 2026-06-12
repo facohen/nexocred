@@ -105,3 +105,89 @@ async def test_rotacion(client, tesoreria_token):
 async def test_rbac_no_tesoreria(client, analista_token):
     r = await client.get("/api/v1/tesoreria/posicion", headers=_h(analista_token))
     assert r.status_code == 403
+
+
+async def _crear_caja(client, token, nombre="Caja") -> str:
+    r = await client.post(
+        "/api/v1/cajas", json={"nombre": nombre, "tipo": "efectivo"},
+        headers=_h(token),
+    )
+    assert r.status_code == 201, r.text
+    return r.json()["id"]
+
+
+async def test_aporte_asienta_ingreso_en_caja(client, admin_token):
+    caja_id = await _crear_caja(client, admin_token)
+    r = await client.post(
+        "/api/v1/tesoreria/aportes",
+        json={"monto": "250000.00", "fecha_negocio": HOY.isoformat(),
+              "caja_id": caja_id, "inversor": "Socio A"},
+        headers=_h(admin_token),
+    )
+    assert r.status_code == 201, r.text
+    body = r.json()
+    assert body["tipo"] == "aporte"
+    assert body["monto"] == "250000.00"
+    assert body["movimiento_id"] is not None
+
+    # reconcilia: saldo de caja == aporte
+    r = await client.get("/api/v1/cajas", headers=_h(admin_token))
+    caja = next(c for c in r.json() if c["id"] == caja_id)
+    assert caja["saldo_teorico"] == "250000.00"
+
+    # posicion refleja capital disponible
+    r = await client.get(
+        "/api/v1/tesoreria/posicion", params={"fecha": HOY.isoformat()},
+        headers=_h(admin_token),
+    )
+    assert r.json()["capital_disponible"] == "250000.00"
+
+
+async def test_retiro_asienta_egreso(client, admin_token):
+    caja_id = await _crear_caja(client, admin_token)
+    await client.post(
+        "/api/v1/tesoreria/aportes",
+        json={"monto": "300000.00", "fecha_negocio": HOY.isoformat(),
+              "caja_id": caja_id},
+        headers=_h(admin_token),
+    )
+    r = await client.post(
+        "/api/v1/tesoreria/retiros",
+        json={"monto": "100000.00", "fecha_negocio": HOY.isoformat(),
+              "caja_id": caja_id},
+        headers=_h(admin_token),
+    )
+    assert r.status_code == 201, r.text
+    assert r.json()["tipo"] == "retiro"
+    r = await client.get("/api/v1/cajas", headers=_h(admin_token))
+    caja = next(c for c in r.json() if c["id"] == caja_id)
+    assert caja["saldo_teorico"] == "200000.00"
+
+
+async def test_aporte_idempotente(client, admin_token):
+    caja_id = await _crear_caja(client, admin_token)
+    headers = {**_h(admin_token), "Idempotency-Key": "ap-1"}
+    payload = {"monto": "150000.00", "fecha_negocio": HOY.isoformat(),
+               "caja_id": caja_id}
+    r1 = await client.post("/api/v1/tesoreria/aportes", json=payload, headers=headers)
+    r2 = await client.post("/api/v1/tesoreria/aportes", json=payload, headers=headers)
+    assert r1.status_code == 201 and r2.status_code == 201
+    assert r1.json()["id"] == r2.json()["id"]
+    # saldo no se duplica
+    r = await client.get("/api/v1/cajas", headers=_h(admin_token))
+    caja = next(c for c in r.json() if c["id"] == caja_id)
+    assert caja["saldo_teorico"] == "150000.00"
+
+
+async def test_listar_aportes_retiros(client, admin_token):
+    caja_id = await _crear_caja(client, admin_token)
+    await client.post(
+        "/api/v1/tesoreria/aportes",
+        json={"monto": "100000.00", "fecha_negocio": HOY.isoformat(),
+              "caja_id": caja_id},
+        headers=_h(admin_token),
+    )
+    r = await client.get("/api/v1/tesoreria/aportes-retiros", headers=_h(admin_token))
+    assert r.status_code == 200
+    assert len(r.json()) == 1
+    assert r.json()[0]["monto"] == "100000.00"
