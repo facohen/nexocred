@@ -205,6 +205,12 @@ async def registrar_pago_uow(
         raise ErrorAPI(
             "prestamo_sin_snapshot", "el prestamo no esta desembolsado", status=409
         )
+    if prestamo.estado not in ("vigente", "en_mora"):
+        raise ErrorAPI(
+            "prestamo_no_cobrable",
+            f"no se puede registrar un pago sobre un préstamo en estado '{prestamo.estado}'",
+            status=409,
+        )
 
     cuotas = await _cuotas_de(session, prestamo_id)
     imps_previas = imputaciones_core(await _imputaciones_previas(session, prestamo_id))

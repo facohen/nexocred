@@ -5,6 +5,7 @@ from datetime import date
 from decimal import Decimal
 
 from sqlalchemy import select
+from sqlalchemy import update as sa_update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auditoria import escribir_evento
@@ -16,7 +17,7 @@ from app.m03_prestamos.servicio import payoff as calcular_payoff_prestamo
 from app.m04_caja.servicio import registrar_movimiento
 from app.m06_novaciones.modelos import Novacion, NovacionOrigen
 from app.m06_novaciones.schemas import NovacionOut
-from app.modelos_stub import Prestamo
+from app.modelos_stub import Cuota, Prestamo
 from nexocred_core import Periodicidad, TerminosPrestamo, redondear, restar, sumar
 
 
@@ -71,6 +72,14 @@ async def _crear_novacion(
     for origen in origenes:
         session.add(NovacionOrigen(novacion_id=nov.id, prestamo_id=origen.id))
         origen.estado = "novado"
+        await session.execute(
+            sa_update(Cuota)
+            .where(
+                Cuota.prestamo_id == origen.id,
+                Cuota.estado.in_(["pendiente", "parcial"]),
+            )
+            .values(estado="cancelada")
+        )
     await session.flush()
     await escribir_evento(
         session, actor_id=actor_id, accion="novacion_confirmada", entidad="novacion",

@@ -1,4 +1,4 @@
-"""Tests for critical audit findings (C1: doble desembolso)."""
+"""Tests for critical audit findings (C1: doble desembolso, C3: prestamo novado)."""
 import uuid
 from datetime import date, timedelta
 
@@ -216,3 +216,123 @@ class TestC2DobleCorrección:
         )
         reversas = result.scalars().all()
         assert len(reversas) == 1, f"Expected 1 reversa, found {len(reversas)}"
+
+
+# ── helpers for C3 ─────────────────────────────────────────────────────────
+
+async def _seed_prestamo_vigente(client, token, session) -> dict:
+    """Create persona -> solicitud -> aprobada -> desembolsar -> return prestamo dict."""
+    from tests.integration.test_pagos_waterfall import _prestamo_desembolsado
+
+    prestamo_id, caja_id = await _prestamo_desembolsado(client, token, session)
+    return {"id": prestamo_id, "caja_id": caja_id}
+
+
+# ── C3: Préstamo novado sigue cobrable ─────────────────────────────────────
+
+
+class TestC3PrestamoNovado:
+
+    async def test_novar_cancela_cuotas_del_origen(
+        self, client, admin_token, session
+    ):
+        """Después de novar, todas las cuotas pendientes del préstamo origen tienen estado='cancelada'."""
+        from sqlalchemy import select as sa_select, text
+        from app.modelos_stub import Cuota
+        import uuid as uuid_mod
+
+        prestamo = await _seed_prestamo_vigente(client, admin_token, session)
+        fpc = (date.today() + timedelta(days=30)).isoformat()
+
+        r = await client.post(
+            "/api/v1/novaciones/refinanciar",
+            json={
+                "prestamo_id": prestamo["id"],
+                "caja_id": prestamo["caja_id"],
+                "fecha_negocio": date.today().isoformat(),
+                "tasa_interes_directo": "0.20",
+                "cantidad_cuotas": 12,
+                "fecha_primera_cuota": fpc,
+            },
+            headers={**_h(admin_token), "Idempotency-Key": str(uuid.uuid4())},
+        )
+        assert r.status_code == 201, r.text
+
+        # All cuotas of the origin should now be cancelada (or pagada — already settled)
+        result = await session.execute(
+            sa_select(Cuota).where(
+                Cuota.prestamo_id == uuid_mod.UUID(prestamo["id"]),
+            )
+        )
+        cuotas = result.scalars().all()
+        assert len(cuotas) > 0, "prestamo should have cuotas"
+        non_canceladas = [c for c in cuotas if c.estado not in ("cancelada", "pagada")]
+        assert non_canceladas == [], (
+            f"Expected all cuotas cancelada/pagada, found states: "
+            f"{[c.estado for c in non_canceladas]}"
+        )
+
+    async def test_pago_sobre_prestamo_novado_rechaza_409(
+        self, client, admin_token, session
+    ):
+        """registrar_pago sobre préstamo con estado='novado' retorna 409."""
+        prestamo = await _seed_prestamo_vigente(client, admin_token, session)
+        fpc = (date.today() + timedelta(days=30)).isoformat()
+
+        # Novar first
+        r = await client.post(
+            "/api/v1/novaciones/refinanciar",
+            json={
+                "prestamo_id": prestamo["id"],
+                "caja_id": prestamo["caja_id"],
+                "fecha_negocio": date.today().isoformat(),
+                "tasa_interes_directo": "0.20",
+                "cantidad_cuotas": 12,
+                "fecha_primera_cuota": fpc,
+            },
+            headers={**_h(admin_token), "Idempotency-Key": str(uuid.uuid4())},
+        )
+        assert r.status_code == 201, r.text
+
+        # Try to register a payment on the novated loan
+        r2 = await client.post(
+            "/api/v1/pagos",
+            json={
+                "prestamo_id": prestamo["id"],
+                "monto": "1000.00",
+                "canal": "mostrador",
+                "caja_id": prestamo["caja_id"],
+                "fecha_negocio": date.today().isoformat(),
+            },
+            headers={**_h(admin_token), "Idempotency-Key": str(uuid.uuid4())},
+        )
+        assert r2.status_code == 409, r2.text
+
+    async def test_pago_sobre_prestamo_cancelado_rechaza_409(
+        self, client, admin_token, session
+    ):
+        """registrar_pago sobre préstamo con estado='cancelado' retorna 409."""
+        from sqlalchemy import text
+
+        prestamo = await _seed_prestamo_vigente(client, admin_token, session)
+
+        # Directly set estado to 'cancelado' via DB
+        await session.execute(
+            text("UPDATE prestamo SET estado='cancelado' WHERE id=:id"),
+            {"id": prestamo["id"]},
+        )
+        await session.commit()
+
+        # Try to register a payment on the cancelled loan
+        r = await client.post(
+            "/api/v1/pagos",
+            json={
+                "prestamo_id": prestamo["id"],
+                "monto": "1000.00",
+                "canal": "mostrador",
+                "caja_id": prestamo["caja_id"],
+                "fecha_negocio": date.today().isoformat(),
+            },
+            headers={**_h(admin_token), "Idempotency-Key": str(uuid.uuid4())},
+        )
+        assert r.status_code == 409, r.text
