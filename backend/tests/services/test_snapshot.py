@@ -71,6 +71,21 @@ async def _seed(session, fecha_corte: date):
     await session.flush()
 
 
+async def test_orm_tiene_unique_constraint_fecha_corte():
+    """El modelo ORM debe declarar la unique constraint que usa el upsert y que
+    creo la migracion 0004, para que la metadata coincida con la DB."""
+    from sqlalchemy import UniqueConstraint
+
+    constraints = {
+        c.name
+        for c in SnapshotCartera.__table__.constraints
+        if isinstance(c, UniqueConstraint)
+    }
+    assert "snapshot_cartera_fecha_corte_uq" in constraints
+    # fecha_corte NOT NULL (clave del upsert).
+    assert SnapshotCartera.__table__.c.fecha_corte.nullable is False
+
+
 async def test_genera_una_fila_con_metricas(session):
     fecha = date(2026, 6, 11)
     await _seed(session, fecha)

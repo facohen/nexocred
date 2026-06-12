@@ -190,7 +190,7 @@ class ComisionDevengo(Base):
 class SnapshotCartera(Base):
     __tablename__ = "snapshot_cartera"
     id: Mapped[uuid.UUID] = uuid_pk()
-    fecha_corte: Mapped[date | None] = mapped_column(Date)
+    fecha_corte: Mapped[date] = mapped_column(Date, nullable=False)
     prestamos_vigentes: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default="0"
     )
@@ -210,6 +210,10 @@ class SnapshotCartera(Base):
         Numeric(16, 2), nullable=False, server_default="0"
     )
     created_at: Mapped[datetime] = _created_at()
+
+    __table_args__ = (
+        UniqueConstraint("fecha_corte", name="snapshot_cartera_fecha_corte_uq"),
+    )
 
 
 class Tarea(Base):
