@@ -164,6 +164,30 @@ async def test_retiro_asienta_egreso(client, admin_token):
     assert caja["saldo_teorico"] == "200000.00"
 
 
+async def test_retiro_mayor_a_saldo_rechazado(client, admin_token):
+    """Un retiro que dejaria la caja en saldo negativo se rechaza (409) y no
+    asienta ningun movimiento ni altera el saldo."""
+    caja_id = await _crear_caja(client, admin_token)
+    await client.post(
+        "/api/v1/tesoreria/aportes",
+        json={"monto": "100000.00", "fecha_negocio": HOY.isoformat(),
+              "caja_id": caja_id},
+        headers=_h(admin_token),
+    )
+    r = await client.post(
+        "/api/v1/tesoreria/retiros",
+        json={"monto": "150000.00", "fecha_negocio": HOY.isoformat(),
+              "caja_id": caja_id},
+        headers=_h(admin_token),
+    )
+    assert r.status_code == 409, r.text
+    assert r.json()["error"]["code"] == "saldo_insuficiente"
+    # saldo intacto
+    r = await client.get("/api/v1/cajas", headers=_h(admin_token))
+    caja = next(c for c in r.json() if c["id"] == caja_id)
+    assert caja["saldo_teorico"] == "100000.00"
+
+
 async def test_aporte_idempotente(client, admin_token):
     caja_id = await _crear_caja(client, admin_token)
     headers = {**_h(admin_token), "Idempotency-Key": "ap-1"}

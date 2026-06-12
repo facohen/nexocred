@@ -183,6 +183,12 @@ async def _crear_aporte_retiro(
         raise ErrorAPI("monto_invalido", "el monto debe ser positivo", status=422)
 
     caja = await bloquear_caja(session, caja_id)
+    if tipo == "retiro" and restar(caja.saldo_teorico, monto) < CERO:
+        raise ErrorAPI(
+            "saldo_insuficiente",
+            "el retiro dejaria la caja con saldo negativo",
+            status=409,
+        )
     tipo_mov = "ingreso" if tipo == "aporte" else "egreso"
     concepto = "aporte de capital" if tipo == "aporte" else "retiro de capital"
     mov = await registrar_movimiento(
