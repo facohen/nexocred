@@ -6,7 +6,13 @@ from pathlib import Path
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+from sqlalchemy.pool import NullPool
 
 # backend/tests/conftest.py -> parents[1] == backend/ (independiente del cwd de invocacion).
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -18,9 +24,24 @@ os.environ.setdefault(
 )
 
 ADMIN_URL = "postgresql+asyncpg://nexocred:nexocred@localhost:5432/nexocred"
-TEST_DB = "nexocred_test"
+# Nombre de la DB de test configurable via env (default nexocred_test) para
+# permitir correr suites aisladas en paralelo sin colisionar el DROP/CREATE.
+TEST_DB = os.environ.get("NEXOCRED_TEST_DB", "nexocred_test")
 TEST_URL = f"postgresql+asyncpg://nexocred:nexocred@localhost:5432/{TEST_DB}"
 TEST_URL_SYNC = f"postgresql+psycopg://nexocred:nexocred@localhost:5432/{TEST_DB}"
+
+
+def make_test_engine(**kw) -> AsyncEngine:
+    """Crea un engine async de test con NullPool.
+
+    NullPool no mantiene conexiones idle entre usos: cada conexion se cierra al
+    devolverse. Esto evita (a) la fuga de conexiones que agotaba max_connections
+    de Postgres en la corrida completa, y (b) la reutilizacion de una conexion
+    asyncpg ligada a un event loop ya cerrado (cada test de pytest-asyncio corre
+    en su propio loop), causa del 'connection was closed in the middle of
+    operation'. Todo engine de test debe crearse con este helper.
+    """
+    return create_async_engine(TEST_URL, poolclass=NullPool, **kw)
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -41,7 +62,7 @@ async def _crear_db_de_test():
 
 @pytest_asyncio.fixture
 async def session(_crear_db_de_test) -> AsyncGenerator[AsyncSession, None]:
-    engine = create_async_engine(TEST_URL)
+    engine = make_test_engine()
     maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     async with maker() as s:
         yield s
@@ -53,7 +74,7 @@ async def session(_crear_db_de_test) -> AsyncGenerator[AsyncSession, None]:
 async def limpiar_db(_crear_db_de_test) -> AsyncGenerator[None, None]:
     """Trunca todas las tablas de dominio antes de cada test que use el cliente HTTP,
     para aislamiento (el cliente abre su propia sesion via get_session override)."""
-    engine = create_async_engine(TEST_URL, isolation_level="AUTOCOMMIT")
+    engine = make_test_engine(isolation_level="AUTOCOMMIT")
     tablas = (
         "rendicion_descargo, rendicion, "
         "comision_liquidacion_detalle, comision_liquidacion, "
@@ -71,6 +92,21 @@ async def limpiar_db(_crear_db_de_test) -> AsyncGenerator[None, None]:
         "auditoria_evento, idempotency_key, usuario_rol, usuario, rol"
     )
     async with engine.connect() as conn:
+        # Antes de truncar, terminamos cualquier OTRA conexion a la test-DB que
+        # haya quedado viva del test anterior (pool del engine de la app sin
+        # disponer todavia). Esas conexiones sostienen RowExclusiveLock y hacen
+        # que el TRUNCATE (AccessExclusiveLock) entre en deadlock. Cerrarlas
+        # primero le da via libre y elimina la causa raiz del deadlock.
+        await conn.execute(
+            text(
+                "SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
+                "WHERE datname = :db AND pid <> pg_backend_pid()"
+            ),
+            {"db": TEST_DB},
+        )
+        # lock_timeout como red de seguridad: si aun asi hubiera contencion,
+        # falla rapido y diagnosticable en vez de colgar la suite.
+        await conn.execute(text("SET lock_timeout = '5s'"))
         await conn.execute(text(f"TRUNCATE {tablas} RESTART IDENTITY CASCADE"))
     await engine.dispose()
     yield
@@ -92,7 +128,7 @@ async def app(limpiar_db):
     from app.db import get_session
     from app.main import crear_app
 
-    engine = create_async_engine(TEST_URL)
+    engine = make_test_engine()
     maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async def _get_session() -> AsyncGenerator[AsyncSession, None]:
@@ -117,7 +153,7 @@ async def roles_seed() -> None:
     """Crea los 6 roles del sistema."""
     from app.m12_auth.modelos import Rol
 
-    engine = create_async_engine(TEST_URL)
+    engine = make_test_engine()
     maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     async with maker() as s:
         for nombre in ("admin", "analista", "cobrador", "vendedor", "operador", "tesoreria"):
@@ -135,7 +171,7 @@ async def usuario_seed(roles_seed) -> dict:
     """Crea un usuario admin con password conocido."""
     from app.m12_auth.servicio import crear_usuario
 
-    engine = create_async_engine(TEST_URL)
+    engine = make_test_engine()
     maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     async with maker() as s:
         u = await crear_usuario(
@@ -165,7 +201,7 @@ async def admin_token(client, usuario_seed) -> str:
 async def analista_token(client, roles_seed) -> str:
     from app.m12_auth.servicio import crear_usuario
 
-    engine = create_async_engine(TEST_URL)
+    engine = make_test_engine()
     maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     async with maker() as s:
         await crear_usuario(
@@ -189,7 +225,7 @@ async def analista_token(client, roles_seed) -> str:
 async def tesoreria_token(client, roles_seed) -> str:
     from app.m12_auth.servicio import crear_usuario
 
-    engine = create_async_engine(TEST_URL)
+    engine = make_test_engine()
     maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     async with maker() as s:
         await crear_usuario(

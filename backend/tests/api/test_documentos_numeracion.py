@@ -1,10 +1,10 @@
 """Tests de numeracion transaccional por tipo de documento."""
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.m13_documentos.numeracion import asignar_numero
-from tests.conftest import TEST_URL
+from tests.conftest import make_test_engine
 
 pytestmark = pytest.mark.asyncio
 
@@ -28,7 +28,7 @@ async def test_concurrencia_sin_duplicados(session):
     # primera sesion reserva la fila y la mantiene bloqueada
     await asignar_numero(session, "pagare")  # crea fila + numero 1, sin commit aun
 
-    engine2 = create_async_engine(TEST_URL)
+    engine2 = make_test_engine()
     maker2 = async_sessionmaker(engine2, class_=AsyncSession, expire_on_commit=False)
     await session.commit()  # libera para que la fila exista y este visible
     async with maker2() as s2:

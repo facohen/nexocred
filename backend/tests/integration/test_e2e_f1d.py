@@ -5,12 +5,12 @@ from datetime import date
 from decimal import Decimal
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.m04_caja.modelos import Caja
 from app.modelos_stub import Cuota
 from tests._seed_f1d import crear_persona, crear_prestamo, crear_producto
-from tests.conftest import TEST_URL
+from tests.conftest import make_test_engine
 
 pytestmark = pytest.mark.asyncio
 
@@ -22,7 +22,7 @@ def _h(token: str) -> dict:
 
 
 async def _seed() -> tuple[str, str]:
-    engine = create_async_engine(TEST_URL)
+    engine = make_test_engine()
     maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     async with maker() as s:
         persona = await crear_persona(s)

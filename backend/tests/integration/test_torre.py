@@ -4,11 +4,11 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.modelos_stub import Alerta, Cuota, SnapshotCartera
 from tests._seed_f1d import crear_persona, crear_prestamo, crear_producto
-from tests.conftest import TEST_URL
+from tests.conftest import make_test_engine
 
 pytestmark = pytest.mark.asyncio
 
@@ -26,7 +26,7 @@ async def _seed_snapshot(**kw) -> None:
         punitorios_cobrados_mes=Decimal("5000"), capital_disponible=Decimal("300000"),
     )
     base.update(kw)
-    engine = create_async_engine(TEST_URL)
+    engine = make_test_engine()
     maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     async with maker() as s:
         s.add(SnapshotCartera(**base))
@@ -35,7 +35,7 @@ async def _seed_snapshot(**kw) -> None:
 
 
 async def _seed_live() -> None:
-    engine = create_async_engine(TEST_URL)
+    engine = make_test_engine()
     maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     async with maker() as s:
         persona = await crear_persona(s)
