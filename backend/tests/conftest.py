@@ -183,3 +183,27 @@ async def analista_token(client, roles_seed) -> str:
         json={"email": "analista@nexo.test", "password": "secreto123"},
     )
     return r.json()["access_token"]
+
+
+@pytest_asyncio.fixture
+async def tesoreria_token(client, roles_seed) -> str:
+    from app.m12_auth.servicio import crear_usuario
+
+    engine = create_async_engine(TEST_URL)
+    maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    async with maker() as s:
+        await crear_usuario(
+            s,
+            email="tesoreria@nexo.test",
+            nombre="Tesoreria",
+            password="secreto123",
+            roles=["tesoreria"],
+            actor_id=None,
+        )
+        await s.commit()
+    await engine.dispose()
+    r = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "tesoreria@nexo.test", "password": "secreto123"},
+    )
+    return r.json()["access_token"]
