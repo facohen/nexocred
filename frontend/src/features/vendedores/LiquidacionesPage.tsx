@@ -71,7 +71,7 @@ export function LiquidacionesPage() {
                       <Button size="sm" variant="outline" onClick={() => aprobar.mutate(l.id)} disabled={l.estado !== "borrador"}>
                         Aprobar
                       </Button>
-                      <Button size="sm" onClick={() => pagar.mutate(l.id)} disabled={l.estado === "pagada"}>
+                      <Button size="sm" onClick={() => pagar.mutate(l.id)} disabled={l.estado !== "aprobada"}>
                         Pagar
                       </Button>
                     </div>

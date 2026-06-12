@@ -44,6 +44,19 @@ describe("LiquidacionesPage", () => {
     await waitFor(() => expect(screen.getByText(/aprobada/i)).toBeInTheDocument());
   });
 
+  it("Pagar está deshabilitado para borrador y solo habilitado tras aprobada", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<LiquidacionesPage />, { ...admin, roles: ["admin"] });
+    await screen.findByText(/8\.200,00/);
+    // La liquidación fixture arranca en 'borrador': Pagar debe estar deshabilitado.
+    const pagarBorrador = screen.getAllByRole("button", { name: /Pagar/i })[0];
+    expect(pagarBorrador).toBeDisabled();
+    // Aprobar (gated a borrador) la lleva a 'aprobada' → Pagar se habilita.
+    await user.click(screen.getAllByRole("button", { name: /Aprobar/i })[0]);
+    await waitFor(() => expect(screen.getByText(/aprobada/i)).toBeInTheDocument());
+    expect(screen.getAllByRole("button", { name: /Pagar/i })[0]).toBeEnabled();
+  });
+
   it("pagar envía Idempotency-Key", async () => {
     let idemKey: string | null = "MISSING";
     server.use(
@@ -59,6 +72,9 @@ describe("LiquidacionesPage", () => {
     const user = userEvent.setup();
     renderWithProviders(<LiquidacionesPage />, { ...admin, roles: ["admin"] });
     await screen.findByText(/8\.200,00/);
+    // Pagar solo se habilita tras aprobar (estado aprobada).
+    await user.click(screen.getAllByRole("button", { name: /Aprobar/i })[0]);
+    await waitFor(() => expect(screen.getByText(/aprobada/i)).toBeInTheDocument());
     await user.click(screen.getAllByRole("button", { name: /Pagar/i })[0]);
     await waitFor(() => expect(screen.getByText(/pagada/i)).toBeInTheDocument());
     expect(idemKey).not.toBe("MISSING");
