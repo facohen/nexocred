@@ -10,13 +10,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auditoria import escribir_evento
 from app.errors import ErrorAPI
 from app.idempotencia import IdempotencyKey, guardar_resultado_idempotente
-from app.locking import bloquear_prestamo
+from app.locking import bloquear_caja, bloquear_prestamo
 from app.m02_originacion.servicio_desembolso import materializar_prestamo
 from app.m03_prestamos.servicio import payoff as calcular_payoff_prestamo
+from app.m04_caja.servicio import registrar_movimiento
 from app.m06_novaciones.modelos import Novacion, NovacionOrigen
 from app.m06_novaciones.schemas import NovacionOut
 from app.modelos_stub import Prestamo
-from nexocred_core import Periodicidad, TerminosPrestamo, sumar
+from nexocred_core import Periodicidad, TerminosPrestamo, redondear, restar, sumar
 
 
 def _periodicidad(valor: str) -> Periodicidad:
@@ -132,6 +133,10 @@ async def refinanciar(
     idempotency_key: str,
     actor_id: uuid.UUID | None,
 ) -> NovacionOut:
+    # refinanciar/consolidar/transferir son ROLLOVERS PUROS: el payoff del/los origen
+    # se convierte en capital del nuevo prestamo sin que entre ni salga efectivo, por
+    # lo que NO se asienta movimiento de caja (a diferencia de repactar_rapido, que si
+    # recibe un pago a cuenta en efectivo). caja_id se conserva por simetria de API.
     operacion = "novacion_refinanciar"
     if (previo := await _idem_previo(session, idempotency_key, operacion)) is not None:
         return previo
@@ -261,12 +266,28 @@ async def repactar_rapido(
     _validar_origen(origen)
     payoff = await _payoff_total(session, [origen], fecha_negocio)
     # Base de capital: payoff menos el pago a cuenta (decision documentada).
-    capital = payoff - pago_cuenta
+    # MINOR 6: normalizar a 2 decimales antes de materializar el prestamo.
+    capital = redondear(restar(payoff, pago_cuenta))
     if capital <= Decimal("0"):
         raise ErrorAPI(
             "repactar_invalido",
             "el pago a cuenta no puede cubrir o exceder el payoff",
             status=422,
+        )
+    # MAJOR 3: el pago a cuenta es efectivo que entrega el deudor -> debe quedar
+    # asentado como INGRESO de caja en la MISMA transaccion (conservacion de dinero).
+    if pago_cuenta > Decimal("0"):
+        caja = await bloquear_caja(session, caja_id)
+        mov = await registrar_movimiento(
+            session, caja, tipo="ingreso", monto=redondear(pago_cuenta),
+            fecha_negocio=fecha_negocio, concepto="pago a cuenta repactacion",
+            categoria="cobranza", referencia=str(prestamo_id),
+        )
+        await escribir_evento(
+            session, actor_id=actor_id, accion="repactar_pago_cuenta",
+            entidad="movimiento_caja", entidad_id=mov.id,
+            metadata_json={"prestamo_id": str(prestamo_id),
+                           "monto": str(redondear(pago_cuenta))},
         )
     # cantidad de cuotas derivada para aproximar la nueva_cuota objetivo.
     total_a_pagar = capital * (Decimal("1") + tasa)

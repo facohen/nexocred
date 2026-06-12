@@ -1,8 +1,15 @@
 from datetime import date, timedelta
+from decimal import Decimal
 
 from sqlalchemy import text
 
 from tests.integration.test_pagos_waterfall import _h, _prestamo_desembolsado
+
+
+async def _saldo_caja(client, token, caja_id) -> Decimal:
+    r = await client.get("/api/v1/cajas", headers=_h(token))
+    caja = next(c for c in r.json() if c["id"] == caja_id)
+    return Decimal(caja["saldo_teorico"])
 
 
 async def test_refinanciar_1a1(client, admin_token, session):
@@ -33,6 +40,36 @@ async def test_refinanciar_1a1(client, admin_token, session):
         text("SELECT count(*) FROM cuota WHERE prestamo_id=:p"), {"p": nuevo}
     )
     assert res.scalar_one() == 12
+
+
+async def test_refinanciar_es_rollover_puro_sin_movimiento_caja(
+    client, admin_token, session
+):
+    """MAJOR 3 (review): refinanciar no mueve efectivo -> no crea movimiento de caja."""
+    prestamo_id, caja = await _prestamo_desembolsado(client, admin_token, session)
+    fpc = (date.today() + timedelta(days=30)).isoformat()
+    saldo_antes = await _saldo_caja(client, admin_token, caja)
+    movs_antes = (
+        await session.execute(
+            text("SELECT count(*) FROM movimiento_caja WHERE caja_id=:c"), {"c": caja}
+        )
+    ).scalar_one()
+    r = await client.post(
+        "/api/v1/novaciones/refinanciar",
+        json={"prestamo_id": prestamo_id, "caja_id": caja,
+              "fecha_negocio": date.today().isoformat(),
+              "tasa_interes_directo": "0.20", "cantidad_cuotas": 6,
+              "fecha_primera_cuota": fpc},
+        headers={**_h(admin_token), "Idempotency-Key": "refi-norolls"},
+    )
+    assert r.status_code == 201, r.text
+    movs_despues = (
+        await session.execute(
+            text("SELECT count(*) FROM movimiento_caja WHERE caja_id=:c"), {"c": caja}
+        )
+    ).scalar_one()
+    assert movs_despues == movs_antes
+    assert await _saldo_caja(client, admin_token, caja) == saldo_antes
 
 
 async def test_refinanciar_idempotente(client, admin_token, session):
@@ -128,6 +165,76 @@ async def test_repactar_rapido(client, admin_token, session):
     )
     assert r.status_code == 201, r.text
     assert r.json()["tipo"] == "repactar_rapido"
+
+
+async def test_repactar_rapido_registra_pago_cuenta_en_caja(
+    client, admin_token, session
+):
+    """MAJOR 3: el pago a cuenta que entrega el deudor debe quedar registrado como
+    INGRESO de caja -> conservacion de dinero."""
+    from decimal import Decimal as D
+
+    prestamo_id, caja = await _prestamo_desembolsado(client, admin_token, session)
+    fpc = (date.today() + timedelta(days=30)).isoformat()
+    saldo_antes = await _saldo_caja(client, admin_token, caja)
+
+    r = await client.post(
+        "/api/v1/novaciones/repactar-rapido",
+        json={"prestamo_id": prestamo_id, "caja_id": caja,
+              "fecha_negocio": date.today().isoformat(),
+              "pago_cuenta": "10000.00", "nueva_cuota": "5000.00",
+              "periodicidad": "mensual", "tasa_interes_directo": "0.20",
+              "fecha_primera_cuota": fpc},
+        headers={**_h(admin_token), "Idempotency-Key": "repac-cash"},
+    )
+    assert r.status_code == 201, r.text
+    nuevo = r.json()["nuevo_prestamo_id"]
+
+    # existe un movimiento de caja de 10000.00 por el pago a cuenta
+    res = await session.execute(
+        text(
+            "SELECT count(*) FROM movimiento_caja "
+            "WHERE caja_id=:c AND tipo='ingreso' AND monto=:m"
+        ),
+        {"c": caja, "m": D("10000.00")},
+    )
+    assert res.scalar_one() == 1
+
+    # el saldo de la caja aumento exactamente en 10000.00
+    saldo_despues = await _saldo_caja(client, admin_token, caja)
+    assert saldo_despues - saldo_antes == D("10000.00")
+
+    # capital del nuevo prestamo == payoff (130000) - pago_cuenta (10000) == 120000
+    res = await session.execute(
+        text("SELECT capital FROM prestamo WHERE id=:p"), {"p": nuevo}
+    )
+    assert res.scalar_one() == D("120000.00")
+
+
+async def test_repactar_rapido_capital_cuantizado(client, admin_token, session):
+    """MINOR 6: el capital persistido del nuevo prestamo es estrictamente 2 decimales."""
+    from decimal import Decimal as D
+
+    prestamo_id, caja = await _prestamo_desembolsado(client, admin_token, session)
+    fpc = (date.today() + timedelta(days=30)).isoformat()
+    r = await client.post(
+        "/api/v1/novaciones/repactar-rapido",
+        json={"prestamo_id": prestamo_id, "caja_id": caja,
+              "fecha_negocio": date.today().isoformat(),
+              "pago_cuenta": "10000.33", "nueva_cuota": "5000.00",
+              "periodicidad": "mensual", "tasa_interes_directo": "0.20",
+              "fecha_primera_cuota": fpc},
+        headers={**_h(admin_token), "Idempotency-Key": "repac-quant"},
+    )
+    assert r.status_code == 201, r.text
+    nuevo = r.json()["nuevo_prestamo_id"]
+    res = await session.execute(
+        text("SELECT capital FROM prestamo WHERE id=:p"), {"p": nuevo}
+    )
+    capital = res.scalar_one()
+    assert capital == capital.quantize(D("0.01"))
+    # payoff 130000 - 10000.33 = 119999.67 (ya cuantizado)
+    assert capital == D("119999.67")
 
 
 async def test_detalle_y_cadena(client, admin_token, session):
