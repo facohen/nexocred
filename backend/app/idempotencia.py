@@ -1,7 +1,16 @@
+import hashlib
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, String, Text, UniqueConstraint, func, select
+from sqlalchemy import (
+    DateTime,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+    select,
+    text,
+)
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
@@ -25,6 +34,17 @@ class IdempotencyKey(Base):
     )
 
 
+def _clave_lock(clave: str, operacion: str) -> int:
+    """Mapea (clave, operacion) a un bigint determinista para el advisory lock.
+
+    Postgres `pg_advisory_xact_lock(bigint)` toma una clave de 64 bits con signo.
+    Derivamos un entero estable del par via sha256 (independiente del hash de Python,
+    que no es estable entre procesos) y lo encajamos en el rango de int64 con signo.
+    """
+    digest = hashlib.sha256(f"{clave}\x00{operacion}".encode()).digest()
+    return int.from_bytes(digest[:8], "big", signed=True)
+
+
 async def guardar_resultado_idempotente(
     session: AsyncSession, clave: str, operacion: str, respuesta: str | None
 ) -> str | None:
@@ -35,19 +55,28 @@ async def guardar_resultado_idempotente(
 
     CONTRATO -- MUY IMPORTANTE:
     Esta funcion DEBE ser la PRIMERA sentencia de la operacion, ANTES de cualquier
-    efecto secundario (pagos, movimientos de caja, cambios de estado). El motivo:
-    si dos requests concurrentes con la misma clave compiten, el perdedor recibe un
-    IntegrityError sobre la unique constraint y, para resolverlo, debe DESHACER su
-    insert. Aqui ese deshacer se acota a un SAVEPOINT anidado (begin_nested), de modo
-    que solo se revierte la reserva fallida y NO la transaccion completa del llamador.
-    Aun asi, invocarla primero garantiza que en el momento del IntegrityError todavia
-    no se haya escrito ningun efecto que pudiera quedar inconsistente.
+    efecto secundario (pagos, movimientos de caja, cambios de estado).
 
-    El patron de uso es: (1) reservar aqui con respuesta=None, (2) ejecutar los
-    efectos en la MISMA transaccion, (3) rellenar respuesta_json con la respuesta real,
-    (4) un unico commit. Asi un crash deja o bien nada, o bien una fila completa y
-    re-ejecutable (nunca una reserva con respuesta_json=NULL commiteada sola).
+    SERIALIZACION IN-FLIGHT (advisory lock):
+    Lo primero que hace es tomar un `pg_advisory_xact_lock` transaccional keyed por
+    (clave, operacion). Eso fuerza que dos requests concurrentes con la MISMA clave se
+    serialicen: el segundo BLOQUEA aqui hasta que el primero commitea (el lock se
+    libera al fin de su transaccion). Cuando el segundo se desbloquea y vuelve a leer,
+    ya ve la fila del primero con `respuesta_json` rellenada -> true replay, sin
+    re-ejecutar efectos. El lock es transaccional: no requiere unlock explicito y se
+    libera tanto en commit como en rollback, evitando filtraciones de lock.
+
+    El patron de uso es: (1) reservar aqui con respuesta=None (tomando el lock),
+    (2) ejecutar los efectos en la MISMA transaccion, (3) rellenar respuesta_json con
+    la respuesta real, (4) un unico commit (que libera el lock). Asi requests
+    concurrentes con la misma (clave, operacion) producen EXACTAMENTE UN set de
+    efectos secundarios e identica respuesta.
     """
+    lock_key = _clave_lock(clave, operacion)
+    await session.execute(
+        text("SELECT pg_advisory_xact_lock(:k)").bindparams(k=lock_key)
+    )
+
     existente = await session.execute(
         select(IdempotencyKey).where(
             IdempotencyKey.clave == clave, IdempotencyKey.operacion == operacion
