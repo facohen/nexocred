@@ -559,3 +559,166 @@ export function makeAccessToken(email: string, roles: string[]): string {
   const payload = base64Url({ sub: email, roles });
   return `${header}.${payload}.mock-signature`;
 }
+
+// ===========================================================================
+// F1c / F1d fixtures (operaciones, riesgo, comisiones, tesorería, torre, docs).
+// Money fields are ALWAYS strings.
+// ===========================================================================
+
+export const rutas = [
+  { id: "ruta-1", cobrador_id: "user-cobrador", fecha: "2026-06-12", estado: "abierta" },
+  { id: "ruta-2", cobrador_id: "user-cobrador", fecha: "2026-06-11", estado: "cerrada" },
+];
+
+export const paradas: Record<string, unknown[]> = {
+  "ruta-1": [
+    {
+      id: "parada-1", ruta_id: "ruta-1", prestamo_id: "prestamo-1", orden: 1,
+      resultado: null, monto_cobrado: null, foto_url: null, lat: null, lng: null,
+      notas: null, visitada_en: null, saldo_exigible: "12500.00",
+    },
+    {
+      id: "parada-2", ruta_id: "ruta-1", prestamo_id: "prestamo-2", orden: 2,
+      resultado: null, monto_cobrado: null, foto_url: null, lat: null, lng: null,
+      notas: null, visitada_en: null, saldo_exigible: "8300.50",
+    },
+  ],
+};
+
+export const rendiciones = [
+  {
+    id: "rendicion-1", ruta_id: "ruta-1", cobrador_id: "user-cobrador",
+    fecha_negocio: "2026-06-12", total_cobrado: "20800.50", total_descargos: "1500.00",
+    diferencia: "300.00", estado: "borrador",
+    descargos: [
+      { id: "descargo-1", rendicion_id: "rendicion-1", concepto: "combustible", monto: "1500.00", estado: "aprobado", aprobado_por: "admin" },
+    ],
+  },
+];
+
+export const tareas = [
+  { id: "tarea-1", persona_id: "persona-1", operador_id: "user-operador", titulo: "Llamar por mora", descripcion: "Cuota 3 vencida", estado: "pendiente", origen: "alerta", alerta_id: "alerta-1", prioridad: "alta", vencimiento: "2026-06-13" },
+  { id: "tarea-2", persona_id: "persona-2", operador_id: "user-operador", titulo: "Seguimiento promesa", descripcion: null, estado: "pendiente", origen: "manual", alerta_id: null, prioridad: "media", vencimiento: null },
+];
+
+export const incidentes = [
+  { id: "incidente-1", persona_id: "persona-1", tipo: "queja", estado: "abierto", titulo: "Disputa de saldo", severidad: "media", operador_id: "user-operador", detalle: "El cliente discute un punitorio." },
+];
+
+export const timeline: Record<string, unknown[]> = {
+  "persona-1": [
+    { tipo: "interaccion", fecha: "2026-06-10T10:00:00Z", detalle: "Llamada saliente", referencia: "interaccion-1" },
+    { tipo: "credito", fecha: "2026-06-01T09:00:00Z", detalle: "Desembolso de préstamo", referencia: "prestamo-1" },
+    { tipo: "incidente", fecha: "2026-06-05T12:00:00Z", detalle: "Queja registrada", referencia: "incidente-1" },
+    { tipo: "novacion", fecha: "2026-06-08T15:00:00Z", detalle: "Refinanciación", referencia: "novacion-1" },
+  ],
+};
+
+export const prospectos = [
+  { id: "prospecto-1", nombre: "Juan Nuevo", telefono: "11-4444-0000", estado: "nuevo", persona_id: null, operador_id: "user-operador" },
+  { id: "prospecto-2", nombre: "Ana Contacto", telefono: "11-4444-0001", estado: "contactado", persona_id: null, operador_id: "user-operador" },
+];
+
+export const asignaciones = [
+  { id: "asig-1", persona_id: "persona-1", operador_id: "user-operador", activo: true },
+];
+
+export const riesgoTablero = {
+  par30: "8.50", par60: "4.20", par90: "2.10",
+  aging: { "0": "1000000.00", "1-30": "120000.00", "31-60": "60000.00", "61-90": "30000.00", "90+": "15000.00" },
+  porcentaje_refinanciado: "6.30", perdida_esperada: "45000.00", cartera_total: "1225000.00",
+};
+
+export const cosechas = [
+  { mes: "2026-01", capital: "500000.00", mora: "25000.00", ratio_mora: "5.00" },
+  { mes: "2026-02", capital: "620000.00", mora: "21700.00", ratio_mora: "3.50" },
+  { mes: "2026-03", capital: "710000.00", mora: "35500.00", ratio_mora: "5.00" },
+];
+
+export const concentracion = [
+  { clave: "Producto A", valor: "700000.00", share: "57.10" },
+  { clave: "Producto B", valor: "525000.00", share: "42.90" },
+];
+
+export const alertas = [
+  { id: "alerta-1", prestamo_id: "prestamo-1", persona_id: "persona-1", tipo: "mora_temprana", estado: "activa", severidad: "alta", metrica: "dias_atraso", valor: "15", operador_id: null, tarea_id: null, resuelta_en: null, justificacion: null },
+  { id: "alerta-2", prestamo_id: "prestamo-2", persona_id: "persona-2", tipo: "sobreendeudamiento", estado: "activa", severidad: "media", metrica: "ratio_cuota_ingreso", valor: "0.45", operador_id: null, tarea_id: null, resuelta_en: null, justificacion: null },
+];
+
+export const comisiones = [
+  { id: "com-1", prestamo_id: "prestamo-1", vendedor_id: "user-vendedor", monto: "5000.00", estado: "devengada", tipo: "alta", porcentaje: "2.00", clawback_de_id: null },
+  { id: "com-2", prestamo_id: "prestamo-2", vendedor_id: "user-vendedor", monto: "3200.00", estado: "confirmada", tipo: "alta", porcentaje: "2.00", clawback_de_id: null },
+  { id: "com-3", prestamo_id: "prestamo-3", vendedor_id: "user-vendedor", monto: "-1500.00", estado: "clawback", tipo: "clawback", porcentaje: "2.00", clawback_de_id: "com-1" },
+  { id: "com-4", prestamo_id: "prestamo-4", vendedor_id: "user-vendedor", monto: "2800.00", estado: "liquidada", tipo: "alta", porcentaje: "2.00", clawback_de_id: null },
+];
+
+export const liquidaciones = [
+  { id: "liq-1", vendedor_id: "user-vendedor", periodo_desde: "2026-05-01", periodo_hasta: "2026-05-31", monto_total: "8200.00", estado: "borrador", egreso_id: null, aprobada_en: null },
+];
+
+export const tesoreriaPosicion = {
+  capital_disponible: "3500000.00", capital_colocado: "1225000.00", utilizacion: "25.95", semaforo: "verde",
+};
+export const tesoreriaCashflow = {
+  tramos: [
+    { dias: 7, entradas: "120000.00", egresos: "40000.00", neto: "80000.00" },
+    { dias: 30, entradas: "480000.00", egresos: "150000.00", neto: "330000.00" },
+    { dias: 90, entradas: "1200000.00", egresos: "400000.00", neto: "800000.00" },
+  ],
+};
+export const tesoreriaDcf = {
+  flujos_nominales: "1500000.00",
+  escenarios: [
+    { nombre: "base", tasa_descuento: "30.00", valor_presente: "1180000.00" },
+    { nombre: "estresado", tasa_descuento: "45.00", valor_presente: "980000.00" },
+  ],
+};
+export const tesoreriaRotacion = {
+  colocacion_periodo: "2400000.00", capital_promedio: "1200000.00", rotacion_anualizada: "2.00",
+};
+
+export const torreResumen = {
+  tiene_snapshot: true, periodo: "2026-06", indice_nexo: "78.50",
+  prestamos_vigentes: 142, prestamos_en_mora: 18,
+};
+export const torrePulso = {
+  tiene_snapshot: true, periodo: "2026-06",
+  tarjetas: [
+    { clave: "cartera", etiqueta: "Cartera total", valor: "1225000.00" },
+    { clave: "par30", etiqueta: "PAR30", valor: "8.50" },
+    { clave: "cobranza_hoy", etiqueta: "Cobranza hoy", valor: "20800.50" },
+    { clave: "colocacion_mes", etiqueta: "Colocación mes", valor: "2400000.00" },
+    { clave: "indice_nexo", etiqueta: "Índice Nexo", valor: "78.50" },
+  ],
+};
+export const torreSaludCartera = {
+  tiene_snapshot: true,
+  aging: { "0": "1000000.00", "1-30": "120000.00", "31-60": "60000.00", "61-90": "30000.00", "90+": "15000.00" },
+  perdida_esperada: "45000.00",
+  cosechas, cashflow: tesoreriaCashflow.tramos,
+};
+export const torreOperacionHoy = {
+  cobranza_del_dia: "20800.50", cuotas_vencen_hoy: 12, rutas_activas: 3,
+  promesas_pendientes: 5, pipeline_solicitudes: 9,
+};
+export const torreNegocio = {
+  tiene_snapshot: true, colocacion_mes: "2400000.00",
+  intereses_cobrados_mes: "180000.00", punitorios_cobrados_mes: "12000.00",
+  top_vendedores: [{ nombre: "Vendedor 1", monto: "900000.00" }],
+  top_productos: [{ nombre: "Producto A", monto: "1400000.00" }],
+};
+export const torreAlertasLive = {
+  total: 2,
+  alertas: [
+    { id: "alerta-1", tipo: "mora_temprana", severidad: "alta", metrica: "dias_atraso", valor: "15", prestamo_id: "prestamo-1", persona_id: "persona-1" },
+    { id: "alerta-2", tipo: "sobreendeudamiento", severidad: "media", metrica: "ratio_cuota_ingreso", valor: "0.45", prestamo_id: "prestamo-2", persona_id: "persona-2" },
+  ],
+};
+
+export const torrePulsoVacio = { tiene_snapshot: false, periodo: null, tarjetas: [] };
+export const torreResumenVacio = { tiene_snapshot: false, periodo: null, indice_nexo: "0.00", prestamos_vigentes: 0, prestamos_en_mora: 0 };
+
+export const documentos = [
+  { id: "doc-1", prestamo_id: "prestamo-1", tipo: "pagare", numero: 1001, hash_sha256: "a".repeat(64), url_storage: "https://files.test/doc-1.pdf", emitido_por: "admin", anulado_en: null, anulado_por: null },
+  { id: "doc-2", prestamo_id: "prestamo-1", tipo: "contrato", numero: 1002, hash_sha256: "b".repeat(64), url_storage: "https://files.test/doc-2.pdf", emitido_por: "admin", anulado_en: "2026-06-10T10:00:00Z", anulado_por: "admin" },
+];

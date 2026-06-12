@@ -234,4 +234,243 @@ export const handlers = [
     const n = fx.novaciones.find((x) => x.id === params.id) ?? fx.novaciones[0];
     return HttpResponse.json({ ...n, id: params.id });
   }),
+
+  // ======================= F1c / F1d =======================
+
+  // ---- Rutas / La Ruta ----
+  http.get(`${BASE}/rutas`, () =>
+    HttpResponse.json({ data: fx.rutas, total: fx.rutas.length, page: 1, per_page: 50 }),
+  ),
+  http.get(`${BASE}/rutas/:id`, ({ params }) => {
+    const r = fx.rutas.find((x) => x.id === params.id);
+    if (!r) return err("no_encontrada", "Ruta no encontrada", 404);
+    const paradas = (fx.paradas[params.id as string] ?? []).map((p) => {
+      const { saldo_exigible: _omit, ...rest } = p as Record<string, unknown>;
+      return rest;
+    });
+    return HttpResponse.json({ ...r, paradas });
+  }),
+  http.get(`${BASE}/rutas/:id/paradas`, ({ params }) =>
+    HttpResponse.json({ data: fx.paradas[params.id as string] ?? [] }),
+  ),
+  http.post(`${BASE}/rutas/:id/paradas/:paradaId/visitar`, async ({ params, request }) => {
+    const body = (await request.json()) as { resultado?: string };
+    return HttpResponse.json({
+      parada_id: params.paradaId,
+      resultado: body.resultado ?? "pago",
+      pago_id: body.resultado === "pago" ? `pago-${params.paradaId}` : null,
+    });
+  }),
+  http.post(`${BASE}/rutas/:id/sync`, async ({ params, request }) => {
+    const body = (await request.json()) as { paradas: { id: string; resultado?: string }[] };
+    // Idempotent reconciliation keyed by device UUIDv7 (parada id). A replayed
+    // batch returns "omitida" for already-applied items (no duplicate).
+    const items = body.paradas.map((p) => ({
+      parada_id: p.id,
+      estado: p.resultado ? "aplicada" : "omitida",
+      pago_id: p.resultado === "pago" ? `pago-${p.id}` : null,
+    }));
+    return HttpResponse.json({
+      ruta_id: params.id,
+      items,
+      aplicadas: items.filter((i) => i.estado === "aplicada").length,
+      omitidas: items.filter((i) => i.estado === "omitida").length,
+      rechazadas: 0,
+    });
+  }),
+
+  // ---- Rendiciones ----
+  http.get(`${BASE}/rendiciones`, () =>
+    HttpResponse.json({ data: fx.rendiciones, total: fx.rendiciones.length, page: 1, per_page: 50 }),
+  ),
+  http.get(`${BASE}/rendiciones/:id`, ({ params }) => {
+    const r = fx.rendiciones.find((x) => x.id === params.id);
+    if (!r) return err("no_encontrada", "Rendición no encontrada", 404);
+    return HttpResponse.json(r);
+  }),
+  http.post(`${BASE}/rendiciones`, () =>
+    HttpResponse.json(fx.rendiciones[0], { status: 201 }),
+  ),
+  http.post(`${BASE}/rendiciones/:id/descargos`, async ({ params, request }) => {
+    const body = (await request.json()) as { concepto?: string; monto?: string };
+    return HttpResponse.json(
+      {
+        id: `descargo-${Date.now()}`,
+        rendicion_id: params.id,
+        concepto: body.concepto ?? "varios",
+        monto: body.monto ?? "0.00",
+        estado: "pendiente",
+        aprobado_por: null,
+      },
+      { status: 201 },
+    );
+  }),
+  http.patch(`${BASE}/rendiciones/:id`, async ({ params, request }) => {
+    const r = fx.rendiciones.find((x) => x.id === params.id) ?? fx.rendiciones[0];
+    const body = (await request.json()) as { estado?: string };
+    return HttpResponse.json({ ...r, estado: body.estado ?? "presentada" });
+  }),
+
+  // ---- CRM ----
+  http.get(`${BASE}/tareas`, () =>
+    HttpResponse.json({ data: fx.tareas, total: fx.tareas.length, page: 1, per_page: 50 }),
+  ),
+  http.post(`${BASE}/tareas/:id/completar`, async ({ params, request }) => {
+    const body = (await request.json()) as { detalle?: string };
+    return HttpResponse.json({
+      id: `interaccion-${Date.now()}`,
+      persona_id: "persona-1",
+      operador_id: "user-operador",
+      tipo: "tarea_completada",
+      tarea_id: params.id,
+      detalle: body.detalle ?? "Tarea completada",
+      fecha: new Date().toISOString(),
+    });
+  }),
+  http.post(`${BASE}/interacciones`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json(
+      { id: `interaccion-${Date.now()}`, fecha: new Date().toISOString(), tarea_id: null, ...body },
+      { status: 201 },
+    );
+  }),
+  http.get(`${BASE}/incidentes`, () =>
+    HttpResponse.json({ data: fx.incidentes, total: fx.incidentes.length, page: 1, per_page: 50 }),
+  ),
+  http.post(`${BASE}/incidentes`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json(
+      { id: `incidente-${Date.now()}`, estado: "abierto", ...body },
+      { status: 201 },
+    );
+  }),
+  http.patch(`${BASE}/incidentes/:id`, async ({ params, request }) => {
+    const i = fx.incidentes.find((x) => x.id === params.id) ?? fx.incidentes[0];
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json({ ...i, ...body });
+  }),
+  http.get(`${BASE}/personas/:id/timeline`, ({ params }) =>
+    HttpResponse.json({ data: fx.timeline[params.id as string] ?? [] }),
+  ),
+  http.get(`${BASE}/personas/:id/tareas`, ({ params }) =>
+    HttpResponse.json({ data: fx.tareas.filter((t) => t.persona_id === params.id) }),
+  ),
+  http.get(`${BASE}/prospectos`, () =>
+    HttpResponse.json({ data: fx.prospectos, total: fx.prospectos.length, page: 1, per_page: 50 }),
+  ),
+  http.post(`${BASE}/prospectos`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json({ id: `prospecto-${Date.now()}`, estado: "nuevo", persona_id: null, ...body }, { status: 201 });
+  }),
+  http.patch(`${BASE}/prospectos/:id`, async ({ params, request }) => {
+    const p = fx.prospectos.find((x) => x.id === params.id) ?? fx.prospectos[0];
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json({ ...p, ...body });
+  }),
+  http.get(`${BASE}/crm/asignaciones`, () => HttpResponse.json({ data: fx.asignaciones })),
+  http.post(`${BASE}/crm/asignaciones`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json({ id: `asig-${Date.now()}`, activo: true, ...body }, { status: 201 });
+  }),
+  http.post(`${BASE}/crm/asignaciones/masivo`, async ({ request }) => {
+    const body = (await request.json()) as { persona_ids?: string[] };
+    return HttpResponse.json({ asignadas: body.persona_ids?.length ?? 0 }, { status: 201 });
+  }),
+
+  // ---- Riesgo / Alertas ----
+  http.get(`${BASE}/riesgo/tablero`, () => HttpResponse.json(fx.riesgoTablero)),
+  http.get(`${BASE}/riesgo/cosechas`, () => HttpResponse.json({ data: fx.cosechas })),
+  http.get(`${BASE}/riesgo/concentracion`, () => HttpResponse.json({ data: fx.concentracion })),
+  http.get(`${BASE}/alertas`, () =>
+    HttpResponse.json({ data: fx.alertas, total: fx.alertas.length, page: 1, per_page: 50 }),
+  ),
+  http.post(`${BASE}/alertas/:id/resolver`, async ({ params, request }) => {
+    const a = fx.alertas.find((x) => x.id === params.id) ?? fx.alertas[0];
+    const body = (await request.json()) as { justificacion?: string };
+    return HttpResponse.json({ ...a, id: params.id, estado: "resuelta", resuelta_en: new Date().toISOString(), justificacion: body.justificacion ?? null });
+  }),
+  http.post(`${BASE}/alertas/:id/asignar`, async ({ params, request }) => {
+    const a = fx.alertas.find((x) => x.id === params.id) ?? fx.alertas[0];
+    const body = (await request.json()) as { operador_id?: string };
+    return HttpResponse.json({ ...a, id: params.id, operador_id: body.operador_id ?? "user-operador", tarea_id: `tarea-${Date.now()}` });
+  }),
+
+  // ---- Vendedores / comisiones ----
+  http.get(`${BASE}/vendedores/:id/comisiones`, () => HttpResponse.json(fx.comisiones)),
+  http.post(`${BASE}/comisiones/clawback`, () =>
+    HttpResponse.json({ ...fx.comisiones[2], id: `com-${Date.now()}` }, { status: 201 }),
+  ),
+  http.get(`${BASE}/comisiones/liquidaciones`, () => HttpResponse.json(fx.liquidaciones)),
+  http.get(`${BASE}/comisiones/liquidaciones/:id`, ({ params }) => {
+    const l = fx.liquidaciones.find((x) => x.id === params.id);
+    if (!l) return err("no_encontrada", "Liquidación no encontrada", 404);
+    return HttpResponse.json({ ...l, detalle: [{ id: "ld-1", comision_devengo_id: "com-1", monto: "5000.00" }] });
+  }),
+  http.post(`${BASE}/comisiones/liquidaciones`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json({ ...fx.liquidaciones[0], id: `liq-${Date.now()}`, ...body }, { status: 201 });
+  }),
+  http.post(`${BASE}/comisiones/liquidaciones/:id/aprobar`, ({ params }) =>
+    HttpResponse.json({ ...fx.liquidaciones[0], id: params.id, estado: "aprobada", aprobada_en: new Date().toISOString() }),
+  ),
+  http.post(`${BASE}/comisiones/liquidaciones/:id/pagar`, ({ params }) =>
+    HttpResponse.json({ ...fx.liquidaciones[0], id: params.id, estado: "pagada", egreso_id: `egreso-${params.id}` }),
+  ),
+
+  // ---- Tesorería ----
+  http.get(`${BASE}/tesoreria/posicion`, () => HttpResponse.json(fx.tesoreriaPosicion)),
+  http.get(`${BASE}/tesoreria/cashflow`, () => HttpResponse.json(fx.tesoreriaCashflow)),
+  http.get(`${BASE}/tesoreria/dcf`, () => HttpResponse.json(fx.tesoreriaDcf)),
+  http.get(`${BASE}/tesoreria/rotacion`, () => HttpResponse.json(fx.tesoreriaRotacion)),
+  http.post(`${BASE}/tesoreria/aportes`, () => HttpResponse.json({ ok: true }, { status: 201 })),
+  http.post(`${BASE}/tesoreria/retiros`, () => HttpResponse.json({ ok: true }, { status: 201 })),
+
+  // ---- La Torre ----
+  http.get(`${BASE}/torre/resumen`, ({ request }) => {
+    const vacio = new URL(request.url).searchParams.get("vacio");
+    return HttpResponse.json(vacio ? fx.torreResumenVacio : fx.torreResumen);
+  }),
+  http.get(`${BASE}/torre/pulso`, ({ request }) => {
+    const vacio = new URL(request.url).searchParams.get("vacio");
+    return HttpResponse.json(vacio ? fx.torrePulsoVacio : fx.torrePulso);
+  }),
+  http.get(`${BASE}/torre/salud-cartera`, () => HttpResponse.json(fx.torreSaludCartera)),
+  http.get(`${BASE}/torre/operacion-hoy`, () => HttpResponse.json(fx.torreOperacionHoy)),
+  http.get(`${BASE}/torre/negocio`, () => HttpResponse.json(fx.torreNegocio)),
+  http.get(`${BASE}/torre/alertas-live`, () => HttpResponse.json(fx.torreAlertasLive)),
+
+  // ---- Documentos ----
+  http.get(`${BASE}/prestamos/:id/documentos`, ({ params }) =>
+    HttpResponse.json({ data: fx.documentos.filter((d) => d.prestamo_id === params.id) }),
+  ),
+  http.get(`${BASE}/documentos/:id`, ({ params }) => {
+    const d = fx.documentos.find((x) => x.id === params.id);
+    if (!d) return err("no_encontrado", "Documento no encontrado", 404);
+    return HttpResponse.json(d);
+  }),
+  http.post(`${BASE}/documentos/generar`, async ({ request }) => {
+    const body = (await request.json()) as { prestamo_id?: string; tipo?: string };
+    return HttpResponse.json(
+      {
+        id: `doc-${Date.now()}`,
+        prestamo_id: body.prestamo_id ?? "prestamo-1",
+        tipo: body.tipo ?? "pagare",
+        numero: 1003,
+        hash_sha256: "c".repeat(64),
+        url_storage: "https://files.test/doc-new.pdf",
+        emitido_por: "admin",
+        anulado_en: null,
+        anulado_por: null,
+      },
+      { status: 201 },
+    );
+  }),
+  http.get(`${BASE}/documentos/:id/descargar`, ({ params }) =>
+    HttpResponse.json({ url: `https://files.test/${params.id}.pdf` }),
+  ),
+  http.post(`${BASE}/documentos/:id/anular`, async ({ params, request }) => {
+    const d = fx.documentos.find((x) => x.id === params.id) ?? fx.documentos[0];
+    const body = (await request.json()) as { motivo?: string };
+    return HttpResponse.json({ ...d, id: params.id, anulado_en: new Date().toISOString(), anulado_por: "admin", motivo_anulacion: body.motivo ?? null });
+  }),
 ];
