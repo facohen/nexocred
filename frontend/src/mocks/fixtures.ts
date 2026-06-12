@@ -669,8 +669,8 @@ export const tesoreriaCashflow = {
 export const tesoreriaDcf = {
   flujos_nominales: "1500000.00",
   escenarios: [
-    { nombre: "base", tasa_descuento: "30.00", valor_presente: "1180000.00" },
-    { nombre: "estresado", tasa_descuento: "45.00", valor_presente: "980000.00" },
+    { escenario: "base", tasa_mensual: "3.00", valor_presente: "1180000.00" },
+    { escenario: "estresado", tasa_mensual: "4.50", valor_presente: "980000.00" },
   ],
 };
 export const tesoreriaRotacion = {
