@@ -275,12 +275,18 @@ async def test_ciclo_completo_con_conservacion_de_dinero(
     assert pos_tras_liq == pos_pre_liq - Decimal("2000.00")
 
     # --- Snapshot -> torre/pulso refleja la actividad ---
+    # Posicion consolidada de caja JUSTO antes del snapshot: el snapshot debe
+    # reportar exactamente este capital_disponible (no una metrica desacoplada).
+    pos_pre_snapshot = await _posicion(client, tok)
     r = await client.post(
         "/api/v1/torre/snapshot", json={"fecha_corte": FNEG.isoformat()},
         headers=_h(tok),
     )
     assert r.status_code == 200, r.text
-    assert r.json()["prestamos_vigentes"] >= 1
+    snap = r.json()
+    assert snap["prestamos_vigentes"] >= 1
+    # Conservacion: el capital_disponible del snapshot == posicion consolidada.
+    assert Decimal(snap["capital_disponible"]) == pos_pre_snapshot
 
     r = await client.get("/api/v1/torre/pulso", headers=_h(tok))
     assert r.status_code == 200, r.text
