@@ -16,6 +16,7 @@ from app.m10_tesoreria.router import router as m10_router
 from app.m11_torre.router import router as m11_router
 from app.m12_auth.router import router as m12_router
 from app.m15_catalogo.router import router as m15_router
+from app.workflows.router import router as workflows_router
 
 api_v1 = APIRouter(prefix="/api/v1")
 api_v1.include_router(m12_router)
@@ -34,3 +35,4 @@ api_v1.include_router(m08_router)
 api_v1.include_router(m09_router)
 api_v1.include_router(m10_router)
 api_v1.include_router(m11_router)
+api_v1.include_router(workflows_router)
