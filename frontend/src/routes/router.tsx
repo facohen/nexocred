@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/AppShell";
 import { isAuthenticated } from "@/lib/auth";
+import { enforceRoles, ROUTE_ROLES } from "./guards";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { PersonasListPage } from "@/features/personas/PersonasListPage";
 import { PersonaDetailPage } from "@/features/personas/PersonaDetailPage";
@@ -47,7 +48,15 @@ const protectedRoute = createRoute({
 });
 
 function page(path: string, component: () => JSX.Element) {
-  return createRoute({ getParentRoute: () => protectedRoute, path, component });
+  const roles = ROUTE_ROLES[path] ?? [];
+  return createRoute({
+    getParentRoute: () => protectedRoute,
+    path,
+    // Real route guard: enforces the route's required role(s), not just nav
+    // visibility. A lower-role user typing the URL is redirected, not served.
+    beforeLoad: () => enforceRoles(roles),
+    component,
+  });
 }
 
 const indexRoute = createRoute({

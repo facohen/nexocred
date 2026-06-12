@@ -540,3 +540,24 @@ export const loginRoles: Record<string, string[]> = {
   "operador@nexocred.test": ["operador"],
   "tesoreria@nexocred.test": ["tesoreria"],
 };
+
+function base64Url(obj: unknown): string {
+  const json = JSON.stringify(obj);
+  const b64 =
+    typeof btoa === "function"
+      ? btoa(json)
+      : Buffer.from(json, "binary").toString("base64");
+  return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+/**
+ * Build a JWT-shaped access token (header.payload.signature) carrying the
+ * user's roles as claims — mirrors how the real backend embeds roles. The
+ * signature is a placeholder; the frontend reads claims but never trusts them
+ * for security decisions beyond what the backend already authorized.
+ */
+export function makeAccessToken(email: string, roles: string[]): string {
+  const header = base64Url({ alg: "HS256", typ: "JWT" });
+  const payload = base64Url({ sub: email, roles });
+  return `${header}.${payload}.mock-signature`;
+}

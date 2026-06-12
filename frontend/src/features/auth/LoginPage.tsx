@@ -1,19 +1,11 @@
 import { useState } from "react";
 import { apiFetch, ApiError } from "@/lib/api/client";
-import { useSession, type Rol } from "@/lib/auth";
+import { useSession, decodeRolesFromToken } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { components } from "@/lib/api/schema";
 
 type TokenOut = components["schemas"]["TokenOut"];
-
-/** Decode the rol(es) from the email convention used by the mock/login. */
-function rolesFor(email: string): Rol[] {
-  const prefix = email.split("@")[0];
-  const known: Rol[] = ["admin", "analista", "cobrador", "vendedor", "operador", "tesoreria"];
-  const match = known.find((r) => prefix.includes(r));
-  return match ? [match] : ["operador"];
-}
 
 export function LoginPage({ onSuccess }: { onSuccess?: () => void }) {
   const { login } = useSession();
@@ -31,7 +23,9 @@ export function LoginPage({ onSuccess }: { onSuccess?: () => void }) {
         method: "POST",
         body: { email, password },
       });
-      login(token, { email, nombre: email.split("@")[0], roles: rolesFor(email) });
+      // Roles come from the signed token claims, never from the email string.
+      const roles = decodeRolesFromToken(token.access_token);
+      login(token, { email, nombre: email.split("@")[0], roles });
       onSuccess?.();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo iniciar sesión");

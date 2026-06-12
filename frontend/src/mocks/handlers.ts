@@ -15,11 +15,12 @@ export const handlers = [
     if (!email || !body.password) {
       return err("credenciales_invalidas", "Email o contraseña incorrectos", 401);
     }
-    if (!fx.loginRoles[email]) {
+    const roles = fx.loginRoles[email];
+    if (!roles) {
       return err("credenciales_invalidas", "Email o contraseña incorrectos", 401);
     }
     return HttpResponse.json({
-      access_token: `token-${email}`,
+      access_token: fx.makeAccessToken(email, roles),
       refresh_token: `refresh-${email}`,
       token_type: "bearer",
     });

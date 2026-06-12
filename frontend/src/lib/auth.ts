@@ -20,8 +20,48 @@ export interface SesionUsuario {
   roles: Rol[];
 }
 
+export const ROLES_CONOCIDOS: Rol[] = [
+  "admin",
+  "analista",
+  "cobrador",
+  "vendedor",
+  "operador",
+  "tesoreria",
+];
+
+// XSS tradeoff: keeping the token in localStorage is acceptable for this POC
+// (no httpOnly cookie infra), but it means a successful XSS could exfiltrate it.
+// In production the access token should live in an httpOnly, SameSite cookie.
 const TOKEN_KEY = "nexocred.token";
 const USER_KEY = "nexocred.user";
+
+/** Base64url-decode the JWT payload segment. */
+function decodeBase64Url(segment: string): string {
+  const padded = segment.replace(/-/g, "+").replace(/_/g, "/");
+  const pad = padded.length % 4 === 0 ? "" : "=".repeat(4 - (padded.length % 4));
+  if (typeof atob === "function") return atob(padded + pad);
+  return Buffer.from(padded + pad, "base64").toString("binary");
+}
+
+/**
+ * Decode the user's roles from the JWT access token claims.
+ * Roles MUST come from the signed token, never from the email string — the
+ * frontend does not (and cannot) self-assign roles. We do not verify the
+ * signature here (that is the backend's job); we only read the claims that the
+ * backend already validated when it issued/accepts the token.
+ */
+export function decodeRolesFromToken(accessToken: string | null | undefined): Rol[] {
+  if (!accessToken) return [];
+  const parts = accessToken.split(".");
+  if (parts.length < 2) return [];
+  try {
+    const payload = JSON.parse(decodeBase64Url(parts[1])) as { roles?: unknown };
+    const raw = Array.isArray(payload.roles) ? payload.roles : [];
+    return raw.filter((r): r is Rol => ROLES_CONOCIDOS.includes(r as Rol));
+  } catch {
+    return [];
+  }
+}
 
 let memoryToken: TokenSet | null = null;
 let memoryUser: SesionUsuario | null = null;
