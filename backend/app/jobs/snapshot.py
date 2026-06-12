@@ -111,17 +111,21 @@ async def generar_snapshot(
     return snap
 
 
-def task_generar_snapshot(fecha_corte_iso: str) -> None:  # pragma: no cover
+from app.jobs.celery_app import celery_app  # noqa: E402
+
+
+@celery_app.task(name="app.jobs.snapshot.task_generar_snapshot")
+def task_generar_snapshot(fecha_corte_iso: str | None = None) -> None:  # pragma: no cover
     """Task Celery delgada: abre una sesion, corre el job, commitea."""
     import asyncio
 
     from app.db import async_session_maker
 
+    corte = date.fromisoformat(fecha_corte_iso) if fecha_corte_iso else date.today()
+
     async def _run() -> None:
         async with async_session_maker() as session:
-            await generar_snapshot(
-                session, date.fromisoformat(fecha_corte_iso), actor_id=None
-            )
+            await generar_snapshot(session, corte, actor_id=None)
             await session.commit()
 
     asyncio.run(_run())

@@ -31,16 +31,20 @@ async def recalcular_aging(
     return buckets
 
 
-def task_recalcular_aging(fecha_corte_iso: str) -> None:  # pragma: no cover
+from app.jobs.celery_app import celery_app  # noqa: E402
+
+
+@celery_app.task(name="app.jobs.aging.task_recalcular_aging")
+def task_recalcular_aging(fecha_corte_iso: str | None = None) -> None:  # pragma: no cover
     import asyncio
 
     from app.db import async_session_maker
 
+    corte = date.fromisoformat(fecha_corte_iso) if fecha_corte_iso else date.today()
+
     async def _run() -> None:
         async with async_session_maker() as session:
-            await recalcular_aging(
-                session, date.fromisoformat(fecha_corte_iso), actor_id=None
-            )
+            await recalcular_aging(session, corte, actor_id=None)
             await session.commit()
 
     asyncio.run(_run())
