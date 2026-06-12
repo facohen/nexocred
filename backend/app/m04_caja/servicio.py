@@ -1,3 +1,4 @@
+import json
 import uuid
 from datetime import date
 from decimal import Decimal
@@ -7,10 +8,34 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auditoria import escribir_evento
 from app.errors import ErrorAPI
+from app.idempotencia import IdempotencyKey, guardar_resultado_idempotente
 from app.locking import bloquear_caja
 from app.m04_caja.modelos import ArqueoCaja, Caja
 from app.modelos_stub import MovimientoCaja
 from nexocred_core import redondear, restar, sumar
+
+
+async def _rellenar_idem(
+    session: AsyncSession, clave: str, operacion: str, ids: list[uuid.UUID]
+) -> None:
+    res = await session.execute(
+        select(IdempotencyKey).where(
+            IdempotencyKey.clave == clave, IdempotencyKey.operacion == operacion
+        )
+    )
+    fila = res.scalar_one()
+    fila.respuesta_json = json.dumps([str(i) for i in ids])
+    await session.flush()
+
+
+async def _movimientos_por_ids(
+    session: AsyncSession, ids: list[uuid.UUID]
+) -> list[MovimientoCaja]:
+    res = await session.execute(
+        select(MovimientoCaja).where(MovimientoCaja.id.in_(ids))
+    )
+    por_id = {m.id: m for m in res.scalars().all()}
+    return [por_id[i] for i in ids]
 
 
 async def crear_caja(
@@ -88,7 +113,18 @@ async def movimiento_manual(
     categoria: str | None,
     referencia: str | None,
     actor_id: uuid.UUID | None,
+    idempotency_key: str | None = None,
 ) -> MovimientoCaja:
+    # MINOR 5: reserva idempotente en la misma transaccion -> un retry no duplica dinero.
+    operacion = "caja_movimiento_manual"
+    if idempotency_key is not None:
+        previo = await guardar_resultado_idempotente(
+            session, idempotency_key, operacion, None
+        )
+        if previo is not None:
+            ids = [uuid.UUID(s) for s in json.loads(previo)]
+            return (await _movimientos_por_ids(session, ids))[0]
+
     caja = await bloquear_caja(session, caja_id)
     mov = await registrar_movimiento(
         session, caja, tipo=tipo, monto=monto, fecha_negocio=fecha_negocio,
@@ -99,6 +135,8 @@ async def movimiento_manual(
         entidad="movimiento_caja", entidad_id=mov.id,
         metadata_json={"tipo": tipo, "monto": str(monto)},
     )
+    if idempotency_key is not None:
+        await _rellenar_idem(session, idempotency_key, operacion, [mov.id])
     return mov
 
 
@@ -128,11 +166,22 @@ async def transferencia_interna(
     fecha_negocio: date,
     concepto: str | None,
     actor_id: uuid.UUID | None,
+    idempotency_key: str | None = None,
 ) -> tuple[MovimientoCaja, MovimientoCaja]:
     if caja_origen_id == caja_destino_id:
         raise ErrorAPI(
             "transferencia_invalida", "origen y destino no pueden coincidir", status=422
         )
+    # MINOR 5: reserva idempotente en la misma transaccion -> un retry no duplica dinero.
+    operacion = "caja_transferencia"
+    if idempotency_key is not None:
+        previo = await guardar_resultado_idempotente(
+            session, idempotency_key, operacion, None
+        )
+        if previo is not None:
+            ids = [uuid.UUID(s) for s in json.loads(previo)]
+            egreso_prev, ingreso_prev = await _movimientos_por_ids(session, ids)
+            return egreso_prev, ingreso_prev
     # Lock determinista para evitar deadlocks (orden por id).
     ids = sorted([caja_origen_id, caja_destino_id], key=str)
     cajas = {}
@@ -154,6 +203,10 @@ async def transferencia_interna(
         metadata_json={"origen": str(origen.id), "destino": str(destino.id),
                        "monto": str(monto)},
     )
+    if idempotency_key is not None:
+        await _rellenar_idem(
+            session, idempotency_key, operacion, [egreso.id, ingreso.id]
+        )
     return egreso, ingreso
 
 

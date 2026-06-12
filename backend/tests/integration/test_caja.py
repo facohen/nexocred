@@ -101,6 +101,66 @@ async def test_transferencia_interna_suma_cero(client, admin_token, session):
     assert saldos[destino] == "400.00"
 
 
+async def test_movimiento_manual_idempotente(client, admin_token, session):
+    """MINOR 5: repetir el mismo movimiento manual con igual Idempotency-Key no
+    duplica el movimiento ni el saldo, y devuelve el mismo resultado."""
+    cid = await _caja(client, admin_token, "MovIdem")
+    headers = {**_h(admin_token), "Idempotency-Key": "mov-idem-1"}
+    payload = {"tipo": "ingreso", "monto": "1000.00",
+               "fecha_negocio": date.today().isoformat(), "categoria": "aporte"}
+    r1 = await client.post(
+        f"/api/v1/cajas/{cid}/movimientos", json=payload, headers=headers
+    )
+    r2 = await client.post(
+        f"/api/v1/cajas/{cid}/movimientos", json=payload, headers=headers
+    )
+    assert r1.status_code == 201 and r2.status_code == 201, r2.text
+    assert r1.json()["id"] == r2.json()["id"]
+    res = await session.execute(
+        text("SELECT count(*) FROM movimiento_caja WHERE caja_id=:c"), {"c": cid}
+    )
+    assert res.scalar_one() == 1
+    r = await client.get("/api/v1/cajas", headers=_h(admin_token))
+    caja = next(c for c in r.json() if c["id"] == cid)
+    assert caja["saldo_teorico"] == "1000.00"
+
+
+async def test_transferencia_interna_idempotente(client, admin_token, session):
+    """MINOR 5: repetir la misma transferencia con igual Idempotency-Key no genera
+    un segundo par de movimientos y devuelve el mismo resultado."""
+    origen = await _caja(client, admin_token, "TIOrigen")
+    destino = await _caja(client, admin_token, "TIDestino")
+    await client.post(
+        f"/api/v1/cajas/{origen}/movimientos",
+        json={"tipo": "ingreso", "monto": "1000.00",
+              "fecha_negocio": date.today().isoformat()},
+        headers=_h(admin_token),
+    )
+    headers = {**_h(admin_token), "Idempotency-Key": "transf-idem-1"}
+    payload = {"caja_origen_id": origen, "caja_destino_id": destino,
+               "monto": "400.00", "fecha_negocio": date.today().isoformat()}
+    r1 = await client.post(
+        "/api/v1/transferencias-internas", json=payload, headers=headers
+    )
+    r2 = await client.post(
+        "/api/v1/transferencias-internas", json=payload, headers=headers
+    )
+    assert r1.status_code == 201 and r2.status_code == 201, r2.text
+    assert [m["id"] for m in r1.json()] == [m["id"] for m in r2.json()]
+    res = await session.execute(
+        text(
+            "SELECT count(*) FROM movimiento_caja "
+            "WHERE caja_id IN (:o, :d) AND categoria='transferencia'"
+        ),
+        {"o": origen, "d": destino},
+    )
+    assert res.scalar_one() == 2
+    r = await client.get("/api/v1/cajas", headers=_h(admin_token))
+    saldos = {c["id"]: c["saldo_teorico"] for c in r.json()}
+    assert saldos[origen] == "600.00"
+    assert saldos[destino] == "400.00"
+
+
 async def test_arqueo_pendiente_y_cierre(client, admin_token, session):
     cid = await _caja(client, admin_token, "Arqueo")
     await client.post(

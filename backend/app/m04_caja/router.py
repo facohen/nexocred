@@ -2,7 +2,7 @@ import uuid
 from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Header, Query
 
 from app.deps import AdminOAnalista, AdminUser, CurrentUser, SessionDep
 from app.errors import ErrorAPI
@@ -64,11 +64,13 @@ async def registrar_movimiento(
     datos: MovimientoIn,
     session: SessionDep,
     actor: AdminOAnalista,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> MovimientoOut:
     mov = await servicio.movimiento_manual(
         session, caja_id, tipo=datos.tipo, monto=datos.monto,
         fecha_negocio=datos.fecha_negocio, concepto=datos.concepto,
         categoria=datos.categoria, referencia=datos.referencia, actor_id=actor.id,
+        idempotency_key=idempotency_key,
     )
     await session.commit()
     return MovimientoOut.model_validate(mov)
@@ -102,7 +104,10 @@ async def cerrar_arqueo(
 
 @router.post("/transferencias-internas", response_model=list[MovimientoOut], status_code=201)
 async def transferencia_interna(
-    datos: TransferenciaIn, session: SessionDep, actor: AdminOAnalista
+    datos: TransferenciaIn,
+    session: SessionDep,
+    actor: AdminOAnalista,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> list[MovimientoOut]:
     if datos.monto <= 0:
         raise ErrorAPI("monto_invalido", "el monto debe ser positivo", status=422)
@@ -110,6 +115,7 @@ async def transferencia_interna(
         session, caja_origen_id=datos.caja_origen_id,
         caja_destino_id=datos.caja_destino_id, monto=datos.monto,
         fecha_negocio=datos.fecha_negocio, concepto=datos.concepto, actor_id=actor.id,
+        idempotency_key=idempotency_key,
     )
     await session.commit()
     return [MovimientoOut.model_validate(egreso), MovimientoOut.model_validate(ingreso)]
