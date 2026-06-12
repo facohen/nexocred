@@ -10,6 +10,8 @@ from app.m03_prestamos import servicio
 from app.m03_prestamos.schemas import CancelarIn, CuotaOut, PayoffOut, PrestamoOut
 from app.m04_pagos import servicio as pagos
 from app.m04_pagos.schemas import ImputacionOut, PagoDetalleOut, PagoOut
+from app.m06_novaciones import servicio as novaciones
+from app.m06_novaciones.schemas import NovacionOut
 
 router = APIRouter(tags=["prestamos"])
 
@@ -92,6 +94,15 @@ async def payoff_prestamo(
         punitorio=res.punitorio,
         total=res.total,
     )
+
+
+@router.get("/prestamos/{prestamo_id}/novaciones", response_model=list[NovacionOut])
+async def novaciones_prestamo(
+    prestamo_id: uuid.UUID, session: SessionDep, _: CurrentUser
+) -> list[NovacionOut]:
+    await _get_prestamo(session, prestamo_id)
+    lista = await novaciones.novaciones_de_prestamo(session, prestamo_id)
+    return [NovacionOut.model_validate(n) for n in lista]
 
 
 @router.post("/prestamos/{prestamo_id}/cancelar", response_model=PagoOut, status_code=201)

@@ -10,9 +10,14 @@ def _h(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
-async def _prestamo_desembolsado(client, token, session, cuotas=6, fpc_offset=-30):
+async def _prestamo_desembolsado(
+    client, token, session, cuotas=6, fpc_offset=-30,
+    persona=None, cuil=None, dni=None,
+):
     """Desembolsa un prestamo con primera cuota ya vencida (fpc_offset dias)."""
-    sid = await _solicitud_aprobada(client, token, cuotas=cuotas)
+    sid = await _solicitud_aprobada(
+        client, token, cuotas=cuotas, persona=persona, cuil=cuil, dni=dni
+    )
     caja = await _crear_caja(client, token)
     fneg = date.today()
     fpc = (fneg + timedelta(days=fpc_offset)).isoformat()

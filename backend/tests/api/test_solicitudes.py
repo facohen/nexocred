@@ -60,6 +60,12 @@ async def crear_perfil(client, token, nombre="Estandar") -> str:
         json={"nombre": nombre, "orden": 1},
         headers=_h(token),
     )
+    if r.status_code == 409:
+        # perfil ya existe: lo buscamos por nombre (helper reutilizable entre prestamos)
+        lst = await client.get("/api/v1/perfiles-pricing", headers=_h(token))
+        for p in lst.json():
+            if p["nombre"] == nombre:
+                return p["id"]
     assert r.status_code == 201, r.text
     return r.json()["id"]
 

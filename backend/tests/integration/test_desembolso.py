@@ -26,8 +26,14 @@ async def _crear_caja(client, token, nombre="Caja Central") -> str:
     return r.json()["id"]
 
 
-async def _solicitud_aprobada(client, token, cuotas=6):
-    persona = await crear_persona(client, token)
+async def _solicitud_aprobada(client, token, cuotas=6, persona=None, cuil=None, dni=None):
+    if persona is None:
+        kw = {}
+        if cuil is not None:
+            kw["cuil"] = cuil
+        if dni is not None:
+            kw["dni"] = dni
+        persona = await crear_persona(client, token, **kw)
     producto = await crear_producto(client, token)
     perfil = await crear_perfil(client, token)
     await cargar_tasa(client, token, producto, perfil, cuotas, tasa="0.30")

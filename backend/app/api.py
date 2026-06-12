@@ -7,6 +7,7 @@ from app.m02_originacion.router import router as m02_router
 from app.m03_prestamos.router import router as m03_router
 from app.m04_caja.router import router as m04_caja_router
 from app.m04_pagos.router import router as m04_pagos_router
+from app.m06_novaciones.router import router as m06_router
 from app.m12_auth.router import router as m12_router
 from app.m15_catalogo.router import router as m15_router
 
@@ -20,3 +21,4 @@ api_v1.include_router(m02_router)
 api_v1.include_router(m03_router)
 api_v1.include_router(m04_caja_router)
 api_v1.include_router(m04_pagos_router)
+api_v1.include_router(m06_router)

@@ -20,6 +20,51 @@ def _fecha_primera_cuota_default(fecha_negocio: date) -> date:
     return fecha_negocio + timedelta(days=30)
 
 
+async def materializar_prestamo(
+    session: AsyncSession,
+    *,
+    persona_id: uuid.UUID,
+    producto_id: uuid.UUID,
+    solicitud_id: uuid.UUID | None,
+    terminos: TerminosPrestamo,
+    fecha_desembolso: date,
+    vendedor_id: uuid.UUID | None = None,
+    estado: str = "vigente",
+) -> Prestamo:
+    """Crea un prestamo con snapshot inmutable + cronograma materializado en filas cuota.
+    Reutilizado por desembolso (M02) y novaciones (M06)."""
+    crono = calcular_cronograma(terminos)
+    prestamo = Prestamo(
+        persona_id=persona_id,
+        producto_id=producto_id,
+        solicitud_id=solicitud_id,
+        capital=terminos.capital,
+        estado=estado,
+        snapshot_terminos=snapshot_desde_terminos(terminos),
+        fecha_desembolso=fecha_desembolso,
+        tasa_punitorio_diario=terminos.tasa_punitorio_diario,
+        vendedor_id=vendedor_id,
+        monto_desembolsado=terminos.capital,
+    )
+    session.add(prestamo)
+    await session.flush()
+    for fila in crono.filas:
+        session.add(
+            Cuota(
+                prestamo_id=prestamo.id,
+                numero=fila.numero,
+                vencimiento=fila.vencimiento,
+                capital=fila.capital,
+                interes=fila.interes,
+                cuota=fila.cuota,
+                punitorio_acumulado=Decimal("0"),
+                estado="pendiente",
+            )
+        )
+    await session.flush()
+    return prestamo
+
+
 async def desembolsar(
     session: AsyncSession,
     *,
