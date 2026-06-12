@@ -4,6 +4,7 @@ import {
   listarPendientes,
   marcarSincronizado,
   marcarError,
+  traeCobro,
   type VisitaRow,
 } from "./queue";
 import type { components } from "@/lib/api/schema";
@@ -52,13 +53,32 @@ const ESTADOS_OK = new Set(["aplicada", "omitida"]);
  * error identifica un pago_id ofensor lo marcamos como error y dejamos el resto
  * pendiente. Money is never parsed to a number.
  */
-export async function sincronizarRuta(rutaId: string): Promise<ResultadoSync> {
+/** Error de cliente: el operador debe seleccionar una caja antes de cobrar. */
+export class CajaRequeridaError extends Error {
+  code = "caja_requerida";
+  constructor() {
+    super("Seleccioná una caja para sincronizar los cobros de la ruta.");
+    this.name = "CajaRequeridaError";
+  }
+}
+
+export async function sincronizarRuta(
+  rutaId: string,
+  cajaId?: string | null,
+): Promise<ResultadoSync> {
   const pendientes = (await listarPendientes()).filter((v) => v.rutaId === rutaId);
   if (pendientes.length === 0) {
     return { enviado: false, aplicadas: 0, omitidas: 0, rechazadas: 0, noReconciliadas: 0 };
   }
 
-  const batch = await construirBatch(rutaId);
+  // BLOCKER: si el batch trae algún cobro a aplicar, el backend exige caja_id
+  // (422 caja_requerida). Lo prevenimos en el cliente con un mensaje claro en
+  // vez de dejar que el primer sync de cada ruta de pago falle con un 422 crudo.
+  if (!cajaId && pendientes.some(traeCobro)) {
+    throw new CajaRequeridaError();
+  }
+
+  const batch = await construirBatch(rutaId, cajaId);
   const posteadas = pendientes.map((v) => v.id);
 
   let out: SyncOut;

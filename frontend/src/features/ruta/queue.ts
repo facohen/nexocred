@@ -54,13 +54,28 @@ export async function marcarError(id: string, motivo: string): Promise<void> {
 }
 
 /**
+ * True when a queued visit carries a cobro the backend will APPLY (and thus
+ * requires a caja_id). Mirrors the backend `_trae_cobro`: a payment identity
+ * (pago_id) plus a monto. Visits without a cobro (ausente/rechazo/promesa) can
+ * sync without a caja.
+ */
+export function traeCobro(v: VisitaEncolada): boolean {
+  return v.pagoId != null && v.montoCobrado != null;
+}
+
+/**
  * Build the POST /rutas/{id}/sync payload from the pending queue for one route.
  * Device ids and pago_ids travel verbatim (UUIDv7 identity); money stays a
  * string. Replaying this batch is safe because the backend keys on these ids.
+ *
+ * `cajaId` is the cobrador's selected caja for the route. The backend
+ * (sync.py:162) raises 422 'caja_requerida' when applying a NEW cobro with
+ * caja_id=None, so it MUST travel whenever the batch carries a payment.
  */
-export async function construirBatch(rutaId: string): Promise<SyncIn> {
+export async function construirBatch(rutaId: string, cajaId?: string | null): Promise<SyncIn> {
   const pendientes = (await listarPendientes()).filter((v) => v.rutaId === rutaId);
   return {
+    caja_id: cajaId ?? null,
     paradas: pendientes.map((v) => ({
       id: v.id,
       prestamo_id: v.prestamoId,

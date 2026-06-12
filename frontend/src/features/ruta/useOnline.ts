@@ -36,12 +36,20 @@ export interface SyncControlador {
  *  - Expose a manual `sincronizarAhora` for the "Sincronizar" button.
  * All three paths funnel through the same tested `sincronizarRuta`.
  */
-export function useRutaSync(rutaId: string | undefined): SyncControlador {
+export function useRutaSync(
+  rutaId: string | undefined,
+  cajaId?: string | null,
+): SyncControlador {
   const online = useOnline();
   const [sincronizando, setSincronizando] = useState(false);
   const [ultimo, setUltimo] = useState<ResultadoSync>();
   const [error, setError] = useState<string>();
   const enVuelo = useRef(false);
+  // Keep the latest cajaId in a ref so the event-driven retries (online/focus/
+  // visibility/interval) always sync with the currently selected caja without
+  // re-subscribing the listeners on every change.
+  const cajaRef = useRef<string | null | undefined>(cajaId);
+  cajaRef.current = cajaId;
 
   const sincronizarAhora = useCallback(async () => {
     if (!rutaId || enVuelo.current) return;
@@ -50,7 +58,7 @@ export function useRutaSync(rutaId: string | undefined): SyncControlador {
     setError(undefined);
     try {
       void registrarBackgroundSync();
-      const res = await sincronizarRuta(rutaId);
+      const res = await sincronizarRuta(rutaId, cajaRef.current);
       setUltimo(res);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error de sincronización");

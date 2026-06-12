@@ -39,8 +39,48 @@ describe("sincronizarRuta", () => {
 
   it("postea el batch y marca cada item sincronizado", async () => {
     await encolarVisita(visita());
-    const res = await sincronizarRuta("ruta-1");
+    const res = await sincronizarRuta("ruta-1", "caja-1");
     expect(res.aplicadas + res.omitidas).toBeGreaterThanOrEqual(1);
+    expect((await listarPendientes()).length).toBe(0);
+  });
+
+  // BLOCKER — el sync de una visita de pago debe incluir caja_id en el body.
+  it("incluye caja_id en el body del POST cuando hay visitas de pago", async () => {
+    await encolarVisita(visita());
+    let bodyCajaId: unknown = "AUSENTE";
+    server.use(
+      http.post(`${BASE}/rutas/:id/sync`, async ({ request }) => {
+        const body = (await request.json()) as { paradas: { id: string }[]; caja_id?: string };
+        bodyCajaId = body.caja_id;
+        const items = body.paradas.map((p) => ({ parada_id: p.id, estado: "aplicada", pago_id: null }));
+        return HttpResponse.json({ ruta_id: "ruta-1", items, aplicadas: 1, omitidas: 0, rechazadas: 0 });
+      }),
+    );
+    await sincronizarRuta("ruta-1", "caja-1");
+    expect(bodyCajaId).toBe("caja-1");
+  });
+
+  // BLOCKER — sincronizar visitas de pago SIN caja seleccionada se previene con
+  // un error claro (no un 422 silencioso del backend).
+  it("rechaza con mensaje claro si hay visitas de pago y no se seleccionó caja", async () => {
+    await encolarVisita(visita()); // resultado 'pago' con montoCobrado
+    let llamado = false;
+    server.use(
+      http.post(`${BASE}/rutas/:id/sync`, () => {
+        llamado = true;
+        return HttpResponse.json({ ruta_id: "ruta-1", items: [], aplicadas: 0, omitidas: 0, rechazadas: 0 });
+      }),
+    );
+    await expect(sincronizarRuta("ruta-1", undefined)).rejects.toThrow(/[Ss]eleccioná una caja/);
+    expect(llamado).toBe(false); // no se postea: se previene antes del 422
+    expect((await listarPendientes()).length).toBe(1); // nada se pierde
+  });
+
+  // Visitas SIN cobro (p.ej. ausente) pueden sincronizar sin caja.
+  it("permite sincronizar visitas sin cobro aunque no haya caja", async () => {
+    await encolarVisita(visita({ resultado: "ausente", montoCobrado: null, pagoId: null }));
+    const res = await sincronizarRuta("ruta-1", undefined);
+    expect(res.enviado).toBe(true);
     expect((await listarPendientes()).length).toBe(0);
   });
 
@@ -64,14 +104,14 @@ describe("sincronizarRuta", () => {
       }),
     );
 
-    await sincronizarRuta("ruta-1");
+    await sincronizarRuta("ruta-1", "caja-1");
     // Re-encolar el mismo device id es no-op; forzamos un segundo envío manual
     // re-insertando como pendiente para simular un replay del worker.
     const db = await getDB();
     const row = await db.get("visitas", "uuidv7-1");
     await db.put("visitas", { ...row!, estado: "pendiente" });
 
-    const res2 = await sincronizarRuta("ruta-1");
+    const res2 = await sincronizarRuta("ruta-1", "caja-1");
     expect(res2.omitidas).toBe(1); // servidor lo omitió, no duplicó
     expect((await listarPendientes()).length).toBe(0);
   });
@@ -85,7 +125,7 @@ describe("sincronizarRuta", () => {
         return HttpResponse.json({ ruta_id: "ruta-1", items, aplicadas: 0, omitidas: 0, rechazadas: 1 });
       }),
     );
-    const res = await sincronizarRuta("ruta-1");
+    const res = await sincronizarRuta("ruta-1", "caja-1");
     expect(res.rechazadas).toBe(1);
     const db = await getDB();
     const row = await db.get("visitas", "uuidv7-1");
@@ -95,7 +135,7 @@ describe("sincronizarRuta", () => {
   });
 
   it("no postea cuando no hay pendientes para la ruta", async () => {
-    const res = await sincronizarRuta("ruta-1");
+    const res = await sincronizarRuta("ruta-1", "caja-1");
     expect(res.aplicadas).toBe(0);
     expect(res.omitidas).toBe(0);
     expect(res.enviado).toBe(false);
@@ -112,7 +152,7 @@ describe("sincronizarRuta", () => {
         ),
       ),
     );
-    await expect(sincronizarRuta("ruta-1")).rejects.toMatchObject({
+    await expect(sincronizarRuta("ruta-1", "caja-1")).rejects.toMatchObject({
       code: "pago_inmutable",
       message: "el pago ya fue corregido",
     });
@@ -142,7 +182,7 @@ describe("sincronizarRuta", () => {
         ),
       ),
     );
-    await expect(sincronizarRuta("ruta-1")).rejects.toMatchObject({ code: "pago_inmutable" });
+    await expect(sincronizarRuta("ruta-1", "caja-1")).rejects.toMatchObject({ code: "pago_inmutable" });
     const db = await getDB();
     expect((await db.get("visitas", "uuidv7-1"))?.estado).toBe("error");
     expect((await db.get("visitas", "uuidv7-2"))?.estado).toBe("pendiente");
@@ -158,7 +198,7 @@ describe("sincronizarRuta", () => {
         return HttpResponse.json({ ruta_id: "ruta-1", items, aplicadas: 0, omitidas: 0, rechazadas: 0 });
       }),
     );
-    const res = await sincronizarRuta("ruta-1");
+    const res = await sincronizarRuta("ruta-1", "caja-1");
     expect((await listarPendientes()).length).toBe(1);
     const db = await getDB();
     expect((await db.get("visitas", "uuidv7-1"))?.estado).toBe("pendiente");
@@ -175,7 +215,7 @@ describe("sincronizarRuta", () => {
         return HttpResponse.json({ ruta_id: "ruta-1", items, aplicadas: 0, omitidas: 1, rechazadas: 0 });
       }),
     );
-    await sincronizarRuta("ruta-1");
+    await sincronizarRuta("ruta-1", "caja-1");
     expect((await listarPendientes()).length).toBe(0);
   });
 
@@ -197,7 +237,7 @@ describe("sincronizarRuta", () => {
         });
       }),
     );
-    const res = await sincronizarRuta("ruta-1");
+    const res = await sincronizarRuta("ruta-1", "caja-1");
     const db = await getDB();
     expect((await db.get("visitas", "uuidv7-1"))?.estado).toBe("sincronizado");
     // la no-acusada sigue pendiente, no confiamos en los counters agregados

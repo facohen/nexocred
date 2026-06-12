@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MoneyText } from "@/components/MoneyText";
+import { useCajas } from "@/lib/api/queries";
 import { useParadas } from "./hooks";
 import { useRutaSync } from "./useOnline";
 import { encolarVisita, contarPendientes, type VisitaEncolada } from "./queue";
@@ -25,7 +26,15 @@ function Skeleton() {
  */
 export function RutaPage({ rutaId }: { rutaId: string }) {
   const paradasQ = useParadas(rutaId);
-  const { online, sincronizando, ultimo, error, sincronizarAhora } = useRutaSync(rutaId);
+  const cajasQ = useCajas();
+  const cajas = (cajasQ.data?.data ?? []).filter((c) => c.activo);
+  // El cobrador elige su caja para la ruta; viaja en cada sync (caja_id). Sin
+  // ella el backend rechaza los cobros con 422 caja_requerida.
+  const [cajaId, setCajaId] = useState<string>("");
+  const { online, sincronizando, ultimo, error, sincronizarAhora } = useRutaSync(
+    rutaId,
+    cajaId || undefined,
+  );
   const [pendientes, setPendientes] = useState(0);
   const [capturando, setCapturando] = useState<string | null>(null);
 
@@ -66,6 +75,30 @@ export function RutaPage({ rutaId }: { rutaId: string }) {
           </span>
         </div>
       </header>
+
+      <div>
+        <label htmlFor="caja" className="text-sm font-medium">
+          Caja
+        </label>
+        <select
+          id="caja"
+          className="mt-1 h-9 w-full rounded-md border border-border bg-white px-2 text-sm"
+          value={cajaId}
+          onChange={(e) => setCajaId(e.target.value)}
+        >
+          <option value="">Seleccioná una caja…</option>
+          {cajas.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.nombre}
+            </option>
+          ))}
+        </select>
+        {!cajaId && (
+          <p className="mt-1 text-xs text-amber-700">
+            Seleccioná una caja para poder sincronizar los cobros de la ruta.
+          </p>
+        )}
+      </div>
 
       <div className="flex items-center gap-2">
         <Button
