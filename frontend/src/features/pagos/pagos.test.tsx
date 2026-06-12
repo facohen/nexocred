@@ -45,10 +45,23 @@ describe("RegistrarPago", () => {
 });
 
 describe("CorreccionDialog", () => {
-  it("reversa un pago y muestra contra-asiento + reemplazo", async () => {
+  it("muestra la corrección con la forma real f1b (pago original→nuevo y estado original)", async () => {
+    server.use(
+      http.post(`${BASE}/pagos/:id/corregir`, ({ params }) =>
+        HttpResponse.json({
+          pago_original_id: params.id,
+          pago_nuevo_id: "pago-nuevo-9",
+          estado_original: "aplicado",
+        }),
+      ),
+    );
     renderWithProviders(<CorreccionDialog pagoId="pago-1" open onOpenChange={() => {}} />);
     await userEvent.click(screen.getByRole("button", { name: /corregir/i }));
-    expect(await screen.findByRole("heading", { name: /contra-asiento/i })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /reemplazo/i })).toBeInTheDocument();
+    // pago original id
+    expect(await screen.findByText(/pago-1/)).toBeInTheDocument();
+    // pago nuevo id
+    expect(screen.getByText(/pago-nuevo-9/)).toBeInTheDocument();
+    // estado original
+    expect(screen.getByText(/aplicado/i)).toBeInTheDocument();
   });
 });
