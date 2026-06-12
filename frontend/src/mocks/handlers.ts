@@ -57,7 +57,7 @@ export const handlers = [
   }),
   http.post(`${BASE}/personas`, async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
-    if (body.cuil === "27-30111222-4") {
+    if (body.cuil === "27-30111222-5") {
       return err("cuil_duplicado", "Ya existe una persona con ese CUIL", 409);
     }
     const nueva = {

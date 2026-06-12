@@ -60,6 +60,7 @@ async def limpiar_db(_crear_db_de_test) -> AsyncGenerator[None, None]:
         "interaccion, asignacion_crm, prospecto, "
         "imputacion, pago, cuota, parada_ruta, ruta_diaria, comision_devengo, "
         "liquidacion_detalle, liquidacion_comision, documento_emitido, "
+        "documento_numero, aporte_retiro, "
         "novacion_origen, novacion, "
         "arqueo_caja, movimiento_caja, caja, prestamo, "
         "solicitud_credito, workflow_ejecucion, workflow_regla, "

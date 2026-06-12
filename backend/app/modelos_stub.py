@@ -285,11 +285,15 @@ class WorkflowEjecucion(Base):
     persona_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("persona.id"))
     resultado: Mapped[str] = mapped_column(Text, nullable=False)
     detalle: Mapped[str | None] = mapped_column(Text)
+    dedupe_key: Mapped[str | None] = mapped_column(Text)
     ejecutado_en: Mapped[datetime] = _created_at()
 
     __table_args__ = (
         CheckConstraint(
             "resultado IN ('ok','error','omitido')", name="workflow_ejecucion_resultado_check"
+        ),
+        UniqueConstraint(
+            "regla_id", "dedupe_key", name="workflow_ejecucion_regla_dedupe_uq"
         ),
     )
 
