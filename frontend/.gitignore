@@ -2,3 +2,5 @@ node_modules/
 dist/
 *.local
 .DS_Store
+
+# MSW generated worker is committed for dev; keep it
