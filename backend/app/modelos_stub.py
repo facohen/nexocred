@@ -75,6 +75,7 @@ class Prestamo(Base):
     vendedor_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("usuario.id"))
     monto_desembolsado: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
     created_at: Mapped[datetime] = _created_at()
+    # partial unique index on solicitud_id managed by migration 0006_criticos
 
 
 class Cuota(Base):
