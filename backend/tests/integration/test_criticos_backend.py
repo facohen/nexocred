@@ -336,3 +336,97 @@ class TestC3PrestamoNovado:
             headers={**_h(admin_token), "Idempotency-Key": str(uuid.uuid4())},
         )
         assert r.status_code == 409, r.text
+
+
+# ── helpers for C5 ─────────────────────────────────────────────────────────
+
+from tests.integration.test_comisiones import _prestamo_con_comision as _pcc
+from tests.integration._helpers_f1c import cuil_valido
+
+
+async def _seed_vendedor_con_devengo(client, token, session, dni: str) -> tuple[dict, str]:
+    """Create a vendedor user with one comision_devengo. Returns (vendedor_id_str, caja_id)."""
+    prestamo_id, caja_id, vendedor_id = await _pcc(client, token, session, dni)
+    return {"id": vendedor_id}, {"prestamo_id": prestamo_id, "caja_id": caja_id}
+
+
+# ── C5: Doble liquidación de comisiones ────────────────────────────────────
+
+
+class TestC5DobleLiquidacion:
+
+    async def test_generar_liquidacion_dos_veces_no_duplica_devengos(
+        self, client, admin_token, session
+    ):
+        """Generar liquidación, aprobarla, generar otra del mismo período → segunda tiene monto_total=0."""
+        vendedor, _devengo = await _seed_vendedor_con_devengo(
+            client, admin_token, session, "71000032"
+        )
+        hoy = date.today()
+        periodo = {
+            "periodo_desde": (hoy - timedelta(days=1)).isoformat(),
+            "periodo_hasta": (hoy + timedelta(days=1)).isoformat(),
+        }
+
+        # Generate first liquidacion
+        r1 = await client.post(
+            "/api/v1/comisiones/liquidaciones",
+            json={"vendedor_id": vendedor["id"], **periodo},
+            headers=_h(admin_token),
+        )
+        assert r1.status_code == 201, r1.text
+        liq1 = r1.json()
+        assert float(liq1["monto_total"]) == 5000.0
+
+        # Approve it
+        r_aprueba = await client.patch(
+            f"/api/v1/comisiones/liquidaciones/{liq1['id']}/aprobar",
+            headers=_h(admin_token),
+        )
+        assert r_aprueba.status_code == 200, r_aprueba.text
+
+        # Generate second liquidacion for the same period
+        r2 = await client.post(
+            "/api/v1/comisiones/liquidaciones",
+            json={"vendedor_id": vendedor["id"], **periodo},
+            headers=_h(admin_token),
+        )
+        assert r2.status_code == 201, r2.text
+        liq2 = r2.json()
+
+        # Second should have 0 devengos (all already in aprobada liquidacion)
+        assert float(liq2["monto_total"]) == 0.0 or len(liq2.get("detalle", [])) == 0
+
+    async def test_generar_liquidacion_excluye_devengos_en_borrador(
+        self, client, admin_token, session
+    ):
+        """Devengo en liquidación borrador no aparece en nueva liquidación."""
+        vendedor, _devengo = await _seed_vendedor_con_devengo(
+            client, admin_token, session, "71000033"
+        )
+        hoy = date.today()
+        periodo = {
+            "periodo_desde": (hoy - timedelta(days=1)).isoformat(),
+            "periodo_hasta": (hoy + timedelta(days=1)).isoformat(),
+        }
+
+        # Generate first liquidacion (borrador) — not approved
+        r1 = await client.post(
+            "/api/v1/comisiones/liquidaciones",
+            json={"vendedor_id": vendedor["id"], **periodo},
+            headers=_h(admin_token),
+        )
+        assert r1.status_code == 201, r1.text
+        liq1 = r1.json()
+        assert liq1["estado"] == "borrador"
+        assert float(liq1["monto_total"]) == 5000.0
+
+        # Generate second liquidacion — should NOT include same devengos
+        r2 = await client.post(
+            "/api/v1/comisiones/liquidaciones",
+            json={"vendedor_id": vendedor["id"], **periodo},
+            headers=_h(admin_token),
+        )
+        assert r2.status_code == 201, r2.text
+        liq2 = r2.json()
+        assert float(liq2["monto_total"]) == 0.0 or len(liq2.get("detalle", [])) == 0

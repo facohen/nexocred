@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auditoria import escribir_evento
 from app.errors import ErrorAPI
 from app.idempotencia import IdempotencyKey, guardar_resultado_idempotente
-from app.locking import bloquear_caja
+from app.locking import bloquear_caja, bloquear_liquidacion
 from app.m04_caja.servicio import registrar_movimiento
 from app.m09_comisiones.modelos import (
     ComisionLiquidacion,
@@ -155,10 +155,20 @@ async def generar_liquidacion(
 ) -> ComisionLiquidacion:
     """Suma los devengos liquidables (devengada/confirmada) del vendedor en el periodo
     en un borrador con sus detalles."""
+    ya_incluidos = (
+        select(ComisionLiquidacionDetalle.comision_devengo_id)
+        .join(
+            ComisionLiquidacion,
+            ComisionLiquidacionDetalle.liquidacion_id == ComisionLiquidacion.id,
+        )
+        .where(ComisionLiquidacion.estado.in_(["borrador", "aprobada"]))
+        .scalar_subquery()
+    )
     res = await session.execute(
         select(ComisionDevengo).where(
             ComisionDevengo.vendedor_id == vendedor_id,
             ComisionDevengo.estado.in_(["devengada", "confirmada"]),
+            ComisionDevengo.id.not_in(ya_incluidos),
         )
     )
     devengos = list(res.scalars().all())
@@ -284,9 +294,7 @@ async def pagar_liquidacion(
         assert liq is not None
         return liq
 
-    liquidacion = await obtener_liquidacion(session, liquidacion_id)
-    if liquidacion is None:
-        raise ErrorAPI("liquidacion_no_encontrada", "liquidacion inexistente", status=404)
+    liquidacion = await bloquear_liquidacion(session, liquidacion_id)
     if liquidacion.estado != "aprobada":
         raise ErrorAPI(
             "transicion_invalida",

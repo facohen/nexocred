@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.errors import ErrorAPI
 from app.m04_caja.modelos import Caja
+from app.m09_comisiones.modelos import ComisionLiquidacion
 from app.modelos_stub import Prestamo, SolicitudCredito
 
 
@@ -49,3 +50,15 @@ async def bloquear_solicitud(session: AsyncSession, solicitud_id: uuid.UUID) -> 
     if sol is None:
         raise ErrorAPI("solicitud_no_encontrada", "solicitud inexistente", status=404)
     return sol
+
+
+async def bloquear_liquidacion(session: AsyncSession, liquidacion_id: uuid.UUID) -> ComisionLiquidacion:
+    res = await session.execute(
+        select(ComisionLiquidacion)
+        .where(ComisionLiquidacion.id == liquidacion_id)
+        .with_for_update()
+    )
+    liq = res.scalar_one_or_none()
+    if liq is None:
+        raise ErrorAPI("liquidacion_no_encontrada", "liquidacion inexistente", status=404)
+    return liq
