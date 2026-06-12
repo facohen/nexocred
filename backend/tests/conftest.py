@@ -72,6 +72,17 @@ async def limpiar_db(_crear_db_de_test) -> AsyncGenerator[None, None]:
     yield
 
 
+@pytest_asyncio.fixture(autouse=True)
+async def _reset_parametros():
+    """PARAMETROS_GLOBALES es un singleton en memoria; lo restauramos por test."""
+    from app.m12_auth.router import PARAMETROS_GLOBALES
+
+    snapshot = dict(PARAMETROS_GLOBALES)
+    yield
+    PARAMETROS_GLOBALES.clear()
+    PARAMETROS_GLOBALES.update(snapshot)
+
+
 @pytest_asyncio.fixture
 async def app(limpiar_db):
     from app.db import get_session
