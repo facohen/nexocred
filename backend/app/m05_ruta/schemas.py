@@ -81,7 +81,7 @@ class SyncIn(BaseModel):
 
 class SyncItemOut(BaseModel):
     parada_id: uuid.UUID
-    estado: str  # 'aplicada' | 'omitida'
+    estado: str  # 'aplicada' | 'omitida' | 'rechazada'
     pago_id: uuid.UUID | None = None
 
 
@@ -90,6 +90,7 @@ class SyncOut(BaseModel):
     items: list[SyncItemOut]
     aplicadas: int
     omitidas: int
+    rechazadas: int = 0
 
 
 # ---------- Rendicion ----------
