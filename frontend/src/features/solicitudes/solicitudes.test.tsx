@@ -45,6 +45,24 @@ describe("Solicitudes", () => {
     expect(aprobar).toBeDisabled();
   });
 
+  it("surfacea el error del backend al ejecutar una acción (envelope en español)", async () => {
+    server.use(
+      http.post(`${BASE}/solicitudes/:id/evaluar`, () =>
+        HttpResponse.json(
+          { error: { code: "estado_invalido", message: "La solicitud no puede evaluarse en su estado actual" } },
+          { status: 409 },
+        ),
+      ),
+    );
+    const { default: userEvent } = await import("@testing-library/user-event");
+    renderWithProviders(<SolicitudDetailPage />);
+    const evaluar = await screen.findByRole("button", { name: /evaluar/i });
+    await userEvent.click(evaluar);
+    expect(
+      await screen.findByText(/La solicitud no puede evaluarse en su estado actual/i),
+    ).toBeInTheDocument();
+  });
+
   it("trata la regla bcra ausente como bloqueante (fail-safe)", async () => {
     server.use(
       http.post(`${BASE}/solicitudes/:id/validar-politicas`, () =>

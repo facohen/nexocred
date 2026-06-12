@@ -6,6 +6,7 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MoneyText } from "@/components/MoneyText";
+import { ApiError } from "@/lib/api/client";
 
 export function SolicitudDetailPage() {
   const { solicitudId } = useParams({ strict: false }) as { solicitudId: string };
@@ -25,6 +26,12 @@ export function SolicitudDetailPage() {
   // Aprobar sólo cuando el checklist cargó Y no hay políticas en falla Y BCRA OK.
   const aprobarDeshabilitado =
     accion.isPending || !checklistListo || algunaFalla || bcraBlocked;
+  const accionError =
+    accion.error instanceof ApiError
+      ? accion.error.message
+      : accion.error
+        ? "No se pudo completar la acción"
+        : null;
 
   return (
     <div className="space-y-6">
@@ -68,6 +75,12 @@ export function SolicitudDetailPage() {
           </Button>
         </div>
       </div>
+
+      {accionError && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {accionError}
+        </div>
+      )}
 
       {checklistListo && bcraBlocked && (
         <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">

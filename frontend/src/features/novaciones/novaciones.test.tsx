@@ -1,6 +1,8 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
+import { http, HttpResponse } from "msw";
+import { server } from "@/mocks/server";
 import { renderWithProviders } from "@/test/utils";
 import { NovacionesPage } from "./NovacionesPage";
 
@@ -9,6 +11,8 @@ vi.mock("@tanstack/react-router", () => ({
   useParams: () => ({}),
   Link: ({ children, ...p }: { children: React.ReactNode }) => <a {...p}>{children}</a>,
 }));
+
+const BASE = "http://localhost/api/v1";
 
 describe("Novaciones", () => {
   it("permite elegir el tipo y ejecutar la novacion mostrando la cadena", async () => {
@@ -22,5 +26,21 @@ describe("Novaciones", () => {
     await userEvent.click(screen.getByRole("button", { name: /ejecutar/i }));
     // cadena de novación: nuevo préstamo resultante
     expect(await screen.findByText(/prestamo-2/)).toBeInTheDocument();
+  });
+
+  it("surfacea el error del backend como alerta en español", async () => {
+    server.use(
+      http.post(`${BASE}/novaciones/refinanciar`, () =>
+        HttpResponse.json(
+          { error: { code: "prestamo_no_vigente", message: "El préstamo origen no está vigente" } },
+          { status: 409 },
+        ),
+      ),
+    );
+    renderWithProviders(<NovacionesPage />);
+    await userEvent.click(screen.getByRole("button", { name: /ejecutar/i }));
+    expect(
+      await screen.findByText(/El préstamo origen no está vigente/i),
+    ).toBeInTheDocument();
   });
 });

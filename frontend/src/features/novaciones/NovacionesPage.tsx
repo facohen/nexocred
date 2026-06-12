@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNovacion } from "@/lib/api/queries";
+import { ApiError } from "@/lib/api/client";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,12 @@ export function NovacionesPage() {
   const [prestamoId, setPrestamoId] = useState("prestamo-1");
   const novacion = useNovacion();
   const resultado = novacion.data;
+  const errorMsg =
+    novacion.error instanceof ApiError
+      ? novacion.error.message
+      : novacion.error
+        ? "No se pudo ejecutar la novación"
+        : null;
 
   return (
     <div className="space-y-4">
@@ -57,6 +64,12 @@ export function NovacionesPage() {
           </Button>
         </div>
       </Card>
+
+      {errorMsg && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {errorMsg}
+        </div>
+      )}
 
       {resultado && (
         <Card>

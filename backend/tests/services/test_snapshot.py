@@ -44,7 +44,7 @@ async def _seed(session, fecha_corte: date):
     session.add(Cuota(
         prestamo_id=p2.id, numero=1, vencimiento=fecha_corte - timedelta(days=10),
         capital=Decimal("50000"), interes=Decimal("5000"), cuota=Decimal("55000"),
-        estado="vencida",
+        estado="pendiente",
     ))
     await session.flush()
 
@@ -55,8 +55,10 @@ async def _seed(session, fecha_corte: date):
     session.add(pago)
     await session.flush()
     session.add_all([
-        Imputacion(pago_id=pago.id, concepto="interes_vencido", monto=Decimal("5000")),
-        Imputacion(pago_id=pago.id, concepto="punitorio_vencido", monto=Decimal("3000")),
+        Imputacion(pago_id=pago.id, concepto="interes_vencido",
+                   monto=Decimal("5000"), orden_waterfall=2, cuota_numero=1),
+        Imputacion(pago_id=pago.id, concepto="punitorio_vencido",
+                   monto=Decimal("3000"), orden_waterfall=1, cuota_numero=1),
     ])
 
     caja = Caja(nombre="Principal", tipo="efectivo", saldo_teorico=Decimal("200000"))
@@ -72,10 +74,10 @@ async def _seed(session, fecha_corte: date):
 async def test_genera_una_fila_con_metricas(session):
     fecha = date(2026, 6, 11)
     await _seed(session, fecha)
-    await session.commit()
+    await session.flush()
 
     snap = await generar_snapshot(session, fecha, actor_id=None)
-    await session.commit()
+    await session.flush()
 
     assert snap.fecha_corte == fecha
     assert snap.prestamos_vigentes == 2
@@ -89,12 +91,12 @@ async def test_genera_una_fila_con_metricas(session):
 async def test_idempotente_misma_fecha(session):
     fecha = date(2026, 6, 11)
     await _seed(session, fecha)
-    await session.commit()
+    await session.flush()
 
     await generar_snapshot(session, fecha, actor_id=None)
-    await session.commit()
+    await session.flush()
     await generar_snapshot(session, fecha, actor_id=None)
-    await session.commit()
+    await session.flush()
 
     res = await session.execute(
         select(SnapshotCartera).where(SnapshotCartera.fecha_corte == fecha)
@@ -108,11 +110,11 @@ async def test_idempotente_misma_fecha(session):
 async def test_metricas_estables_en_rerun(session):
     fecha = date(2026, 6, 11)
     await _seed(session, fecha)
-    await session.commit()
+    await session.flush()
     s1 = await generar_snapshot(session, fecha, actor_id=None)
-    await session.commit()
+    await session.flush()
     v1 = (s1.prestamos_vigentes, s1.intereses_cobrados_mes, s1.capital_disponible)
     s2 = await generar_snapshot(session, fecha, actor_id=None)
-    await session.commit()
+    await session.flush()
     v2 = (s2.prestamos_vigentes, s2.intereses_cobrados_mes, s2.capital_disponible)
     assert v1 == v2
