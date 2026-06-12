@@ -178,6 +178,11 @@ class ComisionDevengo(Base):
     vendedor_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("persona.id"))
     monto: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
     estado: Mapped[str] = mapped_column(Text, nullable=False, server_default="devengada")
+    tipo: Mapped[str | None] = mapped_column(Text)
+    porcentaje: Mapped[Decimal | None] = mapped_column(Numeric(10, 4))
+    clawback_de_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("comision_devengo.id")
+    )
     created_at: Mapped[datetime] = _created_at()
 
 
@@ -213,6 +218,11 @@ class Tarea(Base):
     operador_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("usuario.id"))
     titulo: Mapped[str | None] = mapped_column(Text)
     estado: Mapped[str] = mapped_column(Text, nullable=False, server_default="pendiente")
+    origen: Mapped[str | None] = mapped_column(Text, server_default="manual")
+    alerta_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("alerta.id"))
+    vencimiento: Mapped[date | None] = mapped_column(Date)
+    prioridad: Mapped[str | None] = mapped_column(Text)
+    descripcion: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = _created_at()
 
 
@@ -222,6 +232,10 @@ class Incidente(Base):
     persona_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("persona.id"))
     tipo: Mapped[str | None] = mapped_column(Text)
     estado: Mapped[str] = mapped_column(Text, nullable=False, server_default="abierto")
+    titulo: Mapped[str | None] = mapped_column(Text)
+    severidad: Mapped[str | None] = mapped_column(Text)
+    operador_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("usuario.id"))
+    detalle: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = _created_at()
 
 
@@ -232,6 +246,13 @@ class Alerta(Base):
     persona_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("persona.id"))
     tipo: Mapped[str | None] = mapped_column(Text)
     estado: Mapped[str] = mapped_column(Text, nullable=False, server_default="activa")
+    severidad: Mapped[str | None] = mapped_column(Text)
+    metrica: Mapped[str | None] = mapped_column(Text)
+    operador_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("usuario.id"))
+    tarea_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("tarea.id"))
+    valor: Mapped[Decimal | None] = mapped_column(Numeric(14, 4))
+    resuelta_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    justificacion: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = _created_at()
 
 

@@ -55,6 +55,9 @@ async def limpiar_db(_crear_db_de_test) -> AsyncGenerator[None, None]:
     para aislamiento (el cliente abre su propia sesion via get_session override)."""
     engine = create_async_engine(TEST_URL, isolation_level="AUTOCOMMIT")
     tablas = (
+        "rendicion_descargo, rendicion, "
+        "comision_liquidacion_detalle, comision_liquidacion, "
+        "interaccion, asignacion_crm, prospecto, "
         "imputacion, pago, cuota, parada_ruta, ruta_diaria, comision_devengo, "
         "liquidacion_detalle, liquidacion_comision, documento_emitido, "
         "novacion_origen, novacion, "
