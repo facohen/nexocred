@@ -1,0 +1,26 @@
+import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, it, expect, vi } from "vitest";
+import { renderWithProviders } from "@/test/utils";
+import { NovacionesPage } from "./NovacionesPage";
+
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => vi.fn(),
+  useParams: () => ({}),
+  Link: ({ children, ...p }: { children: React.ReactNode }) => <a {...p}>{children}</a>,
+}));
+
+describe("Novaciones", () => {
+  it("permite elegir el tipo y ejecutar la novacion mostrando la cadena", async () => {
+    renderWithProviders(<NovacionesPage />);
+    // cuatro tipos disponibles
+    expect(screen.getByRole("button", { name: /refinanciar/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /consolidar/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /transferir/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /repactar/i })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /ejecutar/i }));
+    // cadena de novación: nuevo préstamo resultante
+    expect(await screen.findByText(/prestamo-2/)).toBeInTheDocument();
+  });
+});

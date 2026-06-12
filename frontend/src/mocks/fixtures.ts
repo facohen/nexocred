@@ -512,7 +512,7 @@ export interface Novacion {
   estado: string;
   nuevo_prestamo_id: string | null;
   created_at: string;
-  origenes: { prestamo_id: string; saldo: string }[];
+  origenes: string[];
 }
 
 export const novaciones: Novacion[] = [
@@ -522,7 +522,7 @@ export const novaciones: Novacion[] = [
     estado: "confirmada",
     nuevo_prestamo_id: "prestamo-2",
     created_at: "2026-05-01T09:00:00Z",
-    origenes: [{ prestamo_id: "prestamo-1", saldo: "429166.66" }],
+    origenes: ["prestamo-1"],
   },
 ];
 

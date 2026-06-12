@@ -5780,7 +5780,7 @@
           "valor": {
             "anyOf": [
               {
-                "type": "number"
+                "type": "string"
               },
               {
                 "type": "null"
@@ -11197,6 +11197,11 @@
           "omitidas": {
             "type": "integer",
             "title": "Omitidas"
+          },
+          "rechazadas": {
+            "type": "integer",
+            "title": "Rechazadas",
+            "default": 0
           }
         },
         "type": "object",
