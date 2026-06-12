@@ -139,15 +139,25 @@ export function RutaPage({ rutaId }: { rutaId: string }) {
                   <span className="text-sm font-medium">{`#${p.orden} · Préstamo ${p.prestamo_id}`}</span>
                   <MoneyText value={p.saldo_exigible} className="text-sm font-semibold" />
                 </div>
-                {p.resultado ? (
-                  <Badge tone="success">Visitada: {p.resultado}</Badge>
-                ) : capturando === p.id ? (
+                {capturando === p.id ? (
                   <VisitaCaptureForm
                     parada={p}
                     rutaId={rutaId}
                     onGuardar={onGuardar}
                     onCancelar={() => setCapturando(null)}
                   />
+                ) : p.resultado ? (
+                  // Visitada: se puede re-abrir para corregir. La corrección crea
+                  // una NUEVA entrada de cola con device id + pago_id frescos
+                  // (encolarVisita es idempotente por id, así que reusar el id se
+                  // descartaría; el backend trata mismo pago_id+otro monto como
+                  // 409 → por eso siempre minteamos ids nuevos). Spec §5.5.7.
+                  <div className="flex items-center justify-between gap-2">
+                    <Badge tone="success">Visitada: {p.resultado}</Badge>
+                    <Button size="sm" variant="outline" onClick={() => setCapturando(p.id)}>
+                      Corregir
+                    </Button>
+                  </div>
                 ) : (
                   <Button size="sm" onClick={() => setCapturando(p.id)}>
                     Registrar visita

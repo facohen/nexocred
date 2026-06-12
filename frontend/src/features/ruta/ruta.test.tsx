@@ -177,6 +177,49 @@ describe("RutaPage (La Ruta offline)", () => {
     expect(bodyCajaId).toBe("caja-1");
   });
 
+  it("MINOR: una parada visitada se puede re-abrir y corregir con ids nuevos (no se descarta)", async () => {
+    setOnline(false); // offline: la corrección solo encola, sin postear
+    // parada-1 ya viene visitada desde el backend.
+    server.use(
+      http.get(`${BASE}/rutas/:id/paradas`, () =>
+        HttpResponse.json({
+          data: [
+            {
+              id: "parada-1", ruta_id: "ruta-1", prestamo_id: "prestamo-1", orden: 1,
+              resultado: "pago", monto_cobrado: "2000.00", foto_url: null, lat: null, lng: null,
+              notas: null, visitada_en: "2026-06-12T09:00:00Z", saldo_exigible: "12500.00",
+            },
+          ],
+        }),
+      ),
+    );
+    const user = userEvent.setup();
+    renderWithProviders(<RutaPage rutaId="ruta-1" />, {
+      email: "cobrador@nexocred.test",
+      nombre: "Cobra",
+      roles: ["cobrador"],
+    });
+
+    // Estado visitado visible + acción para corregir.
+    expect(await screen.findByText(/Visitada/i)).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: /Corregir/i }));
+
+    const monto = await screen.findByLabelText(/Monto cobrado/i);
+    await user.clear(monto);
+    await user.type(monto, "1800.00");
+    await user.click(screen.getByRole("button", { name: /Guardar visita/i }));
+
+    // Se encoló una NUEVA entrada de corrección con device id + pago_id frescos.
+    await waitFor(async () => {
+      expect((await listarPendientes()).length).toBe(1);
+    });
+    const pend = await listarPendientes();
+    expect(pend[0].id).toMatch(/^[0-9a-f-]{36}$/i); // UUIDv7 fresco de dispositivo
+    expect(pend[0].pagoId).toMatch(/^[0-9a-f-]{36}$/i); // pago_id fresco
+    expect(pend[0].id).not.toBe(pend[0].pagoId);
+    expect(pend[0].montoCobrado).toBe("1800.00");
+  });
+
   it("es usable en ancho de teléfono (layout responsive)", async () => {
     renderWithProviders(<RutaPage rutaId="ruta-1" />, {
       email: "cobrador@nexocred.test",
