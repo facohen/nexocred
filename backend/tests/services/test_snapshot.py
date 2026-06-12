@@ -118,3 +118,45 @@ async def test_metricas_estables_en_rerun(session):
     await session.flush()
     v2 = (s2.prestamos_vigentes, s2.intereses_cobrados_mes, s2.capital_disponible)
     assert v1 == v2
+
+
+async def test_snapshot_es_as_of_fecha_corte_no_fin_de_mes(session):
+    """Eventos del MISMO mes pero POSTERIORES a fecha_corte se EXCLUYEN (as-of).
+
+    El snapshot a fecha_corte=2026-06-11 no debe incluir desembolsos ni cobros con
+    fecha_negocio 2026-06-12..2026-06-30 (futuro respecto del corte).
+    """
+    fecha = date(2026, 6, 11)
+    await _seed(session, fecha)
+
+    persona = await crear_persona(session)
+    producto = await crear_producto(session)
+
+    # Desembolso POSTERIOR al corte pero dentro del mismo mes -> NO debe contar.
+    p_futuro = await crear_prestamo(
+        session, persona.id, producto.id, capital=Decimal("777777"),
+        fecha_desembolso=fecha + timedelta(days=5),
+        monto_desembolsado=Decimal("777777"),
+    )
+    # Pago POSTERIOR al corte pero dentro del mismo mes -> intereses/punitorios NO cuentan.
+    pago_futuro = Pago(
+        prestamo_id=p_futuro.id, monto=Decimal("99999"), estado="registrado",
+        fecha_negocio=fecha + timedelta(days=6),
+    )
+    session.add(pago_futuro)
+    await session.flush()
+    session.add_all([
+        Imputacion(pago_id=pago_futuro.id, concepto="interes_vencido",
+                   monto=Decimal("11111"), orden_waterfall=2, cuota_numero=1),
+        Imputacion(pago_id=pago_futuro.id, concepto="punitorio_vencido",
+                   monto=Decimal("22222"), orden_waterfall=1, cuota_numero=1),
+    ])
+    await session.flush()
+
+    snap = await generar_snapshot(session, fecha, actor_id=None)
+    await session.flush()
+
+    # Solo los eventos pre-corte del _seed: 100000 colocacion, 5000 interes, 3000 punitorio.
+    assert snap.colocacion_mes == Decimal("100000.00")
+    assert snap.intereses_cobrados_mes == Decimal("5000.00")
+    assert snap.punitorios_cobrados_mes == Decimal("3000.00")

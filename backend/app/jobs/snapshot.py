@@ -23,13 +23,6 @@ _CONCEPTOS_INTERES = ("interes_vencido", "interes_no_vencido")
 _CONCEPTOS_PUNITORIO = ("punitorio_vencido",)
 
 
-def _fin_de_mes(d: date) -> date:
-    if d.month == 12:
-        return d.replace(month=12, day=31)
-    primero_sig = d.replace(month=d.month + 1, day=1)
-    return date.fromordinal(primero_sig.toordinal() - 1)
-
-
 async def _suma_imputaciones(
     session: AsyncSession, conceptos: tuple[str, ...], desde: date, hasta: date
 ) -> Decimal:
@@ -67,18 +60,21 @@ async def generar_snapshot(
 ) -> SnapshotCartera:
     """Calcula y upserta UNA fila snapshot_cartera para `fecha_corte` (idempotente)."""
     inicio_mes = fecha_corte.replace(day=1)
-    fin_mes = _fin_de_mes(fecha_corte)
+    # AS-OF: las metricas "del mes" son month-to-date hasta la fecha de corte
+    # (inclusive); nunca incluyen eventos POSTERIORES al corte aunque caigan en el
+    # mismo mes (fin de mes seria futuro respecto del snapshot). Mirror de m11_torre.
+    hasta = fecha_corte
 
     cartera = await cartera_riesgo(session, fecha_corte)
     prestamos_vigentes = len(cartera)
     prestamos_en_mora = sum(1 for c in cartera if c.dias_atraso > 0)
 
-    colocacion = await _colocacion_mes(session, inicio_mes, fin_mes)
+    colocacion = await _colocacion_mes(session, inicio_mes, hasta)
     intereses = await _suma_imputaciones(
-        session, _CONCEPTOS_INTERES, inicio_mes, fin_mes
+        session, _CONCEPTOS_INTERES, inicio_mes, hasta
     )
     punitorios = await _suma_imputaciones(
-        session, _CONCEPTOS_PUNITORIO, inicio_mes, fin_mes
+        session, _CONCEPTOS_PUNITORIO, inicio_mes, hasta
     )
     capital_disponible, _ = await posicion_consolidada(session)
 
