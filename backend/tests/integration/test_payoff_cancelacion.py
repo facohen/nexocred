@@ -1,3 +1,4 @@
+import contextlib
 from datetime import date
 from decimal import Decimal
 
@@ -141,15 +142,13 @@ async def test_cancelacion_atomica_falla_no_persiste_nada(
         )
     ).scalar_one()
 
-    try:
+    with contextlib.suppress(RuntimeError):
         await client.post(
             f"/api/v1/prestamos/{prestamo_id}/cancelar",
             json={"caja_id": caja, "fecha_negocio": date.today().isoformat(),
                   "canal": "mostrador"},
             headers={**_h(admin_token), "Idempotency-Key": "cancel-atom"},
         )
-    except RuntimeError:
-        pass
 
     # nada quedo persistido: ni pago, ni movimiento, ni cambio de estado
     pagos_despues = (
