@@ -85,7 +85,3 @@ async def cartera_riesgo(
         if snap.capital_pendiente > CERO:
             snaps.append(snap)
     return snaps
-
-
-def _f(d: Decimal) -> float:
-    return float(d)

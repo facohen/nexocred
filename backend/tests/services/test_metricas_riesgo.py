@@ -36,6 +36,15 @@ def test_par60_y_90_cero():
     assert par(_cartera(), 90) == Decimal("0.0000")
 
 
+def test_par30_incluye_borde_exacto():
+    # un prestamo con atraso EXACTAMENTE 30 dias cuenta en par30 (umbral inclusivo >=).
+    cartera = [
+        _p("a", "90000", 0),
+        _p("b", "10000", 30),
+    ]
+    assert par(cartera, 30) == Decimal("0.1000")
+
+
 def test_par_denominador_cero():
     assert par([], 30) == Decimal("0.0000")
 

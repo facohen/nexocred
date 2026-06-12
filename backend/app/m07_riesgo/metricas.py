@@ -46,7 +46,7 @@ def _ratio(numerador: Decimal, denominador: Decimal) -> Decimal:
 def par(prestamos: list[PrestamoRiesgo], dias: int) -> Decimal:
     """Portfolio at Risk: capital con atraso > `dias` / capital total outstanding."""
     total = _total_outstanding(prestamos)
-    en_riesgo = [p.capital_pendiente for p in prestamos if p.dias_atraso > dias]
+    en_riesgo = [p.capital_pendiente for p in prestamos if p.dias_atraso >= dias]
     riesgo = sumar(*en_riesgo) if en_riesgo else CERO
     return _ratio(riesgo, total)
 

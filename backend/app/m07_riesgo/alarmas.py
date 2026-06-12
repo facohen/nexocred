@@ -42,7 +42,7 @@ async def _alerta_activa(
 
 def _metrica_para(dias: int) -> tuple[str, str] | None:
     for umbral, metrica, severidad in UMBRALES:
-        if dias > umbral:
+        if dias >= umbral:
             return metrica, severidad
     return None
 
@@ -136,20 +136,35 @@ async def asignar(
     operador_id: uuid.UUID,
     actor_id: uuid.UUID | None,
 ) -> Alerta:
-    """Asigna la alerta a un operador y CREA una tarea CRM interna vinculada."""
-    tarea = await crm.crear_tarea(
-        session,
-        persona_id=alerta.persona_id,
-        operador_id=operador_id,
-        titulo=f"Gestionar alerta {alerta.metrica or alerta.tipo}",
-        descripcion=f"Alerta de riesgo {alerta.severidad} sobre prestamo "
-        f"{alerta.prestamo_id}",
-        prioridad=alerta.severidad,
-        origen="alerta",
-        alerta_id=alerta.id,
-        actor_id=actor_id,
-        commit=False,
-    )
+    """Asigna la alerta a un operador. Si la alerta ya tiene una tarea CRM vinculada,
+    ACTUALIZA esa tarea (sin crear otra) — reasignar es idempotente. Si no, crea una."""
+    tarea = None
+    if alerta.tarea_id is not None:
+        tarea = await crm.obtener_tarea(session, alerta.tarea_id)
+    if tarea is not None:
+        await crm.actualizar_tarea(
+            session,
+            tarea=tarea,
+            estado=None,
+            operador_id=operador_id,
+            prioridad=None,
+            vencimiento=None,
+            actor_id=actor_id,
+        )
+    else:
+        tarea = await crm.crear_tarea(
+            session,
+            persona_id=alerta.persona_id,
+            operador_id=operador_id,
+            titulo=f"Gestionar alerta {alerta.metrica or alerta.tipo}",
+            descripcion=f"Alerta de riesgo {alerta.severidad} sobre prestamo "
+            f"{alerta.prestamo_id}",
+            prioridad=alerta.severidad,
+            origen="alerta",
+            alerta_id=alerta.id,
+            actor_id=actor_id,
+            commit=False,
+        )
     alerta.operador_id = operador_id
     alerta.tarea_id = tarea.id
     await session.flush()

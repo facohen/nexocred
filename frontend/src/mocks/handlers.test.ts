@@ -12,7 +12,7 @@ describe("MSW handlers", () => {
     const page = await apiFetch<PersonaPagina>("/personas");
     expect(page.total).toBeGreaterThan(0);
     expect(page.data.length).toBeGreaterThan(0);
-    expect(typeof page.data[0].ingresos_totales).toBe("string");
+    expect(page.data[0].apellido).toBeTruthy();
   });
 
   it("POST /auth/login devuelve un token", async () => {

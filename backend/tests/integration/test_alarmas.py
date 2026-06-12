@@ -95,3 +95,53 @@ async def test_resolver_alerta(client, admin_token, session):
     assert r.status_code == 200, r.text
     assert r.json()["estado"] == "resuelta"
     assert r.json()["justificacion"] == "cliente regularizo"
+
+
+async def test_reasignar_alerta_no_duplica_tarea(client, admin_token, session):
+    await relajar_bcra(client, admin_token)
+    await _prestamo_desembolsado(
+        client, admin_token, session, fpc_offset=-120,
+        cuil=cuil_valido("82000044"), dni="82000044",
+    )
+    await client.post("/api/v1/alertas/procesar", headers=_h(admin_token))
+    lst = await client.get("/api/v1/alertas?estado=activa", headers=_h(admin_token))
+    alerta_id = lst.json()[0]["id"]
+
+    op1 = await _crear_operador(client, admin_token, email="op_re1@nexo.test")
+    op2 = await _crear_operador(client, admin_token, email="op_re2@nexo.test")
+
+    r1 = await client.patch(
+        f"/api/v1/alertas/{alerta_id}/asignar",
+        json={"operador_id": op1}, headers=_h(admin_token),
+    )
+    assert r1.status_code == 200, r1.text
+    tarea_id = r1.json()["tarea_id"]
+
+    # reasignar a op2: actualiza la MISMA tarea, no crea otra
+    r2 = await client.patch(
+        f"/api/v1/alertas/{alerta_id}/asignar",
+        json={"operador_id": op2}, headers=_h(admin_token),
+    )
+    assert r2.status_code == 200, r2.text
+    assert r2.json()["operador_id"] == op2
+    assert r2.json()["tarea_id"] == tarea_id
+
+    res = await session.execute(
+        text("SELECT count(*) FROM tarea WHERE alerta_id=:a"), {"a": alerta_id}
+    )
+    assert res.scalar_one() == 1
+    res = await session.execute(
+        text("SELECT operador_id FROM tarea WHERE id=:t"), {"t": tarea_id}
+    )
+    assert str(res.scalar_one()) == op2
+
+    # reasignar al mismo op2 otra vez: idempotente (sin nueva tarea)
+    r3 = await client.patch(
+        f"/api/v1/alertas/{alerta_id}/asignar",
+        json={"operador_id": op2}, headers=_h(admin_token),
+    )
+    assert r3.status_code == 200, r3.text
+    res = await session.execute(
+        text("SELECT count(*) FROM tarea WHERE alerta_id=:a"), {"a": alerta_id}
+    )
+    assert res.scalar_one() == 1
