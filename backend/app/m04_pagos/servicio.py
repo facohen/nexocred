@@ -159,7 +159,7 @@ async def _actualizar_estados_cuotas(
     await session.flush()
 
 
-async def registrar_pago(
+async def registrar_pago_uow(
     session: AsyncSession,
     *,
     prestamo_id: uuid.UUID,
@@ -167,17 +167,30 @@ async def registrar_pago(
     canal: str,
     caja_id: uuid.UUID,
     fecha_negocio: date,
-    idempotency_key: str,
+    idempotency_key: str | None,
     modo: ModoPago = ModoPago.NORMAL,
     actor_id: uuid.UUID | None,
-) -> PagoOut:
-    operacion = "registrar_pago"
-    previo = await guardar_resultado_idempotente(
-        session, idempotency_key, operacion, None
-    )
-    if previo is not None:
-        await session.commit()
-        return PagoOut.model_validate(json.loads(previo))
+    operacion: str = "registrar_pago",
+    reservar_idem: bool = True,
+) -> tuple[PagoOut | None, Pago | None]:
+    """Nucleo NON-COMMITTING de registrar_pago.
+
+    Hace todo el trabajo (reserva idempotencia, lock FOR UPDATE, saldo, aplicar_pago,
+    persistir pago+imputaciones+movimiento de caja, estados de cuota, auditoria) y
+    FLUSHEA, pero NO hace commit. El llamador es responsable del unico commit, de modo
+    que toda la operacion comparte una sola transaccion y el lock se mantiene de punta
+    a punta.
+
+    Devuelve (out_previo, None) si la clave idempotente ya estaba materializada (replay),
+    o (out_nuevo, pago) para una ejecucion nueva. Cuando reservar_idem es False no toca
+    la tabla idempotency_key (el caller compuesto reservo su propia clave externa).
+    """
+    if reservar_idem and idempotency_key is not None:
+        previo = await guardar_resultado_idempotente(
+            session, idempotency_key, operacion, None
+        )
+        if previo is not None:
+            return PagoOut.model_validate(json.loads(previo)), None
 
     if monto <= Decimal("0"):
         raise ErrorAPI("monto_invalido", "el monto debe ser positivo", status=422)
@@ -205,12 +218,41 @@ async def registrar_pago(
     await _actualizar_estados_cuotas(session, prestamo, cuotas, fecha_negocio)
 
     out = PagoOut.model_validate(pago)
-    await _guardar_idem(session, idempotency_key, operacion, out)
+    if reservar_idem and idempotency_key is not None:
+        await _guardar_idem(session, idempotency_key, operacion, out)
     await escribir_evento(
         session, actor_id=actor_id, accion="pago_registro", entidad="pago",
         entidad_id=pago.id, metadata_json={"monto": str(monto), "prestamo_id": str(prestamo_id)},
     )
+    return out, pago
+
+
+async def registrar_pago(
+    session: AsyncSession,
+    *,
+    prestamo_id: uuid.UUID,
+    monto: Decimal,
+    canal: str,
+    caja_id: uuid.UUID,
+    fecha_negocio: date,
+    idempotency_key: str,
+    modo: ModoPago = ModoPago.NORMAL,
+    actor_id: uuid.UUID | None,
+) -> PagoOut:
+    """Wrapper publico (usado por el router): ejecuta el nucleo y hace UN solo commit."""
+    out, _pago = await registrar_pago_uow(
+        session,
+        prestamo_id=prestamo_id,
+        monto=monto,
+        canal=canal,
+        caja_id=caja_id,
+        fecha_negocio=fecha_negocio,
+        idempotency_key=idempotency_key,
+        modo=modo,
+        actor_id=actor_id,
+    )
     await session.commit()
+    assert out is not None
     return out
 
 
@@ -251,7 +293,7 @@ def _resultado_desde_imputaciones(
     )
 
 
-async def corregir(
+async def corregir_uow(
     session: AsyncSession,
     *,
     pago_original_id: uuid.UUID,
@@ -259,16 +301,21 @@ async def corregir(
     canal: str | None,
     caja_id: uuid.UUID,
     fecha_negocio: date,
-    idempotency_key: str,
+    idempotency_key: str | None,
     actor_id: uuid.UUID | None,
+    reservar_idem: bool = True,
 ) -> CorreccionOut:
+    """Nucleo NON-COMMITTING de corregir. Reserva idempotencia, bloquea el prestamo
+    FOR UPDATE, persiste la reversa append-only, el contra-asiento de caja, marca el
+    original como corregido y aplica el pago de reemplazo. FLUSHEA pero NO hace commit:
+    todo vive en una unica transaccion con el lock sostenido."""
     operacion = "corregir_pago"
-    previo = await guardar_resultado_idempotente(
-        session, idempotency_key, operacion, None
-    )
-    if previo is not None:
-        await session.commit()
-        return CorreccionOut.model_validate(json.loads(previo))
+    if reservar_idem and idempotency_key is not None:
+        previo = await guardar_resultado_idempotente(
+            session, idempotency_key, operacion, None
+        )
+        if previo is not None:
+            return CorreccionOut.model_validate(json.loads(previo))
 
     original = await obtener_pago(session, pago_original_id)
     if original is None:
@@ -339,11 +386,39 @@ async def corregir(
         pago_nuevo_id=pago_nuevo.id,
         estado_original="corregido",
     )
-    await _guardar_idem_generico(session, idempotency_key, operacion, out.model_dump_json())
+    if reservar_idem and idempotency_key is not None:
+        await _guardar_idem_generico(
+            session, idempotency_key, operacion, out.model_dump_json()
+        )
     await escribir_evento(
         session, actor_id=actor_id, accion="pago_correccion", entidad="pago",
         entidad_id=pago_original_id,
         metadata_json={"pago_nuevo_id": str(pago_nuevo.id), "monto": str(monto)},
+    )
+    return out
+
+
+async def corregir(
+    session: AsyncSession,
+    *,
+    pago_original_id: uuid.UUID,
+    monto: Decimal,
+    canal: str | None,
+    caja_id: uuid.UUID,
+    fecha_negocio: date,
+    idempotency_key: str,
+    actor_id: uuid.UUID | None,
+) -> CorreccionOut:
+    """Wrapper publico (usado por el router): ejecuta el nucleo y hace UN solo commit."""
+    out = await corregir_uow(
+        session,
+        pago_original_id=pago_original_id,
+        monto=monto,
+        canal=canal,
+        caja_id=caja_id,
+        fecha_negocio=fecha_negocio,
+        idempotency_key=idempotency_key,
+        actor_id=actor_id,
     )
     await session.commit()
     return out
@@ -398,6 +473,9 @@ async def pagos_a_aplicar(session: AsyncSession) -> list[Pago]:
 __all__ = [
     "ConceptoImputacion",
     "registrar_pago",
+    "registrar_pago_uow",
+    "corregir",
+    "corregir_uow",
     "obtener_pago",
     "imputaciones_de_pago",
     "pagos_de_prestamo",
