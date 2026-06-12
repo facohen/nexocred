@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.errors import ErrorAPI
 from app.m04_caja.modelos import Caja
-from app.modelos_stub import Prestamo
+from app.modelos_stub import Prestamo, SolicitudCredito
 
 
 def _stmt_prestamo_for_update(prestamo_id: uuid.UUID | str) -> Select:
@@ -37,3 +37,15 @@ async def bloquear_caja(session: AsyncSession, caja_id: uuid.UUID) -> Caja:
     if caja is None:
         raise ErrorAPI("caja_no_encontrada", "caja inexistente", status=404)
     return caja
+
+
+async def bloquear_solicitud(session: AsyncSession, solicitud_id: uuid.UUID) -> SolicitudCredito:
+    res = await session.execute(
+        select(SolicitudCredito)
+        .where(SolicitudCredito.id == solicitud_id)
+        .with_for_update()
+    )
+    sol = res.scalar_one_or_none()
+    if sol is None:
+        raise ErrorAPI("solicitud_no_encontrada", "solicitud inexistente", status=404)
+    return sol

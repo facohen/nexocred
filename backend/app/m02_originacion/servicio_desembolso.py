@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auditoria import escribir_evento
 from app.errors import ErrorAPI
 from app.idempotencia import guardar_resultado_idempotente
-from app.locking import bloquear_caja
+from app.locking import bloquear_caja, bloquear_solicitud
 from app.m02_originacion.schemas import DesembolsoOut
 from app.m03_prestamos.reconstruccion import snapshot_desde_terminos
 from app.modelos_stub import Cuota, MovimientoCaja, Prestamo, SolicitudCredito
@@ -83,6 +83,10 @@ async def desembolsar(
     if previo is not None:
         await session.commit()
         return DesembolsoOut.model_validate(json.loads(previo))
+
+    # Acquire row lock BEFORE reading estado to prevent double-disbursement
+    # under concurrent requests (spec C1 fix: SELECT FOR UPDATE serialises access).
+    solicitud = await bloquear_solicitud(session, solicitud.id)
 
     if solicitud.estado != "aprobada":
         raise ErrorAPI(
