@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { TransactionButton } from "@/components/TransactionButton";
 import { FormField } from "@/components/FormField";
 import { MoneyText } from "@/components/MoneyText";
 import {
@@ -38,12 +39,12 @@ export function LiquidacionesPage() {
           <FormField label="Vendedor" name="vendedor" value={vendedorId} onChange={(e) => setVendedorId(e.target.value)} />
           <FormField label="Desde" name="desde" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
           <FormField label="Hasta" name="hasta" type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} />
-          <Button
+          <TransactionButton
             onClick={() => generar.mutate({ vendedor_id: vendedorId, periodo_desde: desde, periodo_hasta: hasta })}
-            disabled={generar.isPending}
+            pending={generar.isPending}
           >
             Generar
-          </Button>
+          </TransactionButton>
         </div>
       </Card>
 
@@ -71,9 +72,14 @@ export function LiquidacionesPage() {
                       <Button size="sm" variant="outline" onClick={() => aprobar.mutate(l.id)} disabled={l.estado !== "borrador"}>
                         Aprobar
                       </Button>
-                      <Button size="sm" onClick={() => pagar.mutate(l.id)} disabled={l.estado !== "aprobada"}>
+                      <TransactionButton
+                        size="sm"
+                        onClick={() => pagar.mutate(l.id)}
+                        disabled={l.estado !== "aprobada"}
+                        pending={pagar.isPending && pagar.variables === l.id}
+                      >
                         Pagar
-                      </Button>
+                      </TransactionButton>
                     </div>
                   </td>
                 </tr>

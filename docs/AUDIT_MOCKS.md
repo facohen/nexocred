@@ -63,3 +63,37 @@ comportamiento real alrededor de fakes de borde legitimos.
 - Se mantienen los fakes de borde legitimos (FakeBcraClient, MSW, router,
   ServiceWorkerRegistration); en todos los casos la aseveracion ejerce el
   codigo PROPIO que rodea al fake.
+
+---
+
+# Auditoria de botones transaccionales (Stage 8 — Task 7)
+
+`TransactionButton` (`src/components/TransactionButton.tsx`) envuelve el
+`Button` y, mientras `pending`, lo deja `disabled` + `aria-busy` + muestra un
+spinner. El primer click previene un segundo submit del mismo mutador.
+
+Barrido de las pantallas y sus acciones que MUEVEN dinero/estado:
+
+| Pantalla | Accion critica | Guarda |
+|---|---|---|
+| `pagos/RegistrarPagoPage` | registrar pago | TransactionButton (`registrar.isPending`) |
+| `pagos/CorreccionDialog` | corregir pago | TransactionButton (`corregir.isPending`) |
+| `solicitudes/SolicitudDetailPage` | aprobar y desembolsar | TransactionButton (`accion.isPending`) + gating checklist/BCRA |
+| `documentos/DocumentosPage` | generar documento | TransactionButton (`generar.isPending`) |
+| `vendedores/LiquidacionesPage` | liquidacion pagar | TransactionButton (`pagar.isPending && variables===id`) |
+| `vendedores/LiquidacionesPage` | generar liquidacion | TransactionButton (`generar.isPending`) |
+| `ruta/RutaPage` | sincronizar (cobros offline) | TransactionButton (`sincronizando`) |
+
+Acciones no presentes en la UI del POC (no requieren guarda de boton):
+
+- aporte/retiro de tesoreria: existe el endpoint backend pero el
+  `TesoreriaDashboard` es read-only (sin formulario de mutacion). Si se
+  agrega el formulario, debe usar `TransactionButton` (registrado como
+  pendiente en RELEASE_NOTES).
+- `ruta/VisitaCaptureForm` "Guardar visita": solo ENCOLA localmente
+  (IndexedDB) de forma sincrona; el POST del cobro lo hace el boton
+  Sincronizar (ya guardado). No hay mutacion en vuelo en el guardar.
+
+Tests: `components/transactionbutton.test.tsx` (disable+spinner+anti-doble-submit)
+y `features/transactional-buttons.test.tsx` (un test por accion critica que
+afirma el boton DESHABILITADO con la mutacion en vuelo via handler MSW demorado).

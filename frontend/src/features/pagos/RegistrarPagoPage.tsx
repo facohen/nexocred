@@ -4,6 +4,7 @@ import { newIdempotencyKey } from "@/lib/utils";
 import { ApiError } from "@/lib/api/client";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { TransactionButton } from "@/components/TransactionButton";
 import { Input } from "@/components/ui/input";
 import { MoneyText } from "@/components/MoneyText";
 import { CorreccionDialog } from "./CorreccionDialog";
@@ -74,9 +75,13 @@ export function RegistrarPagoPage() {
             </label>
             <Input id="caja" value={cajaId} onChange={(e) => setCajaId(e.target.value)} />
           </div>
-          <Button type="submit" disabled={registrar.isPending} className="col-span-4 w-fit">
+          <TransactionButton
+            type="submit"
+            pending={registrar.isPending}
+            className="col-span-4 w-fit"
+          >
             {registrar.isPending ? "Registrando…" : "Registrar pago"}
-          </Button>
+          </TransactionButton>
         </form>
         {error && (
           <p role="alert" className="mt-2 text-sm text-red-600">

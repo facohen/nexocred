@@ -1,6 +1,6 @@
 import { useCorregirPago } from "@/lib/api/queries";
 import { Dialog } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { TransactionButton } from "@/components/TransactionButton";
 
 export function CorreccionDialog({
   pagoId,
@@ -20,12 +20,12 @@ export function CorreccionDialog({
         La corrección reversa el pago original con un contra-asiento y registra un pago de reemplazo.
         El asiento original nunca se borra (ledger append-only).
       </p>
-      <Button
+      <TransactionButton
         onClick={() => corregir.mutate({ pagoId })}
-        disabled={corregir.isPending}
+        pending={corregir.isPending}
       >
         {corregir.isPending ? "Corrigiendo…" : "Corregir pago"}
-      </Button>
+      </TransactionButton>
 
       {resultado && (
         <div className="mt-4 space-y-3">

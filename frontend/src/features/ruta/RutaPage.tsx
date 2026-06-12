@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { TransactionButton } from "@/components/TransactionButton";
 import { MoneyText } from "@/components/MoneyText";
 import { useCajas } from "@/lib/api/queries";
 import { useParadas } from "./hooks";
@@ -101,14 +102,15 @@ export function RutaPage({ rutaId }: { rutaId: string }) {
       </div>
 
       <div className="flex items-center gap-2">
-        <Button
+        <TransactionButton
           size="sm"
           variant="outline"
           onClick={() => void sincronizarAhora()}
-          disabled={sincronizando || pendientes === 0}
+          disabled={pendientes === 0}
+          pending={sincronizando}
         >
           {sincronizando ? "Sincronizando…" : "Sincronizar"}
-        </Button>
+        </TransactionButton>
         {ultimo?.enviado && (
           <span className="text-xs text-foreground/60">
             {ultimo.aplicadas} aplicadas · {ultimo.omitidas} omitidas · {ultimo.rechazadas} rechazadas

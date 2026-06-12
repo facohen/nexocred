@@ -5,6 +5,7 @@ import { newIdempotencyKey } from "@/lib/utils";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { TransactionButton } from "@/components/TransactionButton";
 import { MoneyText } from "@/components/MoneyText";
 import { ApiError } from "@/lib/api/client";
 
@@ -60,9 +61,10 @@ export function SolicitudDetailPage() {
           >
             Simular
           </Button>
-          <Button
+          <TransactionButton
             onClick={() => accion.mutate({ accion: "desembolsar", idempotencyKey: desembolsoKey })}
             disabled={aprobarDeshabilitado}
+            pending={accion.isPending}
             title={
               !checklistListo
                 ? "Validando políticas…"
@@ -72,7 +74,7 @@ export function SolicitudDetailPage() {
             }
           >
             Aprobar y desembolsar
-          </Button>
+          </TransactionButton>
         </div>
       </div>
 

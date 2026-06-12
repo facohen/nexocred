@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { TransactionButton } from "@/components/TransactionButton";
 import { FormField } from "@/components/FormField";
 import { useDocumentos, useGenerarDocumento, useAnularDocumento, descargarDocumento } from "./hooks";
 
@@ -45,15 +46,15 @@ export function DocumentosPage({ prestamoId }: { prestamoId: string }) {
               ))}
             </select>
           </div>
-          <Button
+          <TransactionButton
             onClick={async () => {
               await generar.mutateAsync(tipo);
               setAviso("Documento generado.");
             }}
-            disabled={generar.isPending}
+            pending={generar.isPending}
           >
             Generar documento
-          </Button>
+          </TransactionButton>
         </div>
       </Card>
 
