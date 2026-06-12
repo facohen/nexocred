@@ -500,10 +500,8 @@ export const movimientos: Record<string, Movimiento[]> = {
 
 export const posicionConsolidada = {
   total: "1570000.00",
-  cajas: [
-    { caja_id: "caja-1", nombre: "Caja Central", saldo_teorico: "1250000.00" },
-    { caja_id: "caja-2", nombre: "Caja Sucursal Sur", saldo_teorico: "320000.00" },
-  ],
+  // cajas son CajaOut (id, no caja_id) según PosicionConsolidadaOut.
+  cajas: cajas,
 };
 
 export interface Novacion {

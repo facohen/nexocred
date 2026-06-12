@@ -209,10 +209,7 @@ export function useCajas() {
 export function usePosicionConsolidada() {
   return useQuery({
     queryKey: ["posicion-consolidada"],
-    queryFn: () =>
-      apiFetch<{ total: string; cajas: { caja_id: string; nombre: string; saldo_teorico: string }[] }>(
-        "/cajas/posicion-consolidada",
-      ),
+    queryFn: () => apiFetch<Sch["PosicionConsolidadaOut"]>("/cajas/posicion-consolidada"),
   });
 }
 

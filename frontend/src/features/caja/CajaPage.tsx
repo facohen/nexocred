@@ -4,13 +4,31 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MoneyText } from "@/components/MoneyText";
 
+function Skeleton({ testid }: { testid?: string }) {
+  return (
+    <div data-testid={testid} className="space-y-2">
+      <div className="h-4 w-1/3 animate-pulse rounded bg-foreground/10" />
+      <div className="h-4 w-full animate-pulse rounded bg-foreground/10" />
+      <div className="h-4 w-2/3 animate-pulse rounded bg-foreground/10" />
+    </div>
+  );
+}
+
+function ErrorAlert({ children }: { children: React.ReactNode }) {
+  return (
+    <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+      {children}
+    </div>
+  );
+}
+
 export function CajaPage() {
-  const { data: cajasData } = useCajas();
-  const { data: posicion } = usePosicionConsolidada();
-  const cajas = cajasData?.data ?? [];
+  const cajasQ = useCajas();
+  const posicionQ = usePosicionConsolidada();
+  const cajas = cajasQ.data?.data ?? [];
   const [cajaId, setCajaId] = useState("caja-1");
-  const { data: movData } = useMovimientos(cajaId);
-  const movimientos = movData?.data ?? [];
+  const movQ = useMovimientos(cajaId);
+  const movimientos = movQ.data?.data ?? [];
 
   return (
     <div className="space-y-6">
@@ -18,15 +36,19 @@ export function CajaPage() {
 
       <Card>
         <CardTitle>Posición consolidada</CardTitle>
-        {posicion && (
+        {posicionQ.isLoading ? (
+          <Skeleton testid="posicion-loading" />
+        ) : posicionQ.isError ? (
+          <ErrorAlert>No se pudo cargar la posición consolidada.</ErrorAlert>
+        ) : posicionQ.data ? (
           <>
             <p className="mb-3 text-lg font-semibold">
-              Total: <MoneyText value={posicion.total} />
+              Total: <MoneyText value={posicionQ.data.total} />
             </p>
             <table className="w-full text-sm">
               <tbody>
-                {posicion.cajas.map((c) => (
-                  <tr key={c.caja_id} className="border-t border-border">
+                {posicionQ.data.cajas.map((c) => (
+                  <tr key={c.id} className="border-t border-border">
                     <td className="py-1">{c.nombre}</td>
                     <td className="py-1 text-right">
                       <MoneyText value={c.saldo_teorico} />
@@ -36,26 +58,35 @@ export function CajaPage() {
               </tbody>
             </table>
           </>
-        )}
+        ) : null}
       </Card>
 
       <Card>
         <div className="mb-3 flex items-center gap-2">
           <CardTitle>Ledger (append-only)</CardTitle>
-          <select
-            aria-label="Seleccionar caja"
-            value={cajaId}
-            onChange={(e) => setCajaId(e.target.value)}
-            className="ml-auto rounded-md border border-border px-2 py-1 text-sm"
-          >
-            {cajas.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nombre}
-              </option>
-            ))}
-          </select>
+          {cajasQ.isError ? (
+            <span className="ml-auto text-sm text-red-600">No se pudieron cargar las cajas</span>
+          ) : (
+            <select
+              aria-label="Seleccionar caja"
+              value={cajaId}
+              onChange={(e) => setCajaId(e.target.value)}
+              disabled={cajasQ.isLoading}
+              className="ml-auto rounded-md border border-border px-2 py-1 text-sm"
+            >
+              {cajas.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
-        {movimientos.length === 0 ? (
+        {movQ.isLoading ? (
+          <Skeleton testid="movimientos-loading" />
+        ) : movQ.isError ? (
+          <ErrorAlert>No se pudieron cargar los movimientos de la caja.</ErrorAlert>
+        ) : movimientos.length === 0 ? (
           <p className="text-sm text-foreground/50">Sin movimientos en esta caja.</p>
         ) : (
           <table className="w-full text-sm">
