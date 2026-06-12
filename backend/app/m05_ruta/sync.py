@@ -20,7 +20,7 @@ from app.errors import ErrorAPI
 from app.locking import bloquear_prestamo
 from app.m04_pagos.servicio import registrar_pago_uow
 from app.m05_ruta.schemas import ParadaSyncIn, SyncItemOut, SyncOut
-from app.modelos_stub import ParadaRuta, Pago, RutaDiaria
+from app.modelos_stub import Pago, ParadaRuta, RutaDiaria
 
 RESULTADOS_CON_PAGO = {"pago", "parcial"}
 

@@ -1,10 +1,11 @@
 import uuid
 from datetime import date
+from decimal import Decimal
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
-from app.deps import CurrentUser, SessionDep, requiere_rol
+from app.deps import SessionDep, requiere_rol
 from app.errors import ErrorAPI
 from app.m05_ruta import servicio
 from app.m05_ruta.schemas import (
@@ -107,7 +108,9 @@ async def listar_paradas(
         )
         base = _parada_out(p)
         salida.append(
-            ParadaConSaldoOut(**base.model_dump(), saldo_exigible=saldo or 0)
+            ParadaConSaldoOut(
+                **base.model_dump(), saldo_exigible=saldo or Decimal("0")
+            )
         )
     return salida
 

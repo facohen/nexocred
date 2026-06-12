@@ -1,5 +1,5 @@
 import uuid
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from sqlalchemy import select
@@ -184,7 +184,7 @@ async def visitar(
     parada.lat = Decimal(lat) if lat is not None else None
     parada.lng = Decimal(lng) if lng is not None else None
     parada.notas = notas
-    parada.visitada_en = datetime.now(timezone.utc)
+    parada.visitada_en = datetime.now(UTC)
     await session.flush()
     await escribir_evento(
         session, actor_id=actor_id, accion="ruta_visita", entidad="parada_ruta",
