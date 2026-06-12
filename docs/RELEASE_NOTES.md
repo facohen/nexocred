@@ -89,7 +89,7 @@
 
 ### Resultados registrados
 
-- **Backend:** 384 tests, 384 passed (incluye los 349 previos + Stage 8).
+- **Backend:** 373 tests, 373 passed (349 previos + 24 de Stage 8).
 - **Frontend:** 35 archivos, 154 tests passed; typecheck y build verdes.
 - **Migraciones limpias:** `alembic upgrade head` OK (DB scratch nueva).
 - **Lint/typecheck:** ruff clean; pyright 0 errores en `backend/app`.

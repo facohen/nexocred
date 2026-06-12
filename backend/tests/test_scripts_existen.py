@@ -17,7 +17,11 @@ def test_backup_y_restore_existen_y_ejecutables() -> None:
 
 def test_runbook_tiene_secciones() -> None:
     runbook = (REPO_ROOT / "docs" / "RUNBOOK.md").read_text().lower()
-    for seccion in ("docker compose", "alembic", "upgrade head", "seed_demo", "backup", "restore", "demo"):
+    secciones = (
+        "docker compose", "alembic", "upgrade head", "seed_demo",
+        "backup", "restore", "demo",
+    )
+    for seccion in secciones:
         assert seccion in runbook, seccion
 
 
