@@ -54,6 +54,17 @@ def upgrade() -> None:
         "comision_devengo",
         "estado IN ('devengada','confirmada','clawback','liquidada')",
     )
+    # El vendedor de un prestamo es un `usuario`, no una `persona`. Re-apuntamos la FK
+    # (el stub F1a la dejaba contra persona) para que el devengo siga al vendedor del
+    # prestamo de forma consistente con comision_liquidacion.vendedor_id -> usuario.
+    op.drop_constraint("comision_devengo_vendedor_id_fkey", "comision_devengo")
+    op.create_foreign_key(
+        "comision_devengo_vendedor_id_fkey",
+        "comision_devengo",
+        "usuario",
+        ["vendedor_id"],
+        ["id"],
+    )
 
     # ---------- tarea deltas ----------
     op.add_column("tarea", sa.Column("origen", sa.Text(), server_default="manual"))
@@ -222,6 +233,14 @@ def downgrade() -> None:
         op.drop_column("incidente", col)
     for col in ("descripcion", "prioridad", "vencimiento", "alerta_id", "origen"):
         op.drop_column("tarea", col)
+    op.drop_constraint("comision_devengo_vendedor_id_fkey", "comision_devengo")
+    op.create_foreign_key(
+        "comision_devengo_vendedor_id_fkey",
+        "comision_devengo",
+        "persona",
+        ["vendedor_id"],
+        ["id"],
+    )
     op.drop_constraint("comision_devengo_estado_check", "comision_devengo")
     for col in ("clawback_de_id", "porcentaje", "tipo"):
         op.drop_column("comision_devengo", col)

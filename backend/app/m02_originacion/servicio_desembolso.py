@@ -158,6 +158,14 @@ async def desembolsar(
     solicitud.estado = "desembolsada"
     await session.flush()
 
+    # Devengo de comision del vendedor (NON-COMMITTING; comparte la transaccion atomica
+    # del desembolso). Resuelve % de la matriz producto x perfil sobre el capital.
+    from app.m09_comisiones.servicio import devengar_por_desembolso
+
+    await devengar_por_desembolso(
+        session, prestamo=prestamo, solicitud=solicitud, actor_id=actor_id
+    )
+
     out = DesembolsoOut(
         prestamo_id=prestamo.id,
         solicitud_id=solicitud.id,

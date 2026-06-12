@@ -175,7 +175,7 @@ class ComisionDevengo(Base):
     __tablename__ = "comision_devengo"
     id: Mapped[uuid.UUID] = uuid_pk()
     prestamo_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("prestamo.id"), nullable=False)
-    vendedor_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("persona.id"))
+    vendedor_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("usuario.id"))
     monto: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
     estado: Mapped[str] = mapped_column(Text, nullable=False, server_default="devengada")
     tipo: Mapped[str | None] = mapped_column(Text)
