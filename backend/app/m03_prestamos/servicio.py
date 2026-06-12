@@ -83,6 +83,7 @@ async def cancelar(
     actor_id: uuid.UUID | None,
 ) -> PagoOut:
     operacion = "cancelar_prestamo"
+    # (a) Reserva de idempotencia DENTRO de la misma transaccion que los efectos.
     previo = await guardar_resultado_idempotente(
         session, idempotency_key, operacion, None
     )
@@ -90,6 +91,7 @@ async def cancelar(
         await session.commit()
         return PagoOut.model_validate(json.loads(previo))
 
+    # (b) Lock FOR UPDATE sostenido de punta a punta (no se libera a mitad de la op).
     prestamo = await bloquear_prestamo(session, prestamo_id)
     if prestamo.estado not in ("vigente", "en_mora"):
         raise ErrorAPI(
@@ -99,29 +101,33 @@ async def cancelar(
         )
     pago_total = await payoff(session, prestamo, fecha_negocio)
 
-    # Registra el pago de cancelacion anticipada (consume payoff) reutilizando el motor.
-    # Generamos una sub-clave de idempotencia derivada para el pago.
-    out = await pagos.registrar_pago(
+    # (c) Pago de cancelacion anticipada via nucleo NON-COMMITTING (sin idem propia,
+    # sin commit): comparte transaccion y lock con esta operacion compuesta.
+    out, _pago = await pagos.registrar_pago_uow(
         session,
         prestamo_id=prestamo_id,
         monto=pago_total.total,
         canal=canal,
         caja_id=caja_id,
         fecha_negocio=fecha_negocio,
-        idempotency_key=f"{idempotency_key}:cancel-pago",
+        idempotency_key=None,
         modo=ModoPago.CANCELACION_ANTICIPADA,
         actor_id=actor_id,
+        reservar_idem=False,
     )
-    # registrar_pago hizo commit; recargamos el prestamo bloqueado en una nueva tx.
-    prestamo = await bloquear_prestamo(session, prestamo_id)
+    assert out is not None
+
+    # (d) Estado del prestamo en la MISMA transaccion (mismo prestamo ya bloqueado).
     prestamo.estado = "cancelado"
     await session.flush()
 
+    # (e) Rellena la respuesta idempotente con el resultado real antes del commit.
     await _guardar_idem(session, idempotency_key, operacion, out.model_dump_json())
     await escribir_evento(
         session, actor_id=actor_id, accion="prestamo_cancelacion", entidad="prestamo",
         entidad_id=prestamo_id, metadata_json={"total": str(pago_total.total)},
     )
+    # (f) UN solo commit al final: el lock se mantuvo durante toda la operacion.
     await session.commit()
     return out
 
