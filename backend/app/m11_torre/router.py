@@ -21,6 +21,11 @@ TorreUser = Annotated[Usuario, Depends(requiere_rol("admin", "tesoreria"))]
 
 
 def _fecha(f: date | None) -> date:
+    # Default wall-clock para el dashboard: si no se pasa fecha, se usa hoy.
+    # NOTA (negocio): cuando existe snapshot, el servicio re-ancla las metricas live
+    # (top vendedores/productos) a la fecha_corte del snapshot, de modo que el
+    # response sea internamente consistente (todo as-of la misma fecha) y no mezcle
+    # agregados del snapshot con tops del dia de hoy.
     return f or date.today()
 
 

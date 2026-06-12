@@ -1,12 +1,13 @@
 """Tests de servicio La Torre: indice Nexo, estado vacio, derivacion del snapshot."""
 
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
 
 from app.m11_torre import servicio
 from app.modelos_stub import SnapshotCartera
+from tests._seed_f1d import crear_persona, crear_prestamo, crear_producto
 
 pytestmark = pytest.mark.asyncio
 
@@ -55,6 +56,35 @@ async def test_indice_cambia_con_snapshot(session):
     r2 = await servicio.resumen(session)
     assert r2["indice_nexo"] < r1["indice_nexo"]
     assert r2["periodo"] == date(2026, 6, 12)
+
+
+async def test_negocio_top_usa_fecha_corte_del_snapshot(session):
+    """Consistencia as-of: cuando hay snapshot, los top_vendedores/top_productos
+    (live) usan la fecha de corte del snapshot como referencia, NO la fecha de
+    pared. Un desembolso POSTERIOR al corte (pero mismo mes) no debe aparecer, para
+    que el response no mezcle colocacion_mes (as-of corte) con tops (al dia de hoy).
+    """
+    fecha_corte = date(2026, 6, 11)
+    session.add(_snap(fecha_corte=fecha_corte, colocacion_mes=Decimal("100000")))
+    persona = await crear_persona(session)
+    producto = await crear_producto(session)
+    # Desembolso al/antes del corte -> cuenta.
+    await crear_prestamo(
+        session, persona.id, producto.id, capital=Decimal("100000"),
+        fecha_desembolso=fecha_corte, monto_desembolsado=Decimal("100000"),
+    )
+    # Desembolso POSTERIOR al corte, mismo mes -> NO debe contar en los tops.
+    await crear_prestamo(
+        session, persona.id, producto.id, capital=Decimal("777777"),
+        fecha_desembolso=fecha_corte + timedelta(days=5),
+        monto_desembolsado=Decimal("777777"),
+    )
+    await session.flush()
+
+    # Llamamos con fecha de pared "hoy" posterior al corte.
+    r = await servicio.negocio(session, fecha_corte + timedelta(days=10))
+    total_tops = sum(v["valor"] for v in r["top_productos"])
+    assert total_tops == Decimal("100000.00")
 
 
 async def test_pulso_valores_del_snapshot(session):

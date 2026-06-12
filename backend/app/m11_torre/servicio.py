@@ -147,12 +147,18 @@ async def operacion_hoy(session: AsyncSession, fecha: date) -> dict:
 
 async def negocio(session: AsyncSession, fecha: date) -> dict:
     snap = await ultimo_snapshot(session)
-    inicio_mes = fecha.replace(day=1)
-    # top vendedores/productos por colocacion del mes (live)
+    # Consistencia as-of: si hay snapshot, las metricas agregadas (colocacion_mes,
+    # intereses, punitorios) salen de el (as-of su fecha_corte). Para no mezclar
+    # esos numeros con tops calculados al dia de hoy, los top_vendedores/productos
+    # (live) usan la MISMA fecha de referencia que el snapshot. Sin snapshot, se usa
+    # la fecha recibida (wall-clock del dashboard).
+    ref = snap.fecha_corte if snap is not None else fecha
+    inicio_mes = ref.replace(day=1)
+    # top vendedores/productos por colocacion del mes (live), as-of `ref`
     res_v = await session.execute(
         select(Prestamo.vendedor_id, func.coalesce(
             func.sum(func.coalesce(Prestamo.monto_desembolsado, Prestamo.capital)), 0))
-        .where(Prestamo.fecha_desembolso >= inicio_mes, Prestamo.fecha_desembolso <= fecha)
+        .where(Prestamo.fecha_desembolso >= inicio_mes, Prestamo.fecha_desembolso <= ref)
         .group_by(Prestamo.vendedor_id)
         .order_by(func.coalesce(
             func.sum(func.coalesce(Prestamo.monto_desembolsado, Prestamo.capital)), 0).desc())
@@ -165,7 +171,7 @@ async def negocio(session: AsyncSession, fecha: date) -> dict:
     res_p = await session.execute(
         select(Prestamo.producto_id, func.coalesce(
             func.sum(func.coalesce(Prestamo.monto_desembolsado, Prestamo.capital)), 0))
-        .where(Prestamo.fecha_desembolso >= inicio_mes, Prestamo.fecha_desembolso <= fecha)
+        .where(Prestamo.fecha_desembolso >= inicio_mes, Prestamo.fecha_desembolso <= ref)
         .group_by(Prestamo.producto_id)
         .order_by(func.coalesce(
             func.sum(func.coalesce(Prestamo.monto_desembolsado, Prestamo.capital)), 0).desc())
