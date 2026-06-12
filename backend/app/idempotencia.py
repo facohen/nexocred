@@ -28,8 +28,26 @@ class IdempotencyKey(Base):
 async def guardar_resultado_idempotente(
     session: AsyncSession, clave: str, operacion: str, respuesta: str | None
 ) -> str | None:
-    """Inserta el resultado de una operacion idempotente. Si la (clave, operacion)
-    ya existe, devuelve la respuesta previamente almacenada sin duplicar la fila."""
+    """Reserva (o lee) la fila de idempotencia para (clave, operacion).
+
+    Si la fila ya existe, devuelve su respuesta_json (replay). Si no, inserta una
+    reserva nueva (respuesta=None tipicamente) y devuelve `respuesta`.
+
+    CONTRATO -- MUY IMPORTANTE:
+    Esta funcion DEBE ser la PRIMERA sentencia de la operacion, ANTES de cualquier
+    efecto secundario (pagos, movimientos de caja, cambios de estado). El motivo:
+    si dos requests concurrentes con la misma clave compiten, el perdedor recibe un
+    IntegrityError sobre la unique constraint y, para resolverlo, debe DESHACER su
+    insert. Aqui ese deshacer se acota a un SAVEPOINT anidado (begin_nested), de modo
+    que solo se revierte la reserva fallida y NO la transaccion completa del llamador.
+    Aun asi, invocarla primero garantiza que en el momento del IntegrityError todavia
+    no se haya escrito ningun efecto que pudiera quedar inconsistente.
+
+    El patron de uso es: (1) reservar aqui con respuesta=None, (2) ejecutar los
+    efectos en la MISMA transaccion, (3) rellenar respuesta_json con la respuesta real,
+    (4) un unico commit. Asi un crash deja o bien nada, o bien una fila completa y
+    re-ejecutable (nunca una reserva con respuesta_json=NULL commiteada sola).
+    """
     existente = await session.execute(
         select(IdempotencyKey).where(
             IdempotencyKey.clave == clave, IdempotencyKey.operacion == operacion
@@ -40,11 +58,13 @@ async def guardar_resultado_idempotente(
         return fila.respuesta_json
 
     nueva = IdempotencyKey(clave=clave, operacion=operacion, respuesta_json=respuesta)
-    session.add(nueva)
     try:
-        await session.flush()
+        # SAVEPOINT: acota el rollback del IntegrityError a esta reserva, sin tirar
+        # abajo la transaccion del llamador.
+        async with session.begin_nested():
+            session.add(nueva)
+            await session.flush()
     except IntegrityError:
-        await session.rollback()
         existente = await session.execute(
             select(IdempotencyKey).where(
                 IdempotencyKey.clave == clave, IdempotencyKey.operacion == operacion
