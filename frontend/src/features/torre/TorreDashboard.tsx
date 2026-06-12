@@ -55,7 +55,10 @@ export function TorreDashboard() {
   const pulso = pulsoQ.data!;
 
   // Estado vacío: La Torre depende del snapshot_cartera; sin él no hay datos.
-  if (!resumen.tiene_snapshot && !pulso.tiene_snapshot) {
+  // Si CUALQUIERA de las secciones reporta que no hay snapshot (OR), tratamos
+  // el dashboard como sin snapshot: un snapshot parcial/inconsistente muestra
+  // el estado vacío unificado en lugar de tarjetas a medias.
+  if (!resumen.tiene_snapshot || !pulso.tiene_snapshot) {
     return (
       <div className="space-y-3">
         <h1 className="text-xl font-bold">La Torre</h1>

@@ -41,6 +41,16 @@ describe("TorreDashboard", () => {
     expect(await screen.findByText(/Aún no hay snapshot/i)).toBeInTheDocument();
   });
 
+  it("estado VACÍO cuando UNA sección reporta tiene_snapshot=false (OR)", async () => {
+    // pulso sin snapshot mientras resumen sí: snapshot parcial/inconsistente
+    // debe mostrar igualmente el estado vacío unificado.
+    server.use(
+      http.get(`${BASE}/torre/pulso`, () => HttpResponse.json(fx.torrePulsoVacio)),
+    );
+    renderWithProviders(<TorreDashboard />, { ...admin, roles: ["admin"] });
+    expect(await screen.findByText(/Aún no hay snapshot/i)).toBeInTheDocument();
+  });
+
   it("estado de error", async () => {
     server.use(
       http.get(`${BASE}/torre/resumen`, () =>
