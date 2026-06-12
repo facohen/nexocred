@@ -35,7 +35,9 @@ describe("PersonaForm validacion", () => {
     await userEvent.click(screen.getByRole("button", { name: /guardar/i }));
     expect(await screen.findAllByRole("alert")).not.toHaveLength(0);
     expect(onCreated).not.toHaveBeenCalled();
-    expect(screen.getByText(/ingresos totales/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/los ingresos totales son obligatorios/i),
+    ).toBeInTheDocument();
   });
 
   it("surfacea el error del backend cuil_duplicado en español", async () => {
@@ -64,7 +66,7 @@ describe("PersonaForm validacion", () => {
 describe("PersonaDetail + BCRA", () => {
   it("muestra la ficha y consulta BCRA renderizando la deuda", async () => {
     renderWithProviders(<PersonaDetailPage />);
-    expect(await screen.findByText(/Pérez/)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Pérez/ })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: /consultar bcra/i }));
     const panel = await screen.findByLabelText(/deuda bcra/i);

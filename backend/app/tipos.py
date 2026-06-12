@@ -40,3 +40,12 @@ TasaStr = Annotated[
     BeforeValidator(_tasa_decimal),
     PlainSerializer(lambda v: f"{v:.4f}", return_type=str),
 ]
+
+
+# Valor de metrica (p.ej. dias de atraso): Decimal de entrada, string de salida
+# normalizado (sin floats en la API, consistente con MontoStr/TasaStr).
+MetricaStr = Annotated[
+    Decimal,
+    BeforeValidator(_a_decimal),
+    PlainSerializer(lambda v: f"{v.normalize():f}", return_type=str),
+]

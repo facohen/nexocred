@@ -144,15 +144,13 @@ async def sincronizar(
         }
         stmt = stmt.on_conflict_do_update(
             index_elements=["id"], set_=actualizables
-        ).returning(ParadaRuta.id, ParadaRuta.created_at)
-        res = await session.execute(stmt)
-        row = res.one()
-        # created_at solo existe en la fila tras inserto; en update conserva el viejo.
-        # No usamos eso para decidir el pago: el pago se decide por su propia identidad.
+        )
+        await session.execute(stmt)
 
-        # 5) Aplicar el cobro segun la identidad del PAGO.
+        # 5) Aplicar el cobro segun la identidad del PAGO (no de la parada).
         pago_id: uuid.UUID | None = None
         if p.pago_id is not None and _trae_cobro(p):
+            assert p.monto_cobrado is not None  # garantizado por _trae_cobro
             if pago_previo is not None:
                 # Replay verdadero del cobro: no se reaplica.
                 pago_id = p.pago_id

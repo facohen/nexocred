@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from app.tipos import MontoStr, TasaStr
+from app.tipos import MetricaStr, MontoStr, TasaStr
 
 
 class TableroOut(BaseModel):
@@ -38,7 +38,9 @@ class AlertaOut(BaseModel):
     estado: str
     severidad: str | None
     metrica: str | None
-    valor: float | None
+    # Valor de la metrica (p.ej. dias de atraso). Se representa como str para no
+    # introducir floats en la superficie de la API (consistencia con MontoStr).
+    valor: MetricaStr | None
     operador_id: uuid.UUID | None
     tarea_id: uuid.UUID | None
     resuelta_en: datetime | None
