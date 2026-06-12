@@ -326,12 +326,16 @@ async def corregir_uow(
     original = await obtener_pago(session, pago_original_id)
     if original is None:
         raise ErrorAPI("pago_no_encontrado", "pago original inexistente", status=404)
+
+    # Acquire the prestamo lock FIRST to prevent a race where two concurrent
+    # correction requests both pass the estado check before either locks the row.
+    prestamo = await bloquear_prestamo(session, original.prestamo_id)
+    # Re-read the pago with fresh data now that the lock is held.
+    await session.refresh(original)
     if original.estado == "corregido":
         raise ErrorAPI(
             "transicion_invalida", "el pago ya fue corregido", status=409
         )
-
-    prestamo = await bloquear_prestamo(session, original.prestamo_id)
     imps_original = await imputaciones_de_pago(session, pago_original_id)
     resultado_original = _resultado_desde_imputaciones(original, imps_original)
 

@@ -122,3 +122,97 @@ class TestC1DobleDesembolso:
         )
         count = result.scalar_one()
         assert count == 1, f"Expected 1 Prestamo, found {count}"
+
+
+# ── helpers for C2 ─────────────────────────────────────────────────────────
+
+async def _seed_pago_aplicado(client, token, session) -> dict:
+    """Create a prestamo with one pago applied, return the pago dict."""
+    from datetime import date
+    from tests.integration.test_pagos_waterfall import _prestamo_desembolsado
+
+    prestamo_id, caja_id = await _prestamo_desembolsado(client, token, session)
+    r = await client.post(
+        "/api/v1/pagos",
+        json={
+            "prestamo_id": prestamo_id,
+            "monto": "10000.00",
+            "canal": "mostrador",
+            "caja_id": caja_id,
+            "fecha_negocio": date.today().isoformat(),
+        },
+        headers={**_h(token), "Idempotency-Key": str(uuid.uuid4())},
+    )
+    assert r.status_code == 201, r.text
+    pago = r.json()
+    pago["caja_id"] = caja_id
+    return pago
+
+
+# ── C2: Doble corrección de pago ───────────────────────────────────────────
+
+
+class TestC2DobleCorrección:
+
+    async def test_corregir_pago_dos_veces_lanza_409(
+        self, client, admin_token, session
+    ):
+        """Corregir el mismo pago dos veces retorna 409 la segunda vez."""
+        from datetime import date
+
+        pago = await _seed_pago_aplicado(client, admin_token, session)
+
+        payload = {
+            "monto": "11000.00",
+            "canal": "mostrador",
+            "caja_id": pago["caja_id"],
+            "fecha_negocio": date.today().isoformat(),
+        }
+
+        # First correction — should succeed
+        r1 = await client.post(
+            f"/api/v1/pagos/{pago['id']}/corregir",
+            json=payload,
+            headers={**_h(admin_token), "Idempotency-Key": str(uuid.uuid4())},
+        )
+        assert r1.status_code in (200, 201), r1.text
+
+        # Second correction with a different idempotency key — should fail with 409
+        r2 = await client.post(
+            f"/api/v1/pagos/{pago['id']}/corregir",
+            json=payload,
+            headers={**_h(admin_token), "Idempotency-Key": str(uuid.uuid4())},
+        )
+        assert r2.status_code == 409, r2.text
+
+    async def test_corregir_pago_crea_una_sola_reversa(
+        self, client, admin_token, session
+    ):
+        """Corregir un pago crea exactamente una reversa con monto negativo."""
+        from datetime import date
+        from sqlalchemy import select as sa_select
+        from app.modelos_stub import Pago
+
+        pago = await _seed_pago_aplicado(client, admin_token, session)
+
+        r = await client.post(
+            f"/api/v1/pagos/{pago['id']}/corregir",
+            json={
+                "monto": "11000.00",
+                "canal": "mostrador",
+                "caja_id": pago["caja_id"],
+                "fecha_negocio": date.today().isoformat(),
+            },
+            headers={**_h(admin_token), "Idempotency-Key": str(uuid.uuid4())},
+        )
+        assert r.status_code in (200, 201), r.text
+
+        # Count reversas (pagos with estado='reversa') linked to the original pago
+        result = await session.execute(
+            sa_select(Pago).where(
+                Pago.corrige_pago_id == uuid.UUID(pago["id"]),
+                Pago.estado == "reversa",
+            )
+        )
+        reversas = result.scalars().all()
+        assert len(reversas) == 1, f"Expected 1 reversa, found {len(reversas)}"
