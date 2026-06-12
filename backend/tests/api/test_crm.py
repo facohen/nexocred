@@ -186,3 +186,79 @@ async def test_timeline_agrega_crm_y_credito(client, admin_token, session):
     # orden temporal ascendente
     fechas = [e["fecha"] for e in tl.json()]
     assert fechas == sorted(fechas)
+
+
+async def test_timeline_incluye_novacion(client, admin_token, session):
+    import uuid as _uuid
+
+    from sqlalchemy import text
+
+    from tests.integration._helpers_f1c import cuil_valido, relajar_bcra
+    from tests.integration.test_pagos_waterfall import _prestamo_desembolsado
+
+    await relajar_bcra(client, admin_token)
+    prestamo, _caja = await _prestamo_desembolsado(
+        client, admin_token, session, fpc_offset=-30,
+        cuil=cuil_valido("45555555"), dni="45555555",
+    )
+    res = await session.execute(
+        text("SELECT persona_id FROM prestamo WHERE id=:p"), {"p": prestamo}
+    )
+    persona = str(res.scalar_one())
+
+    # insertar una novacion que origina el prestamo de la persona
+    nov_id = str(_uuid.uuid4())
+    await session.execute(
+        text(
+            "INSERT INTO novacion (id, tipo, estado, created_at) "
+            "VALUES (:i, 'refinanciacion', 'confirmada', now())"
+        ),
+        {"i": nov_id},
+    )
+    await session.execute(
+        text(
+            "INSERT INTO novacion_origen (id, novacion_id, prestamo_id) "
+            "VALUES (:i, :n, :p)"
+        ),
+        {"i": str(_uuid.uuid4()), "n": nov_id, "p": prestamo},
+    )
+    await session.commit()
+
+    tl = await client.get(
+        f"/api/v1/personas/{persona}/timeline", headers=_h(admin_token)
+    )
+    assert tl.status_code == 200, tl.text
+    eventos = tl.json()
+    tipos = [e["tipo"] for e in eventos]
+    assert "novacion" in tipos
+    # los eventos de credito previos siguen presentes
+    assert "desembolso" in tipos
+    # ordenado por fecha ascendente
+    fechas = [e["fecha"] for e in eventos]
+    assert fechas == sorted(fechas)
+    # la referencia de la novacion apunta al id correcto
+    nov_evt = next(e for e in eventos if e["tipo"] == "novacion")
+    assert nov_evt["referencia"] == nov_id
+
+
+async def test_interaccion_genera_auditoria(client, admin_token, session):
+    from sqlalchemy import text
+
+    from tests.api.test_solicitudes import crear_persona
+
+    persona = await crear_persona(
+        client, admin_token, cuil="20466666667", dni="46666666"
+    )
+    r = await client.post(
+        "/api/v1/interacciones",
+        json={"persona_id": persona, "tipo": "llamada", "detalle": "seguimiento"},
+        headers=_h(admin_token),
+    )
+    assert r.status_code in (200, 201), r.text
+    iid = r.json()["id"]
+    res = await session.execute(
+        text("SELECT count(*) FROM auditoria_evento WHERE accion='interaccion_alta' "
+             "AND entidad='interaccion' AND entidad_id=:i"),
+        {"i": iid},
+    )
+    assert res.scalar_one() == 1

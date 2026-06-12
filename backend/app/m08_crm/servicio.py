@@ -7,9 +7,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auditoria import escribir_evento
 from app.errors import ErrorAPI
+from app.m06_novaciones.modelos import Novacion, NovacionOrigen
 from app.m08_crm.modelos import AsignacionCrm, Interaccion, Prospecto
 from app.m08_crm.schemas import TimelineEvento
-from app.modelos_stub import Incidente, Pago, Prestamo, SolicitudCredito, Tarea
+from app.modelos_stub import (
+    Alerta,
+    Incidente,
+    Pago,
+    Prestamo,
+    SolicitudCredito,
+    Tarea,
+)
 
 
 # ---------- Tareas ----------
@@ -149,6 +157,10 @@ async def crear_interaccion(
     )
     session.add(interaccion)
     await session.flush()
+    await escribir_evento(
+        session, actor_id=actor_id, accion="interaccion_alta", entidad="interaccion",
+        entidad_id=interaccion.id, metadata_json={"tipo": tipo},
+    )
     await session.commit()
     return interaccion
 
@@ -233,6 +245,11 @@ async def actualizar_incidente(
     if operador_id is not None:
         incidente.operador_id = operador_id
     await session.flush()
+    await escribir_evento(
+        session, actor_id=actor_id, accion="incidente_actualizar",
+        entidad="incidente", entidad_id=incidente.id,
+        metadata_json={"estado": estado, "severidad": severidad},
+    )
     await session.commit()
     return incidente
 
@@ -334,6 +351,41 @@ async def timeline(
             TimelineEvento(
                 tipo="desembolso", fecha=p.created_at,
                 detalle=str(p.capital) if p.capital else None, referencia=str(p.id),
+            )
+        )
+        # Cancelaciones: prestamo cancelado de la persona.
+        if p.estado == "cancelado":
+            eventos.append(
+                TimelineEvento(
+                    tipo="cancelacion", fecha=p.created_at, detalle=p.estado,
+                    referencia=str(p.id),
+                )
+            )
+    prestamo_ids = [p.id for p in prestamos]
+    # Novaciones que originan algun prestamo de la persona.
+    if prestamo_ids:
+        res = await session.execute(
+            select(Novacion)
+            .join(NovacionOrigen, NovacionOrigen.novacion_id == Novacion.id)
+            .where(NovacionOrigen.prestamo_id.in_(prestamo_ids))
+            .distinct()
+        )
+        for nov in res.scalars().all():
+            eventos.append(
+                TimelineEvento(
+                    tipo="novacion", fecha=nov.created_at, detalle=nov.tipo,
+                    referencia=str(nov.id),
+                )
+            )
+    # Alertas de riesgo de la persona.
+    res = await session.execute(
+        select(Alerta).where(Alerta.persona_id == persona_id)
+    )
+    for al in res.scalars().all():
+        eventos.append(
+            TimelineEvento(
+                tipo="alerta", fecha=al.created_at,
+                detalle=al.metrica or al.tipo, referencia=str(al.id),
             )
         )
     if prestamos:
