@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.bcra.router import router_bcra
 from app.bcra.router import router_personas as bcra_personas_router
+from app.jobs.router import router as jobs_router
 from app.m01_personas.router import router as m01_router
 from app.m02_originacion.router import router as m02_router
 from app.m03_prestamos.router import router as m03_router
@@ -38,3 +39,4 @@ api_v1.include_router(m10_router)
 api_v1.include_router(m11_router)
 api_v1.include_router(workflows_router)
 api_v1.include_router(m13_router)
+api_v1.include_router(jobs_router)

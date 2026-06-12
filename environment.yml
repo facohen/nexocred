@@ -24,3 +24,5 @@ dependencies:
       - bcrypt
       - python-multipart
       - pytest-asyncio
+      - celery
+      - fpdf2
