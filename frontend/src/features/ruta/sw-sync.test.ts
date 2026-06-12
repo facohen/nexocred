@@ -14,6 +14,16 @@ describe("Background Sync (feature-detected)", () => {
     const fakeReg = { sync: { register } } as unknown as ServiceWorkerRegistration;
     const ok = await registrarBackgroundSync(fakeReg);
     expect(ok).toBe(true);
+    // Verifica el TAG EXACTO que el SW de produccion escucha; un cambio de tag
+    // (regresion silenciosa) debe hacer fallar este test.
     expect(register).toHaveBeenCalledWith("ruta-sync");
+    expect(register).toHaveBeenCalledTimes(1);
+  });
+
+  it("devuelve false (no relanza) si register rechaza: comportamiento fail-safe", async () => {
+    // Si una regresion deja escapar la excepcion, este test fallaria con un reject.
+    const register = vi.fn().mockRejectedValue(new Error("sw caido"));
+    const fakeReg = { sync: { register } } as unknown as ServiceWorkerRegistration;
+    await expect(registrarBackgroundSync(fakeReg)).resolves.toBe(false);
   });
 });

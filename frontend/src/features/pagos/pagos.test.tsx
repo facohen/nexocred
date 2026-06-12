@@ -41,6 +41,12 @@ describe("RegistrarPago", () => {
     await userEvent.type(screen.getByLabelText(/monto/i), "100");
     await userEvent.click(screen.getByRole("button", { name: /registrar pago/i }));
     await waitFor(() => expect(seenKey).toBeTruthy());
+    // El key debe ser un valor generado por cliente (UUID crypto o fallback idem-*),
+    // NO un placeholder vacio ni un literal fijo: una regresion que mande "" o un
+    // string constante debe HACER FALLAR este test.
+    expect(seenKey).toMatch(
+      /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|idem-.+)$/i,
+    );
   });
 });
 
