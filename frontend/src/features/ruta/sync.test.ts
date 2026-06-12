@@ -100,4 +100,108 @@ describe("sincronizarRuta", () => {
     expect(res.omitidas).toBe(0);
     expect(res.enviado).toBe(false);
   });
+
+  // MAJOR 1 — fallo atómico de batch (409/422) no debe descartar ni marcar nada.
+  it("un error de batch 409 deja los items pendientes y surfacea el mensaje del backend", async () => {
+    await encolarVisita(visita());
+    server.use(
+      http.post(`${BASE}/rutas/:id/sync`, () =>
+        HttpResponse.json(
+          { error: { code: "pago_inmutable", message: "el pago ya fue corregido" } },
+          { status: 409 },
+        ),
+      ),
+    );
+    await expect(sincronizarRuta("ruta-1")).rejects.toMatchObject({
+      code: "pago_inmutable",
+      message: "el pago ya fue corregido",
+    });
+    // nada marcado sincronizado: el item sigue pendiente para reintento
+    expect((await listarPendientes()).length).toBe(1);
+    const db = await getDB();
+    const row = await db.get("visitas", "uuidv7-1");
+    expect(row?.estado).toBe("pendiente");
+  });
+
+  // MAJOR 1 — si el error identifica un pago_id ofensor, ese item se marca error
+  // y el resto queda pendiente.
+  it("un 409 pago_inmutable con pago_id ofensor marca SOLO ese item error y deja el resto pendiente", async () => {
+    await encolarVisita(visita({ id: "uuidv7-1", pagoId: "pago-malo" }));
+    await encolarVisita(visita({ id: "uuidv7-2", paradaId: "p2", pagoId: "pago-ok" }));
+    server.use(
+      http.post(`${BASE}/rutas/:id/sync`, () =>
+        HttpResponse.json(
+          {
+            error: {
+              code: "pago_inmutable",
+              message: "el pago ya fue corregido",
+              details: { pago_id: "pago-malo" },
+            },
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+    await expect(sincronizarRuta("ruta-1")).rejects.toMatchObject({ code: "pago_inmutable" });
+    const db = await getDB();
+    expect((await db.get("visitas", "uuidv7-1"))?.estado).toBe("error");
+    expect((await db.get("visitas", "uuidv7-2"))?.estado).toBe("pendiente");
+  });
+
+  // MAJOR 2 — estado desconocido NO debe marcarse sincronizado (no se descarta la fila).
+  it("un item con estado desconocido queda pendiente (no se marca sincronizado)", async () => {
+    await encolarVisita(visita());
+    server.use(
+      http.post(`${BASE}/rutas/:id/sync`, async ({ request }) => {
+        const body = (await request.json()) as { paradas: { id: string }[] };
+        const items = body.paradas.map((p) => ({ parada_id: p.id, estado: "marciana", pago_id: null }));
+        return HttpResponse.json({ ruta_id: "ruta-1", items, aplicadas: 0, omitidas: 0, rechazadas: 0 });
+      }),
+    );
+    const res = await sincronizarRuta("ruta-1");
+    expect((await listarPendientes()).length).toBe(1);
+    const db = await getDB();
+    expect((await db.get("visitas", "uuidv7-1"))?.estado).toBe("pendiente");
+    expect(res.noReconciliadas).toBeGreaterThanOrEqual(1);
+  });
+
+  // MAJOR 2 — 'omitida' SÍ converge a sincronizado.
+  it("estado omitida converge a sincronizado", async () => {
+    await encolarVisita(visita());
+    server.use(
+      http.post(`${BASE}/rutas/:id/sync`, async ({ request }) => {
+        const body = (await request.json()) as { paradas: { id: string }[] };
+        const items = body.paradas.map((p) => ({ parada_id: p.id, estado: "omitida", pago_id: null }));
+        return HttpResponse.json({ ruta_id: "ruta-1", items, aplicadas: 0, omitidas: 1, rechazadas: 0 });
+      }),
+    );
+    await sincronizarRuta("ruta-1");
+    expect((await listarPendientes()).length).toBe(0);
+  });
+
+  // MAJOR 3 — una parada posteada ausente de items[] queda pendiente y se flaggea.
+  it("una parada posteada ausente en items[] queda pendiente y marca el desajuste", async () => {
+    await encolarVisita(visita({ id: "uuidv7-1" }));
+    await encolarVisita(visita({ id: "uuidv7-2", paradaId: "p2", pagoId: "pago-2" }));
+    server.use(
+      http.post(`${BASE}/rutas/:id/sync`, async ({ request }) => {
+        const body = (await request.json()) as { paradas: { id: string }[] };
+        // El servidor "olvida" devolver la segunda parada en items[].
+        const first = body.paradas[0];
+        return HttpResponse.json({
+          ruta_id: "ruta-1",
+          items: [{ parada_id: first.id, estado: "aplicada", pago_id: null }],
+          aplicadas: 2, // counters mienten: dicen 2 pero items solo tiene 1
+          omitidas: 0,
+          rechazadas: 0,
+        });
+      }),
+    );
+    const res = await sincronizarRuta("ruta-1");
+    const db = await getDB();
+    expect((await db.get("visitas", "uuidv7-1"))?.estado).toBe("sincronizado");
+    // la no-acusada sigue pendiente, no confiamos en los counters agregados
+    expect((await db.get("visitas", "uuidv7-2"))?.estado).toBe("pendiente");
+    expect(res.noReconciliadas).toBe(1);
+  });
 });
