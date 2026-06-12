@@ -72,6 +72,7 @@ async def _persistir_resultado(
     idempotency_key: str | None,
     corrige_pago_id: uuid.UUID | None,
     cuotas: list[Cuota],
+    pago_id: uuid.UUID | None = None,
 ) -> Pago:
     pago = Pago(
         prestamo_id=prestamo.id,
@@ -83,6 +84,9 @@ async def _persistir_resultado(
         idempotency_key=idempotency_key,
         corrige_pago_id=corrige_pago_id,
     )
+    if pago_id is not None:
+        # La Ruta offline: el UUIDv7 del dispositivo ES la PK del pago (idempotencia por PK).
+        pago.id = pago_id
     session.add(pago)
     await session.flush()
 
@@ -172,6 +176,7 @@ async def registrar_pago_uow(
     actor_id: uuid.UUID | None,
     operacion: str = "registrar_pago",
     reservar_idem: bool = True,
+    pago_id: uuid.UUID | None = None,
 ) -> tuple[PagoOut | None, Pago | None]:
     """Nucleo NON-COMMITTING de registrar_pago.
 
@@ -214,6 +219,7 @@ async def registrar_pago_uow(
         session, prestamo=prestamo, resultado=resultado, canal=canal,
         fecha_negocio=fecha_negocio, caja_id=caja_id,
         idempotency_key=idempotency_key, corrige_pago_id=None, cuotas=cuotas,
+        pago_id=pago_id,
     )
     await _actualizar_estados_cuotas(session, prestamo, cuotas, fecha_negocio)
 
