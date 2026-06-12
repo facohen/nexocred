@@ -84,7 +84,7 @@ def upgrade() -> None:
     op.create_check_constraint(
         "pago_estado_check",
         "pago",
-        "estado IN ('registrado','aplicado','a_aplicar','corregido')",
+        "estado IN ('registrado','aplicado','a_aplicar','corregido','reversa')",
     )
     op.create_index(
         "pago_idem_uq",

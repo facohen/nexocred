@@ -6,6 +6,8 @@ from app.deps import AdminOAnalista, CurrentUser, SessionDep
 from app.errors import ErrorAPI
 from app.m04_pagos import servicio
 from app.m04_pagos.schemas import (
+    CorreccionIn,
+    CorreccionOut,
     ImputacionOut,
     PagoCreate,
     PagoDetalleOut,
@@ -48,6 +50,27 @@ async def registrar_pago(
 @router.get("/pagos/a-aplicar", response_model=list[PagoOut])
 async def pagos_a_aplicar(session: SessionDep, _: AdminOAnalista) -> list[PagoOut]:
     return [PagoOut.model_validate(p) for p in await servicio.pagos_a_aplicar(session)]
+
+
+@router.post("/pagos/{pago_id}/corregir", response_model=CorreccionOut, status_code=201)
+async def corregir_pago(
+    pago_id: uuid.UUID,
+    datos: CorreccionIn,
+    session: SessionDep,
+    actor: AdminOAnalista,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+) -> CorreccionOut:
+    clave = _exigir_idem(idempotency_key)
+    return await servicio.corregir(
+        session,
+        pago_original_id=pago_id,
+        monto=datos.monto,
+        canal=datos.canal,
+        caja_id=datos.caja_id,
+        fecha_negocio=datos.fecha_negocio,
+        idempotency_key=clave,
+        actor_id=actor.id,
+    )
 
 
 @router.get("/pagos/{pago_id}", response_model=PagoDetalleOut)

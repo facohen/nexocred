@@ -15,7 +15,7 @@ from app.m03_prestamos.reconstruccion import (
     imputaciones_core,
 )
 from app.m04_caja.servicio import registrar_movimiento
-from app.m04_pagos.schemas import PagoOut
+from app.m04_pagos.schemas import CorreccionOut, PagoOut
 from app.modelos_stub import Cuota, Imputacion, Pago, Prestamo
 from nexocred_core import (
     ConceptoImputacion,
@@ -25,7 +25,11 @@ from nexocred_core import (
     aplicar_pago,
     aplicar_tolerancia,
     calcular_saldo_exigible,
+    corregir_pago,
     sumar,
+)
+from nexocred_core import (
+    Imputacion as ImputacionCore,
 )
 
 
@@ -220,6 +224,141 @@ async def _guardar_idem(
     )
     fila = res.scalar_one()
     fila.respuesta_json = out.model_dump_json()
+    await session.flush()
+
+
+def _resultado_desde_imputaciones(
+    pago: Pago, imps: list[Imputacion]
+) -> ResultadoPago:
+    """Reconstruye el ResultadoPago original a partir de sus filas persistidas."""
+    excedente = pago.excedente or Decimal("0")
+    imputaciones = tuple(
+        ImputacionCore(
+            concepto=ConceptoImputacion(i.concepto),
+            monto=i.monto or Decimal("0"),
+            orden_waterfall=i.orden_waterfall or 0,
+            cuota_numero=i.cuota_numero,
+        )
+        for i in imps
+    )
+    return ResultadoPago(
+        entrada=EntradaPago(
+            monto=pago.monto or Decimal("0"),
+            fecha_negocio=pago.fecha_negocio or date.today(),
+        ),
+        imputaciones=imputaciones,
+        excedente=excedente,
+    )
+
+
+async def corregir(
+    session: AsyncSession,
+    *,
+    pago_original_id: uuid.UUID,
+    monto: Decimal,
+    canal: str | None,
+    caja_id: uuid.UUID,
+    fecha_negocio: date,
+    idempotency_key: str,
+    actor_id: uuid.UUID | None,
+) -> CorreccionOut:
+    operacion = "corregir_pago"
+    previo = await guardar_resultado_idempotente(
+        session, idempotency_key, operacion, None
+    )
+    if previo is not None:
+        await session.commit()
+        return CorreccionOut.model_validate(json.loads(previo))
+
+    original = await obtener_pago(session, pago_original_id)
+    if original is None:
+        raise ErrorAPI("pago_no_encontrado", "pago original inexistente", status=404)
+    if original.estado == "corregido":
+        raise ErrorAPI(
+            "transicion_invalida", "el pago ya fue corregido", status=409
+        )
+
+    prestamo = await bloquear_prestamo(session, original.prestamo_id)
+    imps_original = await imputaciones_de_pago(session, pago_original_id)
+    resultado_original = _resultado_desde_imputaciones(original, imps_original)
+
+    # 1) Reversa append-only: pago 'reversa' con contra-asientos (montos negativos).
+    correccion = corregir_pago(resultado_original, resultado_original)
+    pago_reversa = Pago(
+        prestamo_id=prestamo.id,
+        monto=-(original.monto or Decimal("0")),
+        excedente=-(original.excedente or Decimal("0")),
+        estado="reversa",
+        canal=canal,
+        fecha_negocio=fecha_negocio,
+        corrige_pago_id=pago_original_id,
+    )
+    session.add(pago_reversa)
+    await session.flush()
+    cuotas = await _cuotas_de(session, prestamo.id)
+    por_numero = _cuota_id_por_numero(cuotas)
+    for rev in correccion.reversas:
+        session.add(
+            Imputacion(
+                pago_id=pago_reversa.id,
+                cuota_id=por_numero.get(rev.cuota_numero) if rev.cuota_numero else None,
+                concepto=rev.concepto.value,
+                monto=rev.monto,
+                orden_waterfall=rev.orden_waterfall,
+                cuota_numero=rev.cuota_numero,
+            )
+        )
+    # contra-asiento de caja (egreso que revierte el ingreso original)
+    caja_rev = await bloquear_caja(session, caja_id)
+    await registrar_movimiento(
+        session, caja_rev, tipo="egreso", monto=original.monto or Decimal("0"),
+        fecha_negocio=fecha_negocio, concepto="reversa de pago corregido",
+        categoria="correccion", pago_id=pago_reversa.id, referencia=str(pago_original_id),
+    )
+
+    # 2) Marcar original como corregido (sin tocar sus imputaciones).
+    original.estado = "corregido"
+    await session.flush()
+
+    # 3) Aplicar pago de reemplazo desde cero (waterfall fresco sobre saldo actual).
+    imps_vigentes = imputaciones_core(await _imputaciones_previas(session, prestamo.id))
+    crono = cronograma_desde_cuotas(cuotas)
+    tasa_pun = prestamo.tasa_punitorio_diario or Decimal("0")
+    saldo = calcular_saldo_exigible(crono, imps_vigentes, fecha_negocio, tasa_pun)
+    entrada = EntradaPago(monto=monto, fecha_negocio=fecha_negocio)
+    resultado_nuevo = aplicar_pago(saldo, entrada)
+    pago_nuevo = await _persistir_resultado(
+        session, prestamo=prestamo, resultado=resultado_nuevo, canal=canal,
+        fecha_negocio=fecha_negocio, caja_id=caja_id,
+        idempotency_key=None, corrige_pago_id=pago_original_id, cuotas=cuotas,
+    )
+    await _actualizar_estados_cuotas(session, prestamo, cuotas, fecha_negocio)
+
+    out = CorreccionOut(
+        pago_original_id=pago_original_id,
+        pago_nuevo_id=pago_nuevo.id,
+        estado_original="corregido",
+    )
+    await _guardar_idem_generico(session, idempotency_key, operacion, out.model_dump_json())
+    await escribir_evento(
+        session, actor_id=actor_id, accion="pago_correccion", entidad="pago",
+        entidad_id=pago_original_id,
+        metadata_json={"pago_nuevo_id": str(pago_nuevo.id), "monto": str(monto)},
+    )
+    await session.commit()
+    return out
+
+
+async def _guardar_idem_generico(
+    session: AsyncSession, clave: str, operacion: str, respuesta: str
+) -> None:
+    res = await session.execute(
+        select(IdempotencyKey).where(
+            IdempotencyKey.clave == clave, IdempotencyKey.operacion == operacion
+        )
+    )
+    fila = res.scalar_one()
+    fila.respuesta_json = respuesta
     await session.flush()
 
 
