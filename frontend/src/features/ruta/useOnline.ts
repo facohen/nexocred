@@ -1,6 +1,10 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { sincronizarRuta, type ResultadoSync } from "./sync";
+import { contarPendientes } from "./queue";
 import { registrarBackgroundSync, soportaBackgroundSync } from "./sw-sync";
+
+/** Intervalo de drenado de la cola mientras haya pendientes y conexión. */
+const INTERVALO_DRENADO_MS = 30_000;
 
 /** Reactive `navigator.onLine` with online/offline event subscriptions. */
 export function useOnline(): boolean {
@@ -70,15 +74,35 @@ export function useRutaSync(
 
   useEffect(() => {
     if (!rutaId) return;
-    // Fallback trigger for browsers without (or in addition to) Background Sync.
+    // Fallback triggers for browsers/webviews without (or in addition to)
+    // Background Sync, several of which never fire 'online':
+    //  - 'online' / 'focus': la conectividad/foco vuelve.
+    //  - 'visibilitychange'→visible: la pestaña/webview vuelve al frente.
+    //  - intervalo modesto: drena la cola mientras haya pendientes y conexión.
     const onOnline = () => void sincronizarAhora();
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && navigator.onLine) {
+        void sincronizarAhora();
+      }
+    };
     window.addEventListener("online", onOnline);
     window.addEventListener("focus", onOnline);
+    document.addEventListener("visibilitychange", onVisible);
+
+    const intervalo = setInterval(() => {
+      if (!navigator.onLine) return;
+      void contarPendientes().then((n) => {
+        if (n > 0) void sincronizarAhora();
+      });
+    }, INTERVALO_DRENADO_MS);
+
     // Best-effort: pre-register a Background Sync so the SW can replay later.
     if (soportaBackgroundSync()) void registrarBackgroundSync();
     return () => {
       window.removeEventListener("online", onOnline);
       window.removeEventListener("focus", onOnline);
+      document.removeEventListener("visibilitychange", onVisible);
+      clearInterval(intervalo);
     };
   }, [rutaId, sincronizarAhora]);
 
