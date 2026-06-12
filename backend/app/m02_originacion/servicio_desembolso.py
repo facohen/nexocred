@@ -1,0 +1,148 @@
+import json
+import uuid
+from datetime import date, timedelta
+from decimal import Decimal
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.auditoria import escribir_evento
+from app.errors import ErrorAPI
+from app.idempotencia import guardar_resultado_idempotente
+from app.locking import bloquear_caja
+from app.m02_originacion.schemas import DesembolsoOut
+from app.m03_prestamos.reconstruccion import snapshot_desde_terminos
+from app.modelos_stub import Cuota, MovimientoCaja, Prestamo, SolicitudCredito
+from nexocred_core import Periodicidad, TerminosPrestamo, calcular_cronograma
+
+
+def _fecha_primera_cuota_default(fecha_negocio: date) -> date:
+    return fecha_negocio + timedelta(days=30)
+
+
+async def desembolsar(
+    session: AsyncSession,
+    *,
+    solicitud: SolicitudCredito,
+    caja_id: uuid.UUID,
+    fecha_negocio: date | None,
+    fecha_primera_cuota: date | None,
+    tasa_punitorio_diario: Decimal,
+    idempotency_key: str,
+    actor_id: uuid.UUID | None,
+) -> DesembolsoOut:
+    operacion = "desembolsar"
+    previo = await guardar_resultado_idempotente(
+        session, idempotency_key, operacion, None
+    )
+    if previo is not None:
+        await session.commit()
+        return DesembolsoOut.model_validate(json.loads(previo))
+
+    if solicitud.estado != "aprobada":
+        raise ErrorAPI(
+            "transicion_invalida",
+            f"solo se desembolsa una solicitud aprobada (estado={solicitud.estado})",
+            status=409,
+        )
+    if solicitud.tasa_resuelta is None:
+        raise ErrorAPI(
+            "solicitud_no_evaluada",
+            "la solicitud no tiene tasa resuelta",
+            status=409,
+        )
+
+    fneg = fecha_negocio or date.today()
+    fpc = fecha_primera_cuota or _fecha_primera_cuota_default(fneg)
+
+    # Lock de caja: operacion que mueve saldo (§5.7).
+    caja = await bloquear_caja(session, caja_id)
+
+    terminos = TerminosPrestamo(
+        capital=solicitud.monto or Decimal("0"),
+        tasa_interes_directo=solicitud.tasa_resuelta,
+        cantidad_cuotas=solicitud.cantidad_cuotas or 1,
+        periodicidad=Periodicidad.MENSUAL,
+        fecha_primera_cuota=fpc,
+        tasa_punitorio_diario=tasa_punitorio_diario,
+    )
+    crono = calcular_cronograma(terminos)
+
+    prestamo = Prestamo(
+        persona_id=solicitud.persona_id,
+        producto_id=solicitud.producto_id,
+        solicitud_id=solicitud.id,
+        capital=terminos.capital,
+        estado="vigente",
+        snapshot_terminos=snapshot_desde_terminos(terminos),
+        fecha_desembolso=fneg,
+        tasa_punitorio_diario=tasa_punitorio_diario,
+        vendedor_id=solicitud.vendedor_id,
+        monto_desembolsado=terminos.capital,
+    )
+    session.add(prestamo)
+    await session.flush()
+
+    for fila in crono.filas:
+        session.add(
+            Cuota(
+                prestamo_id=prestamo.id,
+                numero=fila.numero,
+                vencimiento=fila.vencimiento,
+                capital=fila.capital,
+                interes=fila.interes,
+                cuota=fila.cuota,
+                punitorio_acumulado=Decimal("0"),
+                estado="pendiente",
+            )
+        )
+
+    # Egreso de caja por el capital desembolsado.
+    mov = MovimientoCaja(
+        caja_id=caja.id,
+        tipo="egreso",
+        monto=terminos.capital,
+        fecha_negocio=fneg,
+        concepto="desembolso de prestamo",
+        categoria="desembolso",
+        referencia=str(prestamo.id),
+    )
+    session.add(mov)
+    caja.saldo_teorico = (caja.saldo_teorico or Decimal("0")) - terminos.capital
+
+    solicitud.estado = "desembolsada"
+    await session.flush()
+
+    out = DesembolsoOut(
+        prestamo_id=prestamo.id,
+        solicitud_id=solicitud.id,
+        estado=solicitud.estado,
+        capital=terminos.capital,
+        cantidad_cuotas=terminos.cantidad_cuotas,
+        movimiento_caja_id=mov.id,
+    )
+    # Persistir resultado idempotente (sobreescribe la fila reservada).
+    await _persistir_idempotencia(session, idempotency_key, operacion, out)
+
+    await escribir_evento(
+        session, actor_id=actor_id, accion="solicitud_desembolso",
+        entidad="prestamo", entidad_id=prestamo.id,
+        metadata_json={"solicitud_id": str(solicitud.id), "capital": str(terminos.capital)},
+    )
+    await session.commit()
+    return out
+
+
+async def _persistir_idempotencia(
+    session: AsyncSession, clave: str, operacion: str, out: DesembolsoOut
+) -> None:
+    from app.idempotencia import IdempotencyKey
+
+    res = await session.execute(
+        select(IdempotencyKey).where(
+            IdempotencyKey.clave == clave, IdempotencyKey.operacion == operacion
+        )
+    )
+    fila = res.scalar_one()
+    fila.respuesta_json = out.model_dump_json()
+    await session.flush()

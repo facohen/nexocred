@@ -1,6 +1,7 @@
 import uuid
+from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Header, Query
 
 from app.deps import AdminOAnalista, CurrentUser, SessionDep
 from app.errors import ErrorAPI
@@ -8,11 +9,24 @@ from app.m02_originacion import servicio
 from app.m02_originacion.schemas import (
     CambioEstadoIn,
     ChecklistOut,
+    DesembolsarIn,
+    DesembolsoOut,
     SimularIn,
     SolicitudCreate,
     SolicitudOut,
 )
+from app.m02_originacion.servicio_desembolso import desembolsar
 from app.m15_catalogo.schemas import SimuladorOut
+
+
+def _exigir_idem(idempotency_key: str | None) -> str:
+    if not idempotency_key:
+        raise ErrorAPI(
+            "idempotency_key_requerida",
+            "esta operacion requiere header Idempotency-Key",
+            status=400,
+        )
+    return idempotency_key
 
 router = APIRouter(tags=["originacion"])
 
@@ -45,7 +59,7 @@ async def crear_solicitud(
 async def listar_solicitudes(
     session: SessionDep,
     _: CurrentUser,
-    estado: str | None = Query(default=None),
+    estado: Annotated[str | None, Query()] = None,
 ) -> list[SolicitudOut]:
     sols = await servicio.listar_solicitudes(session, estado=estado)
     return [SolicitudOut.model_validate(s) for s in sols]
@@ -103,3 +117,29 @@ async def simular(
 ) -> SimuladorOut:
     sol = await _get_solicitud(session, solicitud_id)
     return await servicio.simular_oferta(session, sol, datos.fecha_primera_cuota)
+
+
+@router.post(
+    "/solicitudes/{solicitud_id}/desembolsar",
+    response_model=DesembolsoOut,
+    status_code=201,
+)
+async def desembolsar_solicitud(
+    solicitud_id: uuid.UUID,
+    datos: DesembolsarIn,
+    session: SessionDep,
+    actor: AdminOAnalista,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+) -> DesembolsoOut:
+    clave = _exigir_idem(idempotency_key)
+    sol = await _get_solicitud(session, solicitud_id)
+    return await desembolsar(
+        session,
+        solicitud=sol,
+        caja_id=datos.caja_id,
+        fecha_negocio=datos.fecha_negocio,
+        fecha_primera_cuota=datos.fecha_primera_cuota,
+        tasa_punitorio_diario=datos.tasa_punitorio_diario,
+        idempotency_key=clave,
+        actor_id=actor.id,
+    )

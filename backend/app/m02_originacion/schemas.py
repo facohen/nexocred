@@ -1,5 +1,6 @@
 import uuid
 from datetime import date
+from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -50,7 +51,7 @@ class DesembolsarIn(BaseModel):
     caja_id: uuid.UUID
     fecha_negocio: date | None = None
     fecha_primera_cuota: date | None = None
-    tasa_punitorio_diario: TasaStr = Field(default="0")  # type: ignore[assignment]
+    tasa_punitorio_diario: TasaStr = Field(default=Decimal("0"))
 
 
 class DesembolsoOut(BaseModel):
