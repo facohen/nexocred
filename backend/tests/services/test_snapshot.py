@@ -1,6 +1,5 @@
 """Tests del job generar_snapshot: idempotente por fecha_corte, metricas exactas."""
 
-import uuid
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -9,73 +8,39 @@ from sqlalchemy import select
 
 from app.jobs.snapshot import generar_snapshot
 from app.m04_caja.modelos import Caja
-from app.modelos_stub import (
-    Cuota,
-    Imputacion,
-    MovimientoCaja,
-    Pago,
-    Prestamo,
-    SnapshotCartera,
-)
+from app.modelos_stub import Cuota, Imputacion, MovimientoCaja, Pago, SnapshotCartera
+from tests._seed_f1d import crear_persona, crear_prestamo, crear_producto
 
 pytestmark = pytest.mark.asyncio
 
 
-async def _persona(session):
-    pid = uuid.uuid4()
-    await session.execute(
-        Prestamo.__table__.metadata.tables["persona"].insert().values(
-            id=pid, nombre_razon_social="Cliente", tipo_persona="fisica",
-        )
-    )
-    return pid
-
-
-async def _producto(session):
-    prod = uuid.uuid4()
-    await session.execute(
-        Prestamo.__table__.metadata.tables["producto_credito"].insert().values(
-            id=prod, nombre="Producto", activo=True,
-        )
-    )
-    return prod
-
-
 async def _seed(session, fecha_corte: date):
-    """Cartera sembrada determinista:
+    """Cartera determinista:
     - P1: vigente, al dia, desembolsado este mes, capital 100000, 1 cuota futura.
     - P2: en mora, desembolsado mes pasado, capital 50000, 1 cuota vencida.
-    - Pago con imputaciones de interes y punitorio este mes.
+    - Pago de este mes con imputaciones de interes (5000) y punitorio (3000).
     - Caja con saldo 200000.
     """
-    persona = await _persona(session)
-    producto = await _producto(session)
+    persona = await crear_persona(session)
+    producto = await crear_producto(session)
     inicio_mes = fecha_corte.replace(day=1)
 
-    p1 = Prestamo(
-        id=uuid.uuid4(), persona_id=persona, producto_id=producto,
-        capital=Decimal("100000"), estado="vigente",
+    p1 = await crear_prestamo(
+        session, persona.id, producto.id, capital=Decimal("100000"),
         fecha_desembolso=inicio_mes + timedelta(days=2),
         monto_desembolsado=Decimal("100000"),
-        tasa_punitorio_diario=Decimal("0.001"),
     )
-    p2 = Prestamo(
-        id=uuid.uuid4(), persona_id=persona, producto_id=producto,
-        capital=Decimal("50000"), estado="vigente",
+    p2 = await crear_prestamo(
+        session, persona.id, producto.id, capital=Decimal("50000"),
         fecha_desembolso=inicio_mes - timedelta(days=40),
         monto_desembolsado=Decimal("50000"),
-        tasa_punitorio_diario=Decimal("0.001"),
     )
-    session.add_all([p1, p2])
-    await session.flush()
 
-    # P1: cuota futura (no vencida) -> al dia
     session.add(Cuota(
         prestamo_id=p1.id, numero=1, vencimiento=fecha_corte + timedelta(days=30),
         capital=Decimal("100000"), interes=Decimal("10000"), cuota=Decimal("110000"),
         estado="pendiente",
     ))
-    # P2: cuota vencida -> en mora
     session.add(Cuota(
         prestamo_id=p2.id, numero=1, vencimiento=fecha_corte - timedelta(days=10),
         capital=Decimal("50000"), interes=Decimal("5000"), cuota=Decimal("55000"),
@@ -83,7 +48,6 @@ async def _seed(session, fecha_corte: date):
     ))
     await session.flush()
 
-    # Pago de este mes con imputaciones de interes + punitorio
     pago = Pago(
         prestamo_id=p2.id, monto=Decimal("8000"), estado="registrado",
         fecha_negocio=inicio_mes + timedelta(days=5),
@@ -103,7 +67,6 @@ async def _seed(session, fecha_corte: date):
         fecha_negocio=inicio_mes, concepto="apertura",
     ))
     await session.flush()
-    return persona, producto
 
 
 async def test_genera_una_fila_con_metricas(session):

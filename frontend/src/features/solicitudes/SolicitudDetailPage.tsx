@@ -10,7 +10,7 @@ import { MoneyText } from "@/components/MoneyText";
 export function SolicitudDetailPage() {
   const { solicitudId } = useParams({ strict: false }) as { solicitudId: string };
   const { data: solicitud } = useSolicitud(solicitudId);
-  const { data: checklistData } = useChecklist(solicitudId);
+  const { data: checklistData, isSuccess: checklistListo } = useChecklist(solicitudId);
   const accion = useAccionSolicitud(solicitudId);
   // Stable key per (solicitud) disbursement intent: a double-click / re-submit
   // reuses the same Idempotency-Key so the backend dedupes the disbursement.
@@ -18,8 +18,13 @@ export function SolicitudDetailPage() {
 
   const checklist = checklistData?.checklist ?? [];
   const bcraItem = checklist.find((c) => c.regla === "bcra");
-  const bcraBlocked = bcraItem ? !bcraItem.ok : false;
+  // Fail-safe: si la regla bcra no llegó o es desconocida, se considera
+  // bloqueante (no se puede aprobar sin confirmar BCRA).
+  const bcraBlocked = !bcraItem || !bcraItem.ok;
   const algunaFalla = checklist.some((c) => !c.ok);
+  // Aprobar sólo cuando el checklist cargó Y no hay políticas en falla Y BCRA OK.
+  const aprobarDeshabilitado =
+    accion.isPending || !checklistListo || algunaFalla || bcraBlocked;
 
   return (
     <div className="space-y-6">
@@ -50,17 +55,24 @@ export function SolicitudDetailPage() {
           </Button>
           <Button
             onClick={() => accion.mutate({ accion: "desembolsar", idempotencyKey: desembolsoKey })}
-            disabled={accion.isPending || bcraBlocked || algunaFalla}
-            title={bcraBlocked ? "Bloqueado: situación BCRA vencida" : undefined}
+            disabled={aprobarDeshabilitado}
+            title={
+              !checklistListo
+                ? "Validando políticas…"
+                : bcraBlocked
+                  ? "Bloqueado: situación BCRA pendiente o vencida"
+                  : undefined
+            }
           >
             Aprobar y desembolsar
           </Button>
         </div>
       </div>
 
-      {bcraBlocked && (
+      {checklistListo && bcraBlocked && (
         <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          La situación BCRA está vencida. No se puede aprobar la solicitud hasta resolverla.
+          La verificación BCRA está pendiente o vencida. No se puede aprobar la
+          solicitud hasta resolverla.
         </div>
       )}
 

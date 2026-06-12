@@ -1,5 +1,7 @@
 import { screen, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
+import { http, HttpResponse, delay } from "msw";
+import { server } from "@/mocks/server";
 import { renderWithProviders } from "@/test/utils";
 import { SolicitudesPage } from "./SolicitudesPage";
 import { SolicitudDetailPage } from "./SolicitudDetailPage";
@@ -10,6 +12,8 @@ vi.mock("@tanstack/react-router", () => ({
   useParams: () => params,
   Link: ({ children, ...p }: { children: React.ReactNode }) => <a {...p}>{children}</a>,
 }));
+
+const BASE = "http://localhost/api/v1";
 
 describe("Solicitudes", () => {
   it("lista solicitudes de fixtures", async () => {
@@ -25,6 +29,35 @@ describe("Solicitudes", () => {
     expect(screen.getByText(/Situación 4 — vencido/i)).toBeInTheDocument();
     // BCRA flagged → Aprobar disabled
     const aprobar = screen.getByRole("button", { name: /aprobar/i });
+    await waitFor(() => expect(aprobar).toBeDisabled());
+  });
+
+  it("deshabilita Aprobar mientras el checklist está cargando (fail-safe)", async () => {
+    server.use(
+      http.post(`${BASE}/solicitudes/:id/validar-politicas`, async () => {
+        await delay(200);
+        return HttpResponse.json({ checklist: [] });
+      }),
+    );
+    renderWithProviders(<SolicitudDetailPage />);
+    // antes de que cargue el checklist, Aprobar debe estar deshabilitado
+    const aprobar = await screen.findByRole("button", { name: /aprobar/i });
+    expect(aprobar).toBeDisabled();
+  });
+
+  it("trata la regla bcra ausente como bloqueante (fail-safe)", async () => {
+    server.use(
+      http.post(`${BASE}/solicitudes/:id/validar-politicas`, () =>
+        HttpResponse.json({
+          checklist: [
+            { regla: "edad", etiqueta: "Edad", ok: true, detalle: "ok" },
+            { regla: "mora", etiqueta: "Mora", ok: true, detalle: "ok" },
+          ],
+        }),
+      ),
+    );
+    renderWithProviders(<SolicitudDetailPage />);
+    const aprobar = await screen.findByRole("button", { name: /aprobar/i });
     await waitFor(() => expect(aprobar).toBeDisabled());
   });
 });
