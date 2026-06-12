@@ -203,22 +203,9 @@ export const handlers = [
   }),
   http.post(`${BASE}/pagos/:id/corregir`, ({ params }) =>
     HttpResponse.json({
-      contra_asiento: {
-        id: `pago-rev-${params.id}`,
-        prestamo_id: "prestamo-1",
-        monto: "-54166.67",
-        estado: "reversado",
-        corrige_pago_id: params.id,
-        imputaciones: [],
-      },
-      reemplazo: {
-        id: `pago-new-${params.id}`,
-        prestamo_id: "prestamo-1",
-        monto: "54166.67",
-        estado: "aplicado",
-        corrige_pago_id: null,
-        imputaciones: [],
-      },
+      pago_original_id: params.id,
+      pago_nuevo_id: `pago-new-${params.id}`,
+      estado_original: "aplicado",
     }),
   ),
 

@@ -1,7 +1,6 @@
 import { useCorregirPago } from "@/lib/api/queries";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MoneyText } from "@/components/MoneyText";
 
 export function CorreccionDialog({
   pagoId,
@@ -31,17 +30,21 @@ export function CorreccionDialog({
       {resultado && (
         <div className="mt-4 space-y-3">
           <div className="rounded-lg border border-border p-3">
-            <h4 className="text-sm font-medium">Contra-asiento (reversa)</h4>
-            <p className="text-sm text-foreground/70">
-              <MoneyText value={resultado.contra_asiento.monto ?? null} /> ·{" "}
-              {resultado.contra_asiento.estado}
-            </p>
-          </div>
-          <div className="rounded-lg border border-border p-3">
-            <h4 className="text-sm font-medium">Reemplazo</h4>
-            <p className="text-sm text-foreground/70">
-              <MoneyText value={resultado.reemplazo.monto ?? null} /> · {resultado.reemplazo.estado}
-            </p>
+            <h4 className="text-sm font-medium">Corrección registrada</h4>
+            <dl className="mt-1 space-y-1 text-sm text-foreground/70">
+              <div className="flex justify-between gap-4">
+                <dt>Pago original</dt>
+                <dd className="font-mono">{resultado.pago_original_id}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt>Pago nuevo</dt>
+                <dd className="font-mono">{resultado.pago_nuevo_id}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt>Estado original</dt>
+                <dd>{resultado.estado_original}</dd>
+              </div>
+            </dl>
           </div>
         </div>
       )}

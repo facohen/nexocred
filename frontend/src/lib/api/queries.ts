@@ -190,10 +190,11 @@ export function useRegistrarPago() {
 export function useCorregirPago() {
   return useMutation({
     mutationFn: (vars: { pagoId: string; body?: unknown }) =>
-      apiFetch<{ contra_asiento: Sch["PagoOut"]; reemplazo: Sch["PagoOut"] }>(
-        `/pagos/${vars.pagoId}/corregir`,
-        { method: "POST", body: vars.body ?? {}, idempotencyKey: newIdempotencyKey() },
-      ),
+      apiFetch<Sch["CorreccionOut"]>(`/pagos/${vars.pagoId}/corregir`, {
+        method: "POST",
+        body: vars.body ?? {},
+        idempotencyKey: newIdempotencyKey(),
+      }),
   });
 }
 
