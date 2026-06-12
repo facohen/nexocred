@@ -116,8 +116,23 @@ export function useChecklist(id: string) {
 export function useAccionSolicitud(id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { accion: "evaluar" | "simular" | "desembolsar"; body?: unknown }) =>
-      apiFetch(`/solicitudes/${id}/${vars.accion}`, { method: "POST", body: vars.body ?? {} }),
+    mutationFn: (vars: {
+      accion: "evaluar" | "simular" | "desembolsar";
+      body?: unknown;
+      idempotencyKey?: string;
+    }) =>
+      apiFetch(`/solicitudes/${id}/${vars.accion}`, {
+        method: "POST",
+        body: vars.body ?? {},
+        // Money-creating actions (desembolsar) require an Idempotency-Key to
+        // prevent a double disbursement. evaluar/simular are idempotent reads
+        // and must NOT carry one. The caller may pass a stable key to reuse it
+        // across retries of the same intent.
+        idempotencyKey:
+          vars.accion === "desembolsar"
+            ? vars.idempotencyKey ?? newIdempotencyKey()
+            : undefined,
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["solicitud", id] }),
   });
 }

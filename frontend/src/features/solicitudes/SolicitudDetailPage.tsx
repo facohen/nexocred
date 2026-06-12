@@ -1,5 +1,7 @@
+import { useMemo } from "react";
 import { useParams } from "@tanstack/react-router";
 import { useSolicitud, useChecklist, useAccionSolicitud } from "@/lib/api/queries";
+import { newIdempotencyKey } from "@/lib/utils";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +12,9 @@ export function SolicitudDetailPage() {
   const { data: solicitud } = useSolicitud(solicitudId);
   const { data: checklistData } = useChecklist(solicitudId);
   const accion = useAccionSolicitud(solicitudId);
+  // Stable key per (solicitud) disbursement intent: a double-click / re-submit
+  // reuses the same Idempotency-Key so the backend dedupes the disbursement.
+  const desembolsoKey = useMemo(() => newIdempotencyKey(), [solicitudId]);
 
   const checklist = checklistData?.checklist ?? [];
   const bcraItem = checklist.find((c) => c.regla === "bcra");
@@ -44,7 +49,7 @@ export function SolicitudDetailPage() {
             Simular
           </Button>
           <Button
-            onClick={() => accion.mutate({ accion: "desembolsar" })}
+            onClick={() => accion.mutate({ accion: "desembolsar", idempotencyKey: desembolsoKey })}
             disabled={accion.isPending || bcraBlocked || algunaFalla}
             title={bcraBlocked ? "Bloqueado: situación BCRA vencida" : undefined}
           >
