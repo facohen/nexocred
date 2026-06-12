@@ -1,3 +1,65 @@
+import { useMemo, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import type { ColumnDef } from "@tanstack/react-table";
+import { usePersonas } from "@/lib/api/queries";
+import { DataTable } from "@/components/DataTable";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import type { components } from "@/lib/api/schema";
+
+type Persona = components["schemas"]["PersonaListItem"];
+
 export function PersonasListPage() {
-  return <div className="text-sm">PersonasListPage (pendiente).</div>;
+  const [q, setQ] = useState("");
+  const { data, isLoading, isError } = usePersonas(q || undefined);
+  const navigate = useNavigate();
+
+  const columns = useMemo<ColumnDef<Persona, unknown>[]>(
+    () => [
+      { accessorKey: "apellido", header: "Apellido" },
+      { accessorKey: "nombre", header: "Nombre" },
+      { accessorKey: "dni", header: "DNI" },
+      { accessorKey: "cuil", header: "CUIL" },
+      {
+        accessorKey: "activo",
+        header: "Estado",
+        cell: ({ row }) => (
+          <Badge tone={row.original.activo ? "success" : "default"}>
+            {row.original.activo ? "Activa" : "Inactiva"}
+          </Badge>
+        ),
+      },
+    ],
+    [],
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold">Personas</h1>
+        <Input
+          placeholder="Buscar por apellido, DNI o CUIL…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          className="max-w-xs"
+        />
+      </div>
+      {isLoading ? (
+        <div className="animate-pulse rounded-lg border border-border bg-white p-8 text-center text-foreground/40">
+          Cargando…
+        </div>
+      ) : isError ? (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-8 text-center text-red-700">
+          No se pudieron cargar las personas.
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={data?.data ?? []}
+          emptyMessage="No hay personas que coincidan."
+          onRowClick={(p) => navigate({ to: `/personas/${p.id}` as string })}
+        />
+      )}
+    </div>
+  );
 }

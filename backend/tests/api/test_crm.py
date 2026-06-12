@@ -245,9 +245,10 @@ async def test_interaccion_genera_auditoria(client, admin_token, session):
     from sqlalchemy import text
 
     from tests.api.test_solicitudes import crear_persona
+    from tests.integration._helpers_f1c import cuil_valido
 
     persona = await crear_persona(
-        client, admin_token, cuil="20466666667", dni="46666666"
+        client, admin_token, cuil=cuil_valido("46666666"), dni="46666666"
     )
     r = await client.post(
         "/api/v1/interacciones",
