@@ -17,12 +17,17 @@ Redis 7; orquestado con Docker Compose.
 ```bash
 git clone <repo> nexocred && cd nexocred
 
-# 2.1 Levantar el stack §4 completo (api, db, redis, worker, beat, web).
-#     (El web sirve frontend/dist; primero buildear el frontend, ver 2.4.)
-docker compose up -d db redis        # infra primero
+# 2.1 Infra primero (db + redis).
+docker compose up -d db redis
+
+# 2.2 Build del frontend ANTES de levantar `web` (nginx sirve frontend/dist;
+#     sin assets, `web` responde 404 hasta que exista el build).
+cd frontend && npm ci && npm run build && cd ..
+
+# 2.3 Levantar api + worker + beat + web (ya con dist disponible para `web`).
 docker compose up -d                 # api + worker + beat + web
 
-# 2.2 Migraciones (esquema).
+# 2.4 Migraciones (esquema). alembic lee DATABASE_URL_SYNC (psycopg), NO DATABASE_URL.
 docker compose exec api micromamba run -n base \
   env DATABASE_URL_SYNC=postgresql+psycopg://nexocred:nexocred@db:5432/nexocred \
   alembic -c backend/alembic.ini upgrade head
@@ -30,15 +35,19 @@ docker compose exec api micromamba run -n base \
 #   DATABASE_URL_SYNC=postgresql+psycopg://nexocred:nexocred@localhost:5432/nexocred \
 #     conda run -n nexocred alembic -c backend/alembic.ini upgrade head
 
-# 2.3 Siembra demo determinista e idempotente (a traves de los servicios).
-DATABASE_URL=postgresql+asyncpg://nexocred:nexocred@localhost:5432/nexocred \
-  conda run -n nexocred python -m scripts.seed_demo
+# 2.5 Siembra demo determinista, idempotente y crash-safe (via los servicios).
+#     El script vive en backend/scripts/ → se invoca DESDE backend/ con -m.
+#     El runtime async lee DATABASE_URL (asyncpg), NO DATABASE_URL_SYNC.
+(cd backend && DATABASE_URL=postgresql+asyncpg://nexocred:nexocred@localhost:5432/nexocred \
+  conda run -n nexocred python -m scripts.seed_demo)
 #   Produce ~20 personas (CUILs validos), 12 prestamos (algunos en mora),
 #   pagos, ruta+visitas+rendicion, comisiones+liquidacion pagada, alertas y un
-#   snapshot -> La Torre con KPIs no-cero. Re-correrla NO duplica.
+#   snapshot -> La Torre con KPIs no-cero. NO muta PARAMETROS_GLOBALES (la
+#   vigencia BCRA queda en su default). Re-correrla NO duplica; si se corta a
+#   mitad, una nueva corrida RESUME (el marcador de completitud se escribe ultimo).
 
-# 2.4 Frontend (build estatico servido por el `web`).
-cd frontend && npm ci && npm run build && cd ..
+# 2.6 Si cambiaste el frontend, re-buildear y recargar el volumen dist de `web`.
+cd frontend && npm run build && cd ..
 docker compose up -d web   # recarga el volumen dist
 ```
 
@@ -113,8 +122,9 @@ docker compose config >/dev/null && echo "compose OK"
 ## 8. Troubleshooting
 
 - `bcra_vencido` al aprobar: la vigencia BCRA por defecto es 30 dias; ampliar
-  via `PATCH /api/v1/parametros {"bcra_vigencia_dias": N}` (la siembra demo ya
-  lo hace).
+  via `PATCH /api/v1/parametros {"bcra_vigencia_dias": N}`. (La siembra demo NO
+  toca este parametro: estampa fecha_informe BCRA reciente para aprobar bajo la
+  vigencia por defecto.)
 - La Torre vacia: correr un snapshot (`POST /api/v1/torre/snapshot`) tras sembrar.
 - `web` sirve 404: faltan los assets; correr `npm run build` y recargar el
   servicio `web`.
