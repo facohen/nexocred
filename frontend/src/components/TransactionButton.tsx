@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useConnectivity } from "@/lib/connectivity";
 
 export interface TransactionButtonProps extends ButtonProps {
   /** Mutacion en vuelo: deshabilita el boton y muestra spinner para evitar
@@ -17,11 +18,15 @@ export interface TransactionButtonProps extends ButtonProps {
 export const TransactionButton = React.forwardRef<
   HTMLButtonElement,
   TransactionButtonProps
->(({ pending = false, disabled, children, className, ...props }, ref) => (
+>(({ pending = false, disabled, children, className, ...props }, ref) => {
+  // Guard de conectividad de mostrador: offline fuera de La Ruta deshabilita toda
+  // accion financiera (Decisión de negocio #3). La Ruta queda exenta via el provider.
+  const { bloqueado } = useConnectivity();
+  return (
   <Button
     ref={ref}
     aria-busy={pending}
-    disabled={pending || disabled}
+    disabled={pending || disabled || bloqueado}
     className={cn("gap-2", className)}
     {...props}
   >
@@ -34,5 +39,6 @@ export const TransactionButton = React.forwardRef<
     )}
     {children}
   </Button>
-));
+  );
+});
 TransactionButton.displayName = "TransactionButton";
