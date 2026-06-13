@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
 import { SessionProvider } from "@/lib/session";
+import { ThemeProvider } from "@/lib/theme";
 import { router } from "@/routes/router";
 
 const queryClient = new QueryClient({
@@ -9,10 +10,12 @@ const queryClient = new QueryClient({
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <SessionProvider>
-        <RouterProvider router={router} />
-      </SessionProvider>
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <SessionProvider>
+          <RouterProvider router={router} />
+        </SessionProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }

@@ -1,13 +1,135 @@
+@import "@fontsource-variable/inter";
+@import "@fontsource/geist-mono";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  font-family: Inter, system-ui, sans-serif;
+/*
+ * Design tokens — NexoCred. Estética moderna (referencia: dashboard de Stripe):
+ * superficies claras con sombras suaves en light, slate profundo en dark.
+ *
+ * Formato HSL por canales ("H S% L%") sin la función hsl(), para que Tailwind
+ * pueda aplicar opacidad (bg-surface/50). White-label: el cliente sobreescribe
+ * --brand. Mora es una escala ORDINAL de 5 puntos (--risk-*), no un booleano.
+ */
+@layer base {
+  :root {
+    /* Superficies */
+    --bg: 240 20% 99%;            /* lienzo de la app */
+    --surface: 0 0% 100%;        /* cards, tablas */
+    --surface-sunken: 240 17% 97%; /* headers de tabla, zonas hundidas */
+    --sidebar: 240 30% 98%;      /* sidebar lavanda muy claro (Stripe) */
+    --sidebar-accent: 240 24% 95%;
+
+    /* Texto */
+    --text: 222 47% 11%;
+    --text-muted: 222 13% 42%;
+    --text-subtle: 222 10% 58%;
+
+    /* Marca / acento (único valor white-label) */
+    --brand: 245 58% 51%;
+    --brand-hover: 245 58% 44%;
+    --brand-subtle: 245 70% 96%;
+    --brand-foreground: 0 0% 100%;
+
+    /* Bordes / inputs / foco */
+    --border: 240 16% 90%;
+    --border-strong: 240 12% 80%;
+    --input: 240 16% 90%;
+    --ring: 245 58% 51%;
+
+    /* Semánticos financieros (3 pesos: texto / bg / border) */
+    --pos: 152 60% 36%;  --pos-bg: 152 55% 95%;  --pos-border: 152 45% 80%;
+    --warn: 35 80% 42%;  --warn-bg: 40 90% 95%;  --warn-border: 38 80% 80%;
+    --neg: 352 75% 47%;  --neg-bg: 352 80% 96%;  --neg-border: 352 65% 85%;
+    --info: 212 70% 45%; --info-bg: 212 80% 96%; --info-border: 212 60% 84%;
+
+    /* Mora — escala ordinal de 5 puntos */
+    --risk-0: 152 60% 36%;       /* al día */
+    --risk-30: 45 85% 42%;       /* PAR30 amarillo */
+    --risk-60: 28 85% 48%;       /* PAR60 naranja */
+    --risk-90: 352 75% 47%;      /* PAR90 rojo */
+    --risk-castigo: 345 45% 28%; /* castigado/incobrable, granate */
+
+    /* Elevación — sombras suaves estilo Stripe */
+    --shadow-xs: 0 1px 2px 0 hsl(222 47% 11% / 0.04);
+    --shadow-sm: 0 1px 3px 0 hsl(222 47% 11% / 0.08), 0 1px 2px -1px hsl(222 47% 11% / 0.06);
+    --shadow-md: 0 4px 12px -2px hsl(222 47% 11% / 0.10), 0 2px 6px -2px hsl(222 47% 11% / 0.06);
+    --shadow-pop: 0 12px 32px -8px hsl(222 47% 11% / 0.18), 0 4px 12px -4px hsl(222 47% 11% / 0.10);
+
+    /* Radios */
+    --radius: 0.5rem;
+
+    color-scheme: light;
+  }
+
+  .dark {
+    --bg: 224 30% 7%;
+    --surface: 223 26% 11%;
+    --surface-sunken: 224 28% 9%;
+    --sidebar: 224 30% 9%;
+    --sidebar-accent: 223 24% 15%;
+
+    --text: 220 25% 96%;
+    --text-muted: 220 12% 68%;
+    --text-subtle: 220 10% 52%;
+
+    --brand: 245 75% 68%;
+    --brand-hover: 245 75% 74%;
+    --brand-subtle: 245 40% 20%;
+    --brand-foreground: 224 30% 7%;
+
+    --border: 222 18% 20%;
+    --border-strong: 222 14% 30%;
+    --input: 222 18% 22%;
+    --ring: 245 75% 68%;
+
+    --pos: 152 55% 55%;  --pos-bg: 152 40% 14%;  --pos-border: 152 35% 26%;
+    --warn: 40 85% 60%;  --warn-bg: 38 50% 14%;  --warn-border: 38 45% 28%;
+    --neg: 352 80% 65%;  --neg-bg: 352 45% 16%;  --neg-border: 352 45% 30%;
+    --info: 212 80% 65%; --info-bg: 212 50% 15%; --info-border: 212 45% 30%;
+
+    --risk-0: 152 55% 55%;
+    --risk-30: 45 85% 58%;
+    --risk-60: 28 85% 60%;
+    --risk-90: 352 80% 65%;
+    --risk-castigo: 345 50% 55%;
+
+    /* En dark la elevación se apoya más en borde/superficie que en sombra. */
+    --shadow-xs: 0 1px 2px 0 hsl(0 0% 0% / 0.30);
+    --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.40), 0 1px 2px -1px hsl(0 0% 0% / 0.30);
+    --shadow-md: 0 4px 12px -2px hsl(0 0% 0% / 0.50), 0 2px 6px -2px hsl(0 0% 0% / 0.40);
+    --shadow-pop: 0 12px 32px -8px hsl(0 0% 0% / 0.60), 0 4px 12px -4px hsl(0 0% 0% / 0.45);
+
+    color-scheme: dark;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    margin: 0;
+    background: hsl(var(--bg));
+    color: hsl(var(--text));
+    font-family: "Inter Variable", Inter, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Importes y métricas: mono tabular para alineación perfecta de columnas. */
+  .font-num {
+    font-family: "Geist Mono", "IBM Plex Mono", ui-monospace, monospace;
+    font-feature-settings: "tnum" 1;
+    font-variant-numeric: tabular-nums;
+  }
 }
 
-body {
-  margin: 0;
-  background: hsl(210 40% 98%);
-  color: hsl(222 47% 11%);
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

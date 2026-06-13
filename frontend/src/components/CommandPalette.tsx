@@ -30,21 +30,21 @@ export function CommandPalette({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/30 pt-32"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-32 backdrop-blur-[1px]"
       onClick={() => onOpenChange(false)}
     >
       <div
-        className="w-full max-w-lg rounded-lg border border-border bg-white shadow-lg"
+        className="w-full max-w-lg rounded-lg border border-border bg-surface text-text shadow-pop"
         onClick={(e) => e.stopPropagation()}
       >
         <Command label="Paleta de comandos">
           <Command.Input
             autoFocus
             placeholder="Buscar destino…"
-            className="w-full border-b border-border px-4 py-3 text-sm outline-none"
+            className="w-full border-b border-border bg-transparent px-4 py-3 text-sm text-text outline-none placeholder:text-text-subtle"
           />
           <Command.List className="max-h-72 overflow-auto p-2">
-            <Command.Empty className="px-3 py-2 text-sm text-foreground/60">
+            <Command.Empty className="px-3 py-2 text-sm text-text-muted">
               Sin resultados.
             </Command.Empty>
             <Command.Group heading="Ir a">
@@ -56,7 +56,7 @@ export function CommandPalette({
                     onOpenChange(false);
                     void navigate({ to: item.to as string });
                   }}
-                  className="cursor-pointer rounded-md px-3 py-2 text-sm aria-selected:bg-muted"
+                  className="cursor-pointer rounded-md px-3 py-2 text-sm text-text aria-selected:bg-surface-sunken"
                 >
                   {item.label}
                 </Command.Item>

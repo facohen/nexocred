@@ -34,6 +34,7 @@ import { LiquidacionesPage } from "@/features/vendedores/LiquidacionesPage";
 import { TesoreriaDashboard } from "@/features/tesoreria/TesoreriaDashboard";
 import { TorreDashboard } from "@/features/torre/TorreDashboard";
 import { DocumentosRoute } from "@/features/documentos/DocumentosRoute";
+import { DesignSystemPage } from "@/features/dev/DesignSystemPage";
 
 const rootRoute = createRootRoute({ component: () => <Outlet /> });
 
@@ -43,6 +44,13 @@ const loginRoute = createRoute({
   component: function Login() {
     return <LoginPage onSuccess={() => { const user = getSessionUser(); window.location.href = fallbackRoute(user?.roles ?? []); }} />;
   },
+});
+
+// Showcase del design system (solo dev/visual review, sin auth).
+const designSystemRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/dev/ds",
+  component: DesignSystemPage,
 });
 
 const protectedRoute = createRoute({
@@ -82,6 +90,7 @@ const indexRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
+  designSystemRoute,
   protectedRoute.addChildren([
     indexRoute,
     page("/personas", PersonasListPage),

@@ -25,7 +25,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <ConnectivityProvider value={{ bloqueado }}>
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen bg-bg text-text">
         <Sidebar />
         <div className="flex flex-1 flex-col">
           <Header onOpenPalette={() => setPaletteOpen(true)} />
@@ -33,7 +33,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div
               role="alert"
               data-testid="banner-offline"
-              className="border-b border-amber-200 bg-amber-50 px-6 py-2 text-sm text-amber-800"
+              className="border-b border-warn-border bg-warn-bg px-6 py-2 text-sm text-warn"
             >
               Esperando conexión — las acciones financieras están deshabilitadas
               hasta recuperar la conexión.

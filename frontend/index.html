@@ -4,6 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>NexoCred</title>
+    <script>
+      // Anti-FOUC: aplica el tema persistido (o el del sistema) antes del primer
+      // paint, para que no haya flash de light→dark al cargar.
+      (function () {
+        try {
+          var t = localStorage.getItem("nexocred-theme");
+          if (!t) {
+            t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          }
+          if (t === "dark") document.documentElement.classList.add("dark");
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

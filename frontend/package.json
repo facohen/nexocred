@@ -15,6 +15,8 @@
     "gen:api:check": "node scripts/gen-api.mjs && git diff --exit-code -- src/lib/api/schema.ts"
   },
   "dependencies": {
+    "@fontsource-variable/inter": "^5.2.8",
+    "@fontsource/geist-mono": "^5.2.8",
     "@tanstack/react-query": "^5.51.0",
     "@tanstack/react-router": "^1.45.0",
     "@tanstack/react-table": "^8.19.0",

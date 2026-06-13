@@ -21,6 +21,7 @@ import {
 import { AppShell } from "./AppShell";
 import { TransactionButton } from "@/components/TransactionButton";
 import { SessionContext, type SesionUsuario } from "@/lib/auth";
+import { ThemeProvider } from "@/lib/theme";
 
 const USER: SesionUsuario = { email: "op@nexo.test", nombre: "Op", roles: ["admin"] };
 
@@ -52,9 +53,11 @@ function montarEn(pathname: string) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <SessionContext.Provider value={{ user: USER, login: () => {}, logout: () => {} }}>
-        <RouterProvider router={router} />
-      </SessionContext.Provider>
+      <ThemeProvider>
+        <SessionContext.Provider value={{ user: USER, login: () => {}, logout: () => {} }}>
+          <RouterProvider router={router} />
+        </SessionContext.Provider>
+      </ThemeProvider>
     </QueryClientProvider>,
   );
 }

@@ -1,17 +1,22 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+export type BadgeTone = "default" | "success" | "warning" | "danger" | "info" | "brand";
+
+const tones: Record<BadgeTone, string> = {
+  default: "bg-surface-sunken text-text-muted border border-border",
+  success: "bg-pos-bg text-pos border border-pos-border",
+  warning: "bg-warn-bg text-warn border border-warn-border",
+  danger: "bg-neg-bg text-neg border border-neg-border",
+  info: "bg-info-bg text-info border border-info-border",
+  brand: "bg-brand-subtle text-brand border border-transparent",
+};
+
 export function Badge({
   className,
   tone = "default",
   ...props
-}: React.HTMLAttributes<HTMLSpanElement> & { tone?: "default" | "success" | "warning" | "danger" }) {
-  const tones: Record<string, string> = {
-    default: "bg-muted text-foreground",
-    success: "bg-green-100 text-green-800",
-    warning: "bg-amber-100 text-amber-800",
-    danger: "bg-red-100 text-red-800",
-  };
+}: React.HTMLAttributes<HTMLSpanElement> & { tone?: BadgeTone }) {
   return (
     <span
       className={cn(

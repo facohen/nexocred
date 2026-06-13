@@ -34,15 +34,15 @@ export function DataTable<TData>({
   });
 
   return (
-    <div className="rounded-lg border border-border bg-white">
+    <div className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
       <table className="w-full text-sm">
         <thead>
           {table.getHeaderGroups().map((hg) => (
-            <tr key={hg.id} className="border-b border-border text-left">
+            <tr key={hg.id} className="border-b border-border bg-surface-sunken text-left">
               {hg.headers.map((header) => (
                 <th
                   key={header.id}
-                  className="cursor-pointer select-none px-3 py-2 font-medium text-foreground/70"
+                  className="cursor-pointer select-none px-3 py-2 font-medium text-text-muted"
                   onClick={header.column.getToggleSortingHandler()}
                 >
                   {flexRender(header.column.columnDef.header, header.getContext())}
@@ -55,7 +55,7 @@ export function DataTable<TData>({
         <tbody>
           {table.getRowModel().rows.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="px-3 py-8 text-center text-foreground/50">
+              <td colSpan={columns.length} className="px-3 py-8 text-center text-text-subtle">
                 {emptyMessage}
               </td>
             </tr>
@@ -66,7 +66,7 @@ export function DataTable<TData>({
                 onClick={() => onRowClick?.(row.original)}
                 className={cn(
                   "border-b border-border last:border-0",
-                  onRowClick && "cursor-pointer hover:bg-muted",
+                  onRowClick && "cursor-pointer hover:bg-surface-sunken",
                 )}
               >
                 {row.getVisibleCells().map((cell) => (
