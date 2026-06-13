@@ -114,4 +114,24 @@ Casi todo lo encontrado es **pre-existente en main** — el branch no lo introdu
 - Seed: doble devengo de comisión (minor, afecta solo datos demo) y los 3 gaps de crash-resume (minors).
 - Offline guard: la exención de `/rendicion` sin manejo de error offline (major #30) — la exención fue una decisión de negocio correcta, falta el `onError`.
 
-Nada de esto invalida el merge: los fixes del branch son correctos y están verificados en verde (377 backend + 161 frontend).
+---
+
+## Estado de los críticos — 2026-06-13
+
+Los 8 críticos identificados fueron **corregidos con TDD** en la misma rama `stage8-adversarial-fixes`.
+
+| ID | Estado | Commit(s) | Tests agregados |
+|----|--------|-----------|-----------------|
+| C1 | ✅ RESUELTO | `bb847b8` (índice único), `ac2b6a7` (row-lock) | 2 |
+| C2 | ✅ RESUELTO | `aec432e` | 2 |
+| C3 | ✅ RESUELTO | `ff49a06` | 3 |
+| C4a | ✅ RESUELTO | `e01247b` | 3 |
+| C4b | ✅ RESUELTO | `e17aa3b` | 3 |
+| C5 | ✅ RESUELTO | `1f62ff7` | 2 |
+| C6 | ✅ RESUELTO | `8fec98b` | 2 |
+| C7 | ✅ RESUELTO | `7aa6fec` | 2 |
+| C8 | ✅ RESUELTO | `e8718c0` | 8 |
+
+**Verificación final:** 392 backend tests (0 fallos) + 173 frontend tests (0 fallos) + `ruff check` limpio + `tsc --noEmit` limpio.
+
+Los ~28 majors y ~14 minors quedan pendientes para iteraciones futuras. Ver `docs/RELEASE_NOTES.md` para el resumen ejecutivo.

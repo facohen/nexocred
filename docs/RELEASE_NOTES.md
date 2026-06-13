@@ -76,6 +76,28 @@
    mostrador hoy opera online. *Abierto: definir si el mostrador debe soportar
    captura offline-strict (cola local + sync) como la ruta, o permanecer online.*
 
+## Stage 8 — Fixes de auditoría (8 críticos)
+
+> Auditoria end-to-end realizada el 2026-06-12 sobre todo el código (no solo el diff).
+> Metodología: 8 agentes de búsqueda independientes → 57 candidatos → verificación adversarial.
+> Resultado: 49 hallazgos (8 críticos, ~28 majors, ~14 minors). Ver `docs/AUDITORIA_CODIGO_2026-06-12.md`.
+>
+> Los 8 críticos fueron corregidos con TDD (rojo → verde por fix). Rama: `stage8-adversarial-fixes`.
+
+| ID | Problema | Archivos modificados | Commit |
+|----|----------|----------------------|--------|
+| C1 | Doble desembolso (sin row-lock + sin unique constraint) | `m02/servicio_desembolso.py`, `locking.py`, `modelos_stub.py`, migración `0006_criticos.py` | `bb847b8`, `ac2b6a7` |
+| C2 | Doble corrección de pago (lock después del check) | `m04_pagos/servicio.py` | `aec432e` |
+| C3 | Préstamo novado sigue cobrable (cuotas no se cierran) | `m06_novaciones/servicio.py`, `m04_pagos/servicio.py`, migración `0007` | `ff49a06` |
+| C4a | Cobrador aprueba su propia rendición | `m05_ruta/servicio.py` | `e01247b` |
+| C4b | IDOR de rutas (cobrador opera ruta ajena) | `m05_ruta/router.py` | `e17aa3b` |
+| C5 | Doble liquidación de comisiones (sin deduplicar devengos + sin lock) | `m09_comisiones/servicio.py`, `locking.py` | `1f62ff7` |
+| C6 | Idempotency-Key no rota tras pago exitoso (frontend) | `RegistrarPagoPage.tsx` | `8fec98b` |
+| C7 | Doble-tap en visita = doble cobro (IDs frescos en cada call) | `VisitaCaptureForm.tsx` | `7aa6fec` |
+| C8 | Loop infinito de redirect post-login para cobrador/tesorería | `guards.ts`, `router.tsx` | `e8718c0` |
+
+Los ~28 majors y ~14 minors quedan trackeados en el informe de auditoría para las próximas iteraciones.
+
 ## Verificacion final (Release Candidate)
 
 > Completada en la pasada final (Stage 8, Task 9). Resultados:
@@ -89,10 +111,10 @@
 
 ### Resultados registrados
 
-- **Backend:** 373 tests, 373 passed (349 previos + 24 de Stage 8).
-- **Frontend:** 35 archivos, 154 tests passed; typecheck y build verdes.
-- **Migraciones limpias:** `alembic upgrade head` OK (DB scratch nueva).
-- **Lint/typecheck:** ruff clean; pyright 0 errores en `backend/app`.
+- **Backend:** 392 tests, 392 passed (377 pre-auditoría + 15 nuevos de fixes C1–C5, C4a, C4b).
+- **Frontend:** 38 archivos, 173 tests passed; typecheck y build verdes (+12 tests de C6, C7, C8).
+- **Migraciones limpias:** `alembic upgrade head` OK (revisiones `0006_criticos`, `0007_cuota_estado_cancelada`).
+- **Lint/typecheck:** `ruff check backend` limpio; `tsc --noEmit` limpio.
 - **Compose:** `docker compose config` valido.
 - **Siembra -> Torre:** 20 personas / 12 prestamos / 4 en mora; pulso ->
   vigentes=12, en_mora=4, colocacion=800000.00, intereses=15000.00,
