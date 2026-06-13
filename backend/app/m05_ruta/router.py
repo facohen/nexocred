@@ -42,6 +42,19 @@ async def _get_ruta(session, ruta_id: uuid.UUID):
     return ruta
 
 
+def _es_admin(actor: Usuario) -> bool:
+    """Check if actor has admin role."""
+    return any(r.nombre == "admin" for r in actor.roles)
+
+
+async def _get_ruta_propia(session, ruta_id: uuid.UUID, actor: Usuario):
+    """Load ruta and raise 403 if actor is not admin and is not the assigned cobrador."""
+    ruta = await _get_ruta(session, ruta_id)
+    if not _es_admin(actor) and ruta.cobrador_id != actor.id:
+        raise ErrorAPI("acceso_denegado", "no tenés acceso a esta ruta", status=403)
+    return ruta
+
+
 def _parada_out(p) -> ParadaOut:
     return ParadaOut(
         id=p.id, ruta_id=p.ruta_id, prestamo_id=p.prestamo_id, orden=p.orden,
@@ -78,9 +91,9 @@ async def listar_rutas(
 
 @router.get("/rutas/{ruta_id}", response_model=RutaDetalleOut)
 async def detalle_ruta(
-    ruta_id: uuid.UUID, session: SessionDep, _: RutaUser
+    ruta_id: uuid.UUID, session: SessionDep, actor: RutaUser
 ) -> RutaDetalleOut:
-    ruta = await _get_ruta(session, ruta_id)
+    ruta = await _get_ruta_propia(session, ruta_id, actor)
     paradas = await servicio.paradas_de_ruta(session, ruta_id)
     return RutaDetalleOut(
         id=ruta.id, cobrador_id=ruta.cobrador_id, fecha=ruta.fecha, estado=ruta.estado,
@@ -125,7 +138,7 @@ async def visitar_parada(
     session: SessionDep,
     actor: RutaUser,
 ) -> VisitarOut:
-    ruta = await _get_ruta(session, ruta_id)
+    ruta = await _get_ruta_propia(session, ruta_id, actor)
     parada = await servicio.obtener_parada(session, parada_id)
     if parada is None or parada.ruta_id != ruta_id:
         raise ErrorAPI("parada_no_encontrada", "parada inexistente", status=404)
@@ -142,7 +155,7 @@ async def visitar_parada(
 async def sync_ruta(
     ruta_id: uuid.UUID, datos: SyncIn, session: SessionDep, actor: RutaUser
 ) -> SyncOut:
-    ruta = await _get_ruta(session, ruta_id)
+    ruta = await _get_ruta_propia(session, ruta_id, actor)
     return await sincronizar(
         session, ruta=ruta, paradas=datos.paradas, caja_id=datos.caja_id,
         actor_id=actor.id,

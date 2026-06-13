@@ -552,3 +552,118 @@ class TestC4aAutoAprobacion:
             headers=_h(cobrador_token),
         )
         assert r.status_code in (200, 201), r.text
+
+
+# ── helpers for C4b ────────────────────────────────────────────────────────
+
+async def _crear_segundo_cobrador(client, admin_token: str) -> dict:
+    """Create a second cobrador user and return {'id': ..., 'token': ...}."""
+    r = await client.post(
+        "/api/v1/usuarios",
+        json={
+            "email": "cobrador2@nexo.test",
+            "nombre": "Cobrador2",
+            "password": "secreto123",
+            "roles": ["cobrador"],
+        },
+        headers=_h(admin_token),
+    )
+    assert r.status_code == 201, r.text
+    usuario_id = r.json()["id"]
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "cobrador2@nexo.test", "password": "secreto123"},
+    )
+    token = login.json()["access_token"]
+    return {"id": usuario_id, "token": token}
+
+
+async def _seed_ruta_con_parada(client, cobrador_usuario: dict, admin_token: str, session, dni: str) -> dict:
+    """Create a ruta with at least one parada assigned to cobrador. Returns {ruta_id, parada_id}."""
+    from tests.integration._helpers_f1c import relajar_bcra
+    from tests.integration.test_pagos_waterfall import _prestamo_desembolsado
+
+    await relajar_bcra(client, admin_token)
+    _prestamo, _caja = await _prestamo_desembolsado(
+        client, admin_token, session, fpc_offset=-30,
+        cuil=cuil_valido(dni), dni=dni,
+    )
+    cobrador_id = cobrador_usuario["id"]
+
+    r = await client.post(
+        "/api/v1/rutas",
+        json={"cobrador_id": cobrador_id, "fecha": date.today().isoformat()},
+        headers=_h(admin_token),
+    )
+    assert r.status_code == 201, r.text
+    ruta_id = r.json()["id"]
+
+    rd = await client.get(f"/api/v1/rutas/{ruta_id}", headers=_h(admin_token))
+    assert rd.status_code == 200, rd.text
+    paradas = rd.json()["paradas"]
+    parada_id = paradas[0]["id"] if paradas else None
+    return {"ruta_id": ruta_id, "parada_id": parada_id}
+
+
+# ── C4b: IDOR de rutas ─────────────────────────────────────────────────────
+
+
+class TestC4bIDOR:
+
+    async def test_cobrador_no_puede_visitar_ruta_ajena(
+        self, client, cobrador_usuario: dict, admin_token: str, session
+    ):
+        """Cobrador B no puede visitar una parada de la ruta del cobrador A."""
+        datos = await _seed_ruta_con_parada(
+            client, cobrador_usuario, admin_token, session, "42000001"
+        )
+        ruta_id = datos["ruta_id"]
+        parada_id = datos["parada_id"]
+        if parada_id is None:
+            pytest.skip("no hay paradas en la ruta")
+
+        cobrador_b = await _crear_segundo_cobrador(client, admin_token)
+
+        r = await client.post(
+            f"/api/v1/rutas/{ruta_id}/paradas/{parada_id}/visitar",
+            json={"resultado": "ausente", "fecha_negocio": date.today().isoformat()},
+            headers=_h(cobrador_b["token"]),
+        )
+        assert r.status_code == 403, r.text
+
+    async def test_cobrador_no_puede_sincronizar_ruta_ajena(
+        self, client, cobrador_usuario: dict, admin_token: str, session
+    ):
+        """Cobrador B no puede sincronizar la ruta del cobrador A."""
+        datos = await _seed_ruta_con_parada(
+            client, cobrador_usuario, admin_token, session, "42000002"
+        )
+        ruta_id = datos["ruta_id"]
+
+        cobrador_b = await _crear_segundo_cobrador(client, admin_token)
+
+        r = await client.post(
+            f"/api/v1/rutas/{ruta_id}/sync",
+            json={"paradas": []},
+            headers=_h(cobrador_b["token"]),
+        )
+        assert r.status_code == 403, r.text
+
+    async def test_admin_puede_visitar_ruta_de_cobrador(
+        self, client, cobrador_usuario: dict, admin_token: str, session
+    ):
+        """Admin puede operar la ruta de cualquier cobrador."""
+        datos = await _seed_ruta_con_parada(
+            client, cobrador_usuario, admin_token, session, "42000003"
+        )
+        ruta_id = datos["ruta_id"]
+        parada_id = datos["parada_id"]
+        if parada_id is None:
+            pytest.skip("no hay paradas en la ruta")
+
+        r = await client.post(
+            f"/api/v1/rutas/{ruta_id}/paradas/{parada_id}/visitar",
+            json={"resultado": "ausente", "fecha_negocio": date.today().isoformat()},
+            headers=_h(admin_token),
+        )
+        assert r.status_code in (200, 201), r.text
