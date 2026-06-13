@@ -93,17 +93,29 @@ export function LoginPage({ onSuccess }: { onSuccess?: () => void }) {
             Usuarios de demo — contraseña: <span className="font-mono">{DEMO_PASSWORD}</span>
           </p>
           <div className="space-y-1">
-            {DEMO_USERS.map(({ rol, email: demoEmail }) => (
-              <button
-                key={rol}
-                type="button"
-                onClick={() => { setEmail(demoEmail); setPassword(DEMO_PASSWORD); setError(null); }}
-                className="flex w-full items-center justify-between rounded px-2 py-1 text-left text-sm transition-colors hover:bg-muted"
-              >
-                <span className="w-20 font-medium capitalize text-foreground/80">{rol}</span>
-                <span className="font-mono text-xs text-foreground/50">{demoEmail}</span>
-              </button>
-            ))}
+            {DEMO_USERS.map(({ rol, email: demoEmail }) => {
+              const isActive = email === demoEmail;
+              return (
+                <button
+                  key={rol}
+                  type="button"
+                  onClick={() => { setEmail(demoEmail); setPassword(DEMO_PASSWORD); setError(null); }}
+                  className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm transition-colors ${
+                    isActive
+                      ? "bg-primary/10 ring-1 ring-primary/30"
+                      : "hover:bg-muted"
+                  }`}
+                >
+                  <span className={`w-4 text-center text-xs ${isActive ? "text-primary" : "text-foreground/20"}`}>
+                    {isActive ? "▶" : "·"}
+                  </span>
+                  <span className={`w-20 font-medium capitalize ${isActive ? "text-primary" : "text-foreground/70"}`}>
+                    {rol}
+                  </span>
+                  <span className="font-mono text-xs text-foreground/40">{demoEmail}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
