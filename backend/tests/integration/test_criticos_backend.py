@@ -430,3 +430,125 @@ class TestC5DobleLiquidacion:
         assert r2.status_code == 201, r2.text
         liq2 = r2.json()
         assert float(liq2["monto_total"]) == 0.0 or len(liq2.get("detalle", [])) == 0
+
+
+# ── helpers for C4a ────────────────────────────────────────────────────────
+
+async def _seed_rendicion_del_cobrador(
+    client, cobrador_usuario: dict, admin_token: str, session, dni: str
+) -> dict:
+    """Create a ruta assigned to cobrador, make a cobro, create a rendicion in 'abierta' state."""
+    from tests.integration._helpers_f1c import relajar_bcra
+    from tests.integration.test_pagos_waterfall import _prestamo_desembolsado
+
+    await relajar_bcra(client, admin_token)
+    _prestamo, caja = await _prestamo_desembolsado(
+        client, admin_token, session, fpc_offset=-30,
+        cuil=cuil_valido(dni), dni=dni,
+    )
+    cobrador_id = cobrador_usuario["id"]
+    cobrador_token = cobrador_usuario["token"]
+
+    # Create ruta assigned to the cobrador
+    r = await client.post(
+        "/api/v1/rutas",
+        json={"cobrador_id": cobrador_id, "fecha": date.today().isoformat()},
+        headers=_h(admin_token),
+    )
+    assert r.status_code == 201, r.text
+    ruta_id = r.json()["id"]
+
+    # Get parada and visitar
+    rd = await client.get(f"/api/v1/rutas/{ruta_id}", headers=_h(admin_token))
+    assert rd.status_code == 200, rd.text
+    paradas = rd.json()["paradas"]
+    if paradas:
+        parada_id = paradas[0]["id"]
+        await client.post(
+            f"/api/v1/rutas/{ruta_id}/paradas/{parada_id}/visitar",
+            json={"resultado": "pago", "monto_cobrado": "5000.00", "caja_id": caja,
+                  "fecha_negocio": date.today().isoformat()},
+            headers=_h(cobrador_token),
+        )
+
+    # Create rendicion (cobrador can create their own rendicion)
+    rend = await client.post(
+        "/api/v1/rendiciones",
+        json={"ruta_id": ruta_id, "fecha_negocio": date.today().isoformat()},
+        headers=_h(cobrador_token),
+    )
+    assert rend.status_code == 201, rend.text
+    return rend.json()
+
+
+async def _seed_rendicion_presentada(
+    client, cobrador_usuario: dict, admin_token: str, session, dni: str
+) -> dict:
+    """Seed rendicion and advance it to 'presentada' state."""
+    rendicion = await _seed_rendicion_del_cobrador(
+        client, cobrador_usuario, admin_token, session, dni
+    )
+    rid = rendicion["id"]
+    cobrador_token = cobrador_usuario["token"]
+
+    # Advance abierta -> presentada (cobrador can do this)
+    r = await client.patch(
+        f"/api/v1/rendiciones/{rid}",
+        json={"estado": "presentada"},
+        headers=_h(cobrador_token),
+    )
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+# ── C4a: Cobrador aprueba su propia rendición ──────────────────────────────
+
+
+class TestC4aAutoAprobacion:
+
+    async def test_cobrador_no_puede_aprobar_su_propia_rendicion(
+        self, client, cobrador_usuario, admin_token, session
+    ):
+        """Cobrador que intenta aprobar su propia rendición recibe 403."""
+        rendicion = await _seed_rendicion_presentada(
+            client, cobrador_usuario, admin_token, session, "41000001"
+        )
+        cobrador_token = cobrador_usuario["token"]
+
+        r = await client.patch(
+            f"/api/v1/rendiciones/{rendicion['id']}",
+            json={"estado": "aprobada"},
+            headers=_h(cobrador_token),
+        )
+        assert r.status_code == 403, r.text
+
+    async def test_admin_puede_aprobar_rendicion_de_cobrador(
+        self, client, cobrador_usuario, admin_token, session
+    ):
+        """Admin puede aprobar la rendición de un cobrador."""
+        rendicion = await _seed_rendicion_presentada(
+            client, cobrador_usuario, admin_token, session, "41000002"
+        )
+
+        r = await client.patch(
+            f"/api/v1/rendiciones/{rendicion['id']}",
+            json={"estado": "aprobada"},
+            headers=_h(admin_token),
+        )
+        assert r.status_code in (200, 201), r.text
+
+    async def test_cobrador_puede_presentar_su_propia_rendicion(
+        self, client, cobrador_usuario, admin_token, session
+    ):
+        """Cobrador puede PRESENTAR (no aprobar) su rendición."""
+        rendicion = await _seed_rendicion_del_cobrador(
+            client, cobrador_usuario, admin_token, session, "41000003"
+        )
+        cobrador_token = cobrador_usuario["token"]
+
+        r = await client.patch(
+            f"/api/v1/rendiciones/{rendicion['id']}",
+            json={"estado": "presentada"},
+            headers=_h(cobrador_token),
+        )
+        assert r.status_code in (200, 201), r.text

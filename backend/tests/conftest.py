@@ -243,3 +243,35 @@ async def tesoreria_token(client, roles_seed) -> str:
         json={"email": "tesoreria@nexo.test", "password": "secreto123"},
     )
     return r.json()["access_token"]
+
+
+@pytest_asyncio.fixture
+async def cobrador_usuario(client, roles_seed) -> dict:
+    """Crea un usuario cobrador y devuelve {'id': ..., 'token': ...}."""
+    from app.m12_auth.servicio import crear_usuario
+
+    engine = make_test_engine()
+    maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    async with maker() as s:
+        u = await crear_usuario(
+            s,
+            email="cobrador@nexo.test",
+            nombre="Cobrador",
+            password="secreto123",
+            roles=["cobrador"],
+            actor_id=None,
+        )
+        await s.commit()
+        usuario_id = str(u.id)
+    await engine.dispose()
+    r = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "cobrador@nexo.test", "password": "secreto123"},
+    )
+    token = r.json()["access_token"]
+    return {"id": usuario_id, "token": token}
+
+
+@pytest_asyncio.fixture
+async def cobrador_token(cobrador_usuario) -> str:
+    return cobrador_usuario["token"]

@@ -370,6 +370,12 @@ async def cambiar_estado_rendicion(
             f"no se puede pasar de {rendicion.estado} a {estado}",
             status=409,
         )
+    if estado == "aprobada" and actor_id is not None and actor_id == rendicion.cobrador_id:
+        raise ErrorAPI(
+            "aprobacion_propia_no_permitida",
+            "un cobrador no puede aprobar su propia rendición",
+            status=403,
+        )
     if estado == "aprobada":
         await _recalcular_diferencia(session, rendicion)
     rendicion.estado = estado

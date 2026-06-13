@@ -16,15 +16,16 @@ async def _cobrador_id(session) -> str:
     return str(res.scalar_one())
 
 
-async def _ruta_con_cobro(client, token, session, dni, monto="6000.00"):
+async def _ruta_con_cobro(client, token, session, dni, monto="6000.00", cobrador_id=None):
     await relajar_bcra(client, token)
     _prestamo, caja = await _prestamo_desembolsado(
         client, token, session, fpc_offset=-30, cuil=cuil_valido(dni), dni=dni
     )
-    cobrador = await _cobrador_id(session)
+    if cobrador_id is None:
+        cobrador_id = await _cobrador_id(session)
     r = await client.post(
         "/api/v1/rutas",
-        json={"cobrador_id": cobrador, "fecha": date.today().isoformat()},
+        json={"cobrador_id": cobrador_id, "fecha": date.today().isoformat()},
         headers=_h(token),
     )
     ruta_id = r.json()["id"]
@@ -84,10 +85,15 @@ async def test_rendicion_total_cobrado_y_diferencia(client, admin_token, session
     )
 
 
-async def test_rendicion_state_machine(client, admin_token, session):
-    ruta_id, _caja = await _ruta_con_cobro(client, admin_token, session, "12121212")
+async def test_rendicion_state_machine(client, admin_token, cobrador_usuario, session):
+    # Use cobrador_usuario as cobrador so admin (approver) is different from cobrador
+    cobrador_id = cobrador_usuario["id"]
+    cobrador_token = cobrador_usuario["token"]
+    ruta_id, _caja = await _ruta_con_cobro(
+        client, admin_token, session, "12121212", cobrador_id=cobrador_id
+    )
     r = await client.post(
-        "/api/v1/rendiciones", json={"ruta_id": ruta_id}, headers=_h(admin_token)
+        "/api/v1/rendiciones", json={"ruta_id": ruta_id}, headers=_h(cobrador_token)
     )
     rid = r.json()["id"]
     assert r.json()["estado"] == "abierta"
@@ -99,10 +105,10 @@ async def test_rendicion_state_machine(client, admin_token, session):
     )
     assert bad.status_code == 409, bad.text
 
-    # abierta -> presentada -> aprobada ok
+    # abierta -> presentada -> aprobada ok (cobrador presents, admin approves)
     p = await client.patch(
         f"/api/v1/rendiciones/{rid}", json={"estado": "presentada"},
-        headers=_h(admin_token),
+        headers=_h(cobrador_token),
     )
     assert p.status_code == 200, p.text
     a = await client.patch(
