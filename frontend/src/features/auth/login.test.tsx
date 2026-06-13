@@ -23,8 +23,11 @@ describe("LoginPage", () => {
   it("guarda el token y navega al ingresar credenciales validas", async () => {
     const onSuccess = vi.fn();
     renderLogin(onSuccess);
-    await userEvent.type(screen.getByLabelText(/email/i), "admin@nexocred.test");
-    await userEvent.type(screen.getByLabelText(/contraseña/i), "secret");
+    // Los campos vienen pre-rellenados; limpiar antes de tipear.
+    await userEvent.clear(screen.getByLabelText(/email/i));
+    await userEvent.type(screen.getByLabelText(/email/i), "admin.full@nexocred.test");
+    await userEvent.clear(screen.getByLabelText(/contraseña/i));
+    await userEvent.type(screen.getByLabelText(/contraseña/i), "demo12345");
     await userEvent.click(screen.getByRole("button", { name: /ingresar/i }));
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
     expect(getToken()?.access_token).toBeTruthy();
@@ -40,7 +43,9 @@ describe("LoginPage", () => {
       ),
     );
     renderLogin();
+    await userEvent.clear(screen.getByLabelText(/email/i));
     await userEvent.type(screen.getByLabelText(/email/i), "x@y.com");
+    await userEvent.clear(screen.getByLabelText(/contraseña/i));
     await userEvent.type(screen.getByLabelText(/contraseña/i), "bad");
     await userEvent.click(screen.getByRole("button", { name: /ingresar/i }));
     expect(await screen.findByText(/Email o contraseña incorrectos/i)).toBeInTheDocument();

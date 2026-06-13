@@ -531,12 +531,13 @@ export const usuarios = [
 
 /** Map of email → roles for the login mock. */
 export const loginRoles: Record<string, string[]> = {
-  "admin@nexocred.test": ["admin"],
-  "analista@nexocred.test": ["analista"],
-  "cobrador@nexocred.test": ["cobrador"],
-  "vendedor@nexocred.test": ["vendedor"],
-  "operador@nexocred.test": ["operador"],
-  "tesoreria@nexocred.test": ["tesoreria"],
+  "admin.full@nexocred.test":     ["admin"],
+  "analista.full@nexocred.test":  ["analista"],
+  "cobrador_a.full@nexocred.test": ["cobrador"],
+  "cobrador_b.full@nexocred.test": ["cobrador"],
+  "vendedor.full@nexocred.test":  ["vendedor"],
+  "operador.full@nexocred.test":  ["operador"],
+  "tesoreria.full@nexocred.test": ["tesoreria"],
 };
 
 function base64Url(obj: unknown): string {

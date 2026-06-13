@@ -18,7 +18,7 @@ describe("MSW handlers", () => {
   it("POST /auth/login devuelve un token", async () => {
     const tok = await apiFetch<TokenOut>("/auth/login", {
       method: "POST",
-      body: { email: "admin@nexocred.test", password: "secret" },
+      body: { email: "admin.full@nexocred.test", password: "demo12345" },
     });
     expect(tok.access_token).toBeTruthy();
     expect(tok.token_type).toBe("bearer");
