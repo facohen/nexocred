@@ -22,7 +22,8 @@ export function RegistrarPagoPage() {
   const [canal, setCanal] = useState("efectivo");
   const [cajaId, setCajaId] = useState("caja-1");
   // Stable key so retries of the SAME pago reuse it (idempotency).
-  const [idemKey] = useState(() => newIdempotencyKey());
+  // Rotated after each successful submission so a new pago gets a fresh key.
+  const [idemKey, setIdemKey] = useState(() => newIdempotencyKey());
   const [error, setError] = useState<string | null>(null);
   const [correccionPago, setCorreccionPago] = useState<string | null>(null);
 
@@ -40,7 +41,10 @@ export function RegistrarPagoPage() {
     } as unknown as components["schemas"]["PagoCreate"];
     try {
       await registrar.mutateAsync({ body, idempotencyKey: idemKey });
+      // Rotate key so the next (different) pago gets a fresh idempotency key.
+      setIdemKey(newIdempotencyKey());
     } catch (err) {
+      // On error, keep the same key so a retry is safely deduplicated.
       setError(err instanceof ApiError ? err.message : "No se pudo registrar el pago");
     }
   }
