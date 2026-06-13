@@ -5,27 +5,33 @@ Construye un portafolio rico de 6 meses a traves de la capa de servicios
 cronogramas materializados, conservacion de caja).
 
 Cubre:
-- 50 personas con BCRA reciente
-- ~35 prestamos con ciclos de vida completos (vigente, en_mora, pagado,
-  cancelado, novado/refinanciado/consolidado)
+- 50 personas con BCRA reciente (solo las que pasan filtro se usan para prestamos)
+- 3 perfiles de pricing con distintas tasas (28% / 32% / 38%)
+- ~35 prestamos con ciclos de vida completos:
+    * Lote A: cancelados en su totalidad via m03_prestamos.cancelar()
+    * Lote B: vigentes con pagos puntuales cuota a cuota
+    * Lote C: morosos sin ningun pago (primera cuota >30 dias vencida)
+    * Lote D: novados (refinanciacion + consolidacion, mismo deudor)
+    * Lote E: mix — pagos a cuenta (excedente), pagos parciales, cancelacion anticipada
 - Pagos multi-cuota con waterfall real (capital/interes/punitorio/excedente)
+- Pagos sobredimensionados que generan excedente
 - 2 novaciones: refinanciacion y consolidacion
-- 3 meses de rutas (cobrador A y cobrador B) con visitas variadas
-- 3 periodos de liquidacion de comisiones
-- Snapshots de cartera diarios para cada semana del rango
-- CRM: tareas e incidentes por persona morosa
-- Documentos: cronograma + recibo por prestamo
+- 5 rutas (cobrador A x3 fechas + cobrador B x2 fechas) con visitas variadas
+- 3 periodos de liquidacion de comisiones (aprobadas y pagadas)
+- Snapshots de cartera semanales para 6 meses
+- CRM: tareas e incidentes para personas morosas
+- Documentos: cronograma + recibo por los primeros 10 prestamos
 - Alertas de mora por rango completo
 
 Idempotente y crash-safe: el marcador MARCADOR_COMPLETO se escribe ULTIMO.
 Fechas deterministas: todo se ancla en FECHA_ANCLA (nunca today()).
 
 Uso:
-    cd backend && conda run -n nexocred python -m scripts.seed_full [--reset]
+    cd backend && conda run -n nexocred python -m scripts.seed_full
+    cd backend && conda run -n nexocred python -m scripts.seed_full --reset
 """
 
 import asyncio
-import contextlib
 import sys
 import uuid
 from datetime import date, timedelta
@@ -45,6 +51,7 @@ from app.m01_personas.schemas import PersonaCreate, ReferenciaIn
 from app.m01_personas.servicio import crear_persona
 from app.m02_originacion import servicio as orig
 from app.m02_originacion.servicio_desembolso import desembolsar
+from app.m03_prestamos import servicio as prest
 from app.m04_caja.modelos import Caja
 from app.m04_caja.servicio import crear_caja
 from app.m04_pagos.servicio import registrar_pago
@@ -83,11 +90,10 @@ from app.m15_catalogo.schemas import (
 from app.modelos_stub import Prestamo, RutaDiaria, SolicitudCredito
 
 # ---------------------------------------------------------------------------
-# Anclas
+# Anclas deterministas
 # ---------------------------------------------------------------------------
-# El portafolio cubre 6 meses terminando en FECHA_ANCLA.
 FECHA_ANCLA = date(2026, 6, 1)
-FECHA_INICIO = date(2026, 1, 1)          # primer desembolso del rango
+FECHA_INICIO = date(2026, 1, 1)
 SEMILLA = 99
 ADMIN_EMAIL = "admin.full@nexocred.test"
 N_PERSONAS = 50
@@ -97,47 +103,69 @@ ROLES = ("admin", "analista", "cobrador", "vendedor", "operador", "tesoreria")
 MARCADOR_COMPLETO = "seed_full_completo"
 _OP_MARCADOR = "seed_full"
 
-# Configuracion de la cartera sintetica
-# Cada tupla: (indice_persona, monto, cuotas, delta_dias_hasta_desembolso_desde_inicio,
-#              primera_cuota_offset_dias, moroso)
-# delta_dias_hasta_desembolso_desde_inicio: 0 = primer dia, 30 = mes 2, etc.
-_LOTES_PRESTAMO: list[tuple[int, Decimal, int, int, int, bool]] = [
-    # --- Lote A: prestamos pagados en su totalidad (meses 1-2) ---
-    (0,  Decimal("80000.00"),   3,   0,  30, False),
-    (1,  Decimal("120000.00"),  6,   5,  30, False),
-    (2,  Decimal("60000.00"),   3,  10,  30, False),
-    (3,  Decimal("200000.00"),  6,  15,  30, False),
-    (4,  Decimal("150000.00"),  3,  20,  30, False),
-    # --- Lote B: vigentes sin mora (desembolsos recientes) ---
-    (5,  Decimal("90000.00"),   6,  90,  30, False),
-    (6,  Decimal("180000.00"), 12,  95,  30, False),
-    (7,  Decimal("75000.00"),   6, 100,  30, False),
-    (8,  Decimal("110000.00"),  6, 105,  30, False),
-    (9,  Decimal("250000.00"), 12, 110,  30, False),
-    (10, Decimal("130000.00"),  6, 115,  30, False),
-    (11, Decimal("95000.00"),   6, 120,  30, False),
-    (12, Decimal("70000.00"),   3, 125,  30, False),
-    (13, Decimal("160000.00"), 12, 130,  30, False),
-    (14, Decimal("100000.00"),  6, 135,  30, False),
-    # --- Lote C: morosos (primera cuota vencida hace >30 dias) ---
-    (15, Decimal("85000.00"),   6,  30, -45, True),
-    (16, Decimal("140000.00"),  6,  35, -45, True),
-    (17, Decimal("200000.00"), 12,  40, -45, True),
-    (18, Decimal("50000.00"),   3,  45, -45, True),
-    (19, Decimal("175000.00"),  6,  50, -45, True),
-    # --- Lote D: candidatos a novar (vigentes, meses 2-3) ---
-    (20, Decimal("100000.00"),  6,  30,  30, False),
-    (21, Decimal("90000.00"),   6,  35,  30, False),
-    (22, Decimal("80000.00"),   6,  40,  30, False),
-    # --- Lote E: mix adicional para volumetria ---
-    (23, Decimal("55000.00"),   3,  60,  30, False),
-    (24, Decimal("220000.00"), 12,  65,  30, False),
-    (25, Decimal("170000.00"),  6,  70,  30, False),
-    (26, Decimal("90000.00"),   6,  75,  30, False),
-    (27, Decimal("130000.00"), 12,  80,  30, False),
-    (28, Decimal("75000.00"),   6,  85,  30, False),
-    (29, Decimal("110000.00"),  6,  88,  30, False),
+# ---------------------------------------------------------------------------
+# Lotes de prestamo
+#
+# Cada entrada: (p_idx, monto, cuotas, delta_des_dias, offset_pc_dias, lote_tag)
+# delta_des_dias: dias desde FECHA_INICIO hasta el desembolso
+# offset_pc_dias: dias desde el desembolso hasta la primera cuota
+#   positivo -> futura; negativo -> ya vencida (moroso)
+# lote_tag: "pagado" | "vigente" | "moroso" | "novar_refi" | "novar_consol_a"
+#           | "novar_consol_b" | "excedente" | "cancelar" | "mix"
+# ---------------------------------------------------------------------------
+_LOTES: list[tuple[int, Decimal, int, int, int, str]] = [
+    # ---- Lote A: cancelados (pago total via m03.cancelar) ----
+    (0,  Decimal("80000.00"),   3,   0,  30, "cancelar"),
+    (1,  Decimal("120000.00"),  6,   5,  30, "cancelar"),
+    (2,  Decimal("60000.00"),   3,  10,  30, "cancelar"),
+    # ---- Lote B: pagados cuota a cuota (estado final = pagado) ----
+    (3,  Decimal("200000.00"),  3,  15,  30, "pagado"),
+    (4,  Decimal("150000.00"),  3,  20,  30, "pagado"),
+    (5,  Decimal("90000.00"),   3,  25,  30, "pagado"),
+    # ---- Lote C: vigentes con pagos puntuales ----
+    (6,  Decimal("180000.00"), 12,  90,  30, "vigente"),
+    (7,  Decimal("75000.00"),   6,  95,  30, "vigente"),
+    (8,  Decimal("110000.00"),  6, 100,  30, "vigente"),
+    (9,  Decimal("250000.00"), 12, 105,  30, "vigente"),
+    (10, Decimal("130000.00"),  6, 110,  30, "vigente"),
+    (11, Decimal("95000.00"),   6, 115,  30, "vigente"),
+    (12, Decimal("70000.00"),   3, 120,  30, "vigente"),
+    (13, Decimal("160000.00"), 12, 125,  30, "vigente"),
+    (14, Decimal("100000.00"),  6, 130,  30, "vigente"),
+    # ---- Lote D: morosos (primera cuota ya vencida) ----
+    (15, Decimal("85000.00"),   6,  30, -45, "moroso"),
+    (16, Decimal("140000.00"),  6,  35, -45, "moroso"),
+    (17, Decimal("200000.00"), 12,  40, -45, "moroso"),
+    (18, Decimal("50000.00"),   3,  45, -45, "moroso"),
+    (19, Decimal("175000.00"),  6,  50, -45, "moroso"),
+    # ---- Lote E: novaciones (refinanciacion) — slot 20 ----
+    (20, Decimal("100000.00"),  6,  30,  30, "novar_refi"),
+    # ---- Lote F: novacion consolidacion — slots 21 + 22, MISMA persona p_idx=21 ----
+    (21, Decimal("90000.00"),   6,  35,  30, "novar_consol_a"),
+    (21, Decimal("80000.00"),   6,  38,  30, "novar_consol_b"),
+    # ---- Lote G: pagos con excedente (monto > deuda) ----
+    (22, Decimal("55000.00"),   3,  60,  30, "excedente"),
+    (23, Decimal("75000.00"),   3,  65,  30, "excedente"),
+    # ---- Lote H: cancelacion anticipada (pago total antes de vencer todas) ----
+    (24, Decimal("220000.00"), 12,  62,  30, "cancelar_anticipado"),
+    (25, Decimal("170000.00"),  6,  68,  30, "cancelar_anticipado"),
+    # ---- Lote I: mix (pagos parciales / tasa alta) ----
+    (26, Decimal("90000.00"),   6,  72,  30, "mix"),
+    (27, Decimal("130000.00"), 12,  78,  30, "mix"),
+    (28, Decimal("75000.00"),   6,  83,  30, "mix"),
+    (29, Decimal("110000.00"),  6,  86,  30, "mix"),
 ]
+
+# Perfiles de pricing con tasas diferenciadas
+_PERFILES_TASAS = [
+    ("Estandar Full",    Decimal("0.28")),
+    ("Premium Full",     Decimal("0.32")),
+    ("Riesgo Alto Full", Decimal("0.38")),
+]
+
+# Asignacion de perfil por slot (ciclico para distribuir)
+def _perfil_para_slot(slot: int) -> str:
+    return _PERFILES_TASAS[slot % len(_PERFILES_TASAS)][0]
 
 
 # ---------------------------------------------------------------------------
@@ -145,8 +173,8 @@ _LOTES_PRESTAMO: list[tuple[int, Decimal, int, int, int, bool]] = [
 # ---------------------------------------------------------------------------
 
 class _SeedBcraClient:
-    """Delega en el fake pero reestampa fecha_informe a hoy para que las personas
-    aprueben bajo la vigencia BCRA por defecto (sin tocar PARAMETROS_GLOBALES)."""
+    """Re-estampa fecha_informe a hoy para que las personas aprueben bajo la
+    vigencia BCRA por defecto sin tocar PARAMETROS_GLOBALES."""
 
     def __init__(self) -> None:
         self._fake = FakeBcraClient()
@@ -163,7 +191,9 @@ class _SeedBcraClient:
 
 
 def _cuil(i: int) -> str:
-    dni = 40_000_000 + i
+    """CUIL valido y determinista. Base 41M evita que el digito verificador sea 0
+    (CUIL terminado en 0 = BCRA vacio en el fake client → no aprobable)."""
+    dni = 41_000_000 + i
     base = "20" + str(dni)
     dv = calcular_digito_verificador(base)
     return base + str(dv)
@@ -174,9 +204,9 @@ def _persona_payload(i: int) -> PersonaCreate:
     return PersonaCreate(
         apellido=f"Full{i:03d}",
         nombre=f"Cliente{i:03d}",
-        dni=str(40_000_000 + i),
+        dni=str(41_000_000 + i),
         cuil=cuil,
-        fecha_nac=date(1980 + (i % 20), (i % 12) + 1, (i % 27) + 1),
+        fecha_nac=date(1975 + (i % 25), (i % 12) + 1, (i % 27) + 1),
         estado_civil="casado" if i % 3 == 0 else "soltero",
         email=f"cliente{i:03d}@full.test",
         telefono=f"11{i:08d}"[:11],
@@ -185,26 +215,26 @@ def _persona_payload(i: int) -> PersonaCreate:
         domicilio_localidad="CABA",
         domicilio_provincia="Buenos Aires",
         tipo_vivienda="propia" if i % 2 == 0 else "alquilada",
-        ingresos_declarados=Decimal(str(300_000 + i * 5_000)),
-        ingresos_en_blanco=Decimal(str(250_000 + i * 4_000)),
-        ingresos_totales=Decimal(str(300_000 + i * 5_000)),
+        ingresos_declarados=Decimal(str(350_000 + i * 5_000)),
+        ingresos_en_blanco=Decimal(str(280_000 + i * 4_000)),
+        ingresos_totales=Decimal(str(350_000 + i * 5_000)),
         referencias=[
             ReferenciaIn(
                 nombre="Ref", apellido=f"Full{i:03d}",
-                telefono="1144556677", vinculo="conyuge" if i % 3 == 0 else "madre",
+                telefono="1144556677",
+                vinculo="conyuge" if i % 3 == 0 else "madre",
             )
         ],
     )
 
 
 async def _ya_sembrado(session: AsyncSession) -> bool:
-    marcador = await session.scalar(
+    return await session.scalar(
         select(IdempotencyKey).where(
             IdempotencyKey.clave == MARCADOR_COMPLETO,
             IdempotencyKey.operacion == _OP_MARCADOR,
         )
-    )
-    return marcador is not None
+    ) is not None
 
 
 async def _marcar_completo(session: AsyncSession) -> None:
@@ -223,8 +253,7 @@ async def _marcar_completo(session: AsyncSession) -> None:
 
 async def _asegurar_roles(session: AsyncSession) -> None:
     for nombre in ROLES:
-        existe = await session.scalar(select(Rol).where(Rol.nombre == nombre))
-        if existe is None:
+        if await session.scalar(select(Rol).where(Rol.nombre == nombre)) is None:
             session.add(Rol(nombre=nombre))
     await session.flush()
 
@@ -242,8 +271,39 @@ async def _get_or_create_usuario(
     )
 
 
-def _ikey(sufijo: str) -> str:
-    return f"full-{sufijo}-{SEMILLA}"
+def _ikey(*partes: str | int) -> str:
+    return f"full-{'-'.join(str(p) for p in partes)}-{SEMILLA}"
+
+
+async def _try(session: AsyncSession, coro) -> bool:  # type: ignore[type-arg]
+    """Ejecuta una coroutine; si falla hace rollback y retorna False.
+    Unico patron seguro con asyncpg: un error deja la txn abortada hasta rollback."""
+    try:
+        await coro
+        return True
+    except Exception:  # noqa: BLE001
+        await session.rollback()
+        return False
+
+
+def _fecha_primera_cuota(fecha_des: date, offset_dias: int) -> date:
+    """Normaliza la primera cuota al dia 1 del mes para evitar dias invalidos."""
+    raw = fecha_des + timedelta(days=abs(offset_dias)) * (1 if offset_dias >= 0 else -1)
+    return raw.replace(day=1)
+
+
+# ---------------------------------------------------------------------------
+# Helpers internos
+# ---------------------------------------------------------------------------
+
+async def _estado_prestamo(session: AsyncSession, prestamo_id) -> str | None:
+    """Consulta el estado actual de un prestamo directo desde la DB."""
+    from sqlalchemy import text as _text
+    row = await session.execute(
+        _text("SELECT estado FROM prestamo WHERE id = :id"), {"id": str(prestamo_id)}
+    )
+    result = row.fetchone()
+    return result[0] if result else None
 
 
 # ---------------------------------------------------------------------------
@@ -251,9 +311,9 @@ def _ikey(sufijo: str) -> str:
 # ---------------------------------------------------------------------------
 
 async def sembrar_full(session: AsyncSession) -> dict:
-    """Construye el portafolio completo. Idempotente y crash-safe."""
+    """Portafolio completo. Idempotente y crash-safe."""
     if await _ya_sembrado(session):
-        print("seed_full: ya sembrado, nada que hacer.")  # noqa: T201
+        print("seed_full: ya sembrado.")  # noqa: T201
         return await _conteos(session)
 
     await _asegurar_roles(session)
@@ -287,7 +347,7 @@ async def sembrar_full(session: AsyncSession) -> dict:
             roles=[rol], actor_id=actor,
         )
 
-    # ---- Producto + perfil + matrices ----
+    # ---- Producto ----
     producto = await session.scalar(
         select(ProductoCredito).where(ProductoCredito.nombre == "Prestamo Personal Full")
     )
@@ -303,34 +363,34 @@ async def sembrar_full(session: AsyncSession) -> dict:
         )
         await cat.publicar_producto(session, producto, actor_id=actor)
 
-    perfil = await session.scalar(
-        select(PerfilPricing).where(PerfilPricing.nombre == "Estandar Full")
-    )
-    if perfil is None:
-        perfil = await cat.crear_perfil(
-            session, nombre="Estandar Full", descripcion=None, orden=1, actor_id=actor,
+    # ---- 3 perfiles con tasas distintas + comision por perfil ----
+    perfiles: dict[str, PerfilPricing] = {}
+    for orden, (nombre_perf, tasa_perf) in enumerate(_PERFILES_TASAS, start=1):
+        perf = await session.scalar(
+            select(PerfilPricing).where(PerfilPricing.nombre == nombre_perf)
+        )
+        if perf is None:
+            perf = await cat.crear_perfil(
+                session, nombre=nombre_perf, descripcion=None, orden=orden, actor_id=actor,
+            )
+        perfiles[nombre_perf] = perf
+        await cat.upsert_matriz_tasas(
+            session,
+            [CeldaTasaIn(
+                producto_id=producto.id, perfil_id=perf.id, plazo=p, tasa=tasa_perf,
+            ) for p in PLAZOS],
+            actor_id=actor,
+        )
+        comision = Decimal("0.03") if "Riesgo" in nombre_perf else Decimal("0.025")
+        await cat.upsert_matriz_comisiones(
+            session,
+            [CeldaComisionIn(
+                producto_id=producto.id, perfil_id=perf.id, comision=comision,
+            )],
+            actor_id=actor,
         )
 
-    await cat.upsert_matriz_tasas(
-        session,
-        [
-            CeldaTasaIn(
-                producto_id=producto.id, perfil_id=perfil.id, plazo=p,
-                tasa=Decimal("0.28"),
-            )
-            for p in PLAZOS
-        ],
-        actor_id=actor,
-    )
-    await cat.upsert_matriz_comisiones(
-        session,
-        [CeldaComisionIn(
-            producto_id=producto.id, perfil_id=perfil.id, comision=Decimal("0.025"),
-        )],
-        actor_id=actor,
-    )
-
-    # ---- Caja principal + capital inicial ----
+    # ---- Caja + capital inicial ----
     caja = await session.scalar(select(Caja).where(Caja.nombre == "Caja Full Demo"))
     if caja is None:
         caja = await crear_caja(
@@ -338,18 +398,23 @@ async def sembrar_full(session: AsyncSession) -> dict:
         )
     await session.commit()
 
+    # Extraer IDs como valores Python para que no dependan de ORM lazy-load tras rollback
+    caja_id = caja.id
+    vendedor_id = vendedor.id
+    cobrador_a_id = cobrador_a.id
+    cobrador_b_id = cobrador_b.id
+    operador_id = operador.id
+
     await registrar_aporte(
         session,
         AporteRetiroIn(
-            monto=Decimal("20000000.00"), fecha_negocio=FECHA_INICIO, caja_id=caja.id,
+            monto=Decimal("30000000.00"), fecha_negocio=FECHA_INICIO, caja_id=caja_id,
             inversor="Inversores Fundadores", nota="capital inicial seed full",
         ),
         actor_id=actor, idempotency_key=_ikey("aporte-inicial"),
     )
 
     # ---- Personas + BCRA ----
-    # Filtrar a personas con BCRA vigente (sincronizacion OK) para que el
-    # cambiar_estado a "aprobada" no falle por bcra_vencido.
     bcra = _SeedBcraClient()
     personas: list[uuid.UUID] = []
     personas_con_bcra: list[uuid.UUID] = []
@@ -371,255 +436,421 @@ async def sembrar_full(session: AsyncSession) -> dict:
             personas_con_bcra.append(persona.id)
     await session.commit()
 
-    # Reasignar los lotes a las personas con BCRA de forma ciclica
-    # (garantiza que todos los slots tengan una persona aprobable).
     n_aprobables = len(personas_con_bcra)
 
-    def _persona_para_slot(p_idx: int) -> uuid.UUID:
-        if p_idx < n_aprobables:
-            return personas_con_bcra[p_idx]
+    def _pid(p_idx: int) -> uuid.UUID:
+        """Mapea p_idx a persona aprobable de forma ciclica."""
         return personas_con_bcra[p_idx % n_aprobables]
 
-    # ---- Prestamos: crear, desembolsar, devengar comision ----
-    prestamos_por_slot: dict[int, Prestamo] = {}  # slot -> Prestamo
-    for slot, (p_idx, monto, cuotas, delta_des, offset_pc, _moroso) in enumerate(
-        _LOTES_PRESTAMO
-    ):
-        persona_id = _persona_para_slot(p_idx)
+    # ---- Prestamos: desembolso + devengo de comision ----
+    # prestamos_por_slot[slot] -> UUID del prestamo (evita lazy-load tras rollback)
+    prestamos_por_slot: dict[int, uuid.UUID] = {}
+
+    for slot, (p_idx, monto, cuotas, delta_des, offset_pc, _tag) in enumerate(_LOTES):
+        persona_id = _pid(p_idx)
+        fecha_des = FECHA_INICIO + timedelta(days=delta_des)
+        fecha_pc = _fecha_primera_cuota(fecha_des, offset_pc)
+
+        # Perfil segun slot (distribuye las 3 tasas)
+        nombre_perf = _perfil_para_slot(slot)
+        perfil = perfiles[nombre_perf]
+
+        # Resumible: busca prestamo ya existente para este slot (idem key)
+        ikey_des = _ikey("des", slot)
         existente = await session.scalar(
             select(Prestamo)
             .join(SolicitudCredito, Prestamo.solicitud_id == SolicitudCredito.id)
             .where(
                 SolicitudCredito.persona_id == persona_id,
                 SolicitudCredito.producto_id == producto.id,
+                Prestamo.fecha_desembolso == fecha_des,
             )
         )
         if existente is not None:
-            prestamos_por_slot[slot] = existente
+            prestamos_por_slot[slot] = existente.id
             continue
-
-        fecha_des = FECHA_INICIO + timedelta(days=delta_des)
-        # Normalizar al primer dia del mes siguiente para evitar dias invalidos
-        # (ej. 31 enero + 1 mes no existe en febrero).
-        _fpc_raw = fecha_des + timedelta(days=abs(offset_pc))
-        if offset_pc < 0:
-            _fpc_raw = fecha_des - timedelta(days=abs(offset_pc))
-        fecha_pc = _fpc_raw.replace(day=1)
 
         sol = await orig.crear_solicitud(
             session, persona_id=persona_id, producto_id=producto.id,
             monto=monto, cantidad_cuotas=cuotas,
-            vendedor_id=vendedor.id, actor_id=actor,
+            vendedor_id=vendedor_id, actor_id=actor,
         )
+        # Asignar perfil antes de evaluar para que la tasa sea la correcta
+        sol.perfil_id = perfil.id  # type: ignore[attr-defined]
+        await session.flush()
         await orig.evaluar(session, sol, actor_id=actor)
-        await orig.cambiar_estado(
-            session, sol, "aprobada", motivo_rechazo=None, actor_id=actor,
-        )
+        await orig.cambiar_estado(session, sol, "aprobada", motivo_rechazo=None, actor_id=actor)
         await session.commit()
 
         out = await desembolsar(
-            session, solicitud=sol, caja_id=caja.id,
+            session, solicitud=sol, caja_id=caja_id,
             fecha_negocio=fecha_des, fecha_primera_cuota=fecha_pc,
             tasa_punitorio_diario=Decimal("0.001"),
-            idempotency_key=_ikey(f"des-{slot}"),
-            actor_id=actor,
+            idempotency_key=ikey_des, actor_id=actor,
         )
         prestamo = await session.scalar(
             select(Prestamo).where(Prestamo.id == out.prestamo_id)
         )
         assert prestamo is not None
-        prestamos_por_slot[slot] = prestamo
+        prestamos_por_slot[slot] = prestamo.id
         await devengar_por_desembolso(
             session, prestamo=prestamo, solicitud=sol,
             fecha_negocio=fecha_des, actor_id=actor,
         )
         await session.commit()
 
-    # ---- Pagos multi-cuota para lote A (prestamos pagados) ----
-    # Lote A: slots 0-4 → pagar todas las cuotas mes a mes
-    for slot in range(5):
-        prestamo = prestamos_por_slot[slot]
-        if prestamo.estado in ("pagado", "cancelado", "novado"):
+    # ---- Ciclos de vida por tag ----
+
+    # TAG: "cancelar" — pago total del saldo via m03.cancelar (fecha: 60-90 dias post-des)
+    for slot, (*_, tag) in enumerate(_LOTES):
+        if tag != "cancelar":
             continue
-        _delta, monto, cuotas, _dd, _pc, _ = _LOTES_PRESTAMO[slot]
-        cuota_aprox = (monto * Decimal("1.30") / cuotas).quantize(Decimal("1.00"))
-        for n_cuota in range(cuotas):
-            fecha_pago = FECHA_INICIO + timedelta(days=35 + n_cuota * 30)
+        prestamo_id = prestamos_por_slot.get(slot)
+        if prestamo_id is None:
+            continue
+        est = await _estado_prestamo(session, prestamo_id)
+        if est not in ("vigente", "en_mora"):
+            continue
+        _, _, _, delta_des, _, _ = _LOTES[slot]
+        fecha_cancel = FECHA_INICIO + timedelta(days=delta_des + 60)
+        ok = await _try(session, prest.cancelar(
+            session, prestamo_id=prestamo_id, caja_id=caja_id,
+            fecha_negocio=fecha_cancel, canal="mostrador",
+            idempotency_key=_ikey("cancel", slot), actor_id=actor,
+        ))
+        if ok:
+            await session.commit()
+
+    # TAG: "pagado" — pagar todas las cuotas mes a mes; luego cancelar el saldo restante
+    for slot, (_, monto, cuotas, delta_des, offset_pc, tag) in enumerate(_LOTES):
+        if tag != "pagado":
+            continue
+        prestamo_id = prestamos_por_slot.get(slot)
+        if prestamo_id is None:
+            continue
+        if await _estado_prestamo(session, prestamo_id) in ("cancelado", "novado", "pagado"):
+            continue
+        cuota_aprox = (monto * Decimal("1.35") / cuotas).quantize(Decimal("100.00"))
+        # Pagar cuotas - 1 y luego cancelar el saldo restante con payoff
+        # (si pagamos todas, saldo = 0 y cancelar falla con monto_invalido)
+        for k in range(cuotas - 1):
+            fecha_pago = FECHA_INICIO + timedelta(days=delta_des + offset_pc + k * 30 + 5)
             if fecha_pago > FECHA_ANCLA:
                 break
-            ikey = _ikey(f"pago-slot{slot}-c{n_cuota}")
-            with contextlib.suppress(Exception):
-                await registrar_pago(
-                    session, prestamo_id=prestamo.id,
-                    monto=cuota_aprox, canal="mostrador", caja_id=caja.id,
-                    fecha_negocio=fecha_pago, idempotency_key=ikey, actor_id=actor,
-                )
-            await session.commit()
+            ok = await _try(session, registrar_pago(
+                session, prestamo_id=prestamo_id,
+                monto=cuota_aprox, canal="mostrador", caja_id=caja_id,
+                fecha_negocio=fecha_pago,
+                idempotency_key=_ikey("pago", slot, k), actor_id=actor,
+            ))
+            if ok:
+                await session.commit()
+        # Cancelar el saldo restante con payoff total
+        est_fin = await _estado_prestamo(session, prestamo_id)
+        if est_fin in ("vigente", "en_mora"):
+            fecha_fin = FECHA_INICIO + timedelta(days=delta_des + offset_pc + cuotas * 30 + 15)
+            if fecha_fin <= FECHA_ANCLA:
+                ok = await _try(session, prest.cancelar(
+                    session, prestamo_id=prestamo_id, caja_id=caja_id,
+                    fecha_negocio=fecha_fin, canal="mostrador",
+                    idempotency_key=_ikey("cancel-fin", slot), actor_id=actor,
+                ))
+                if ok:
+                    await session.commit()
 
-    # ---- Pagos parciales para lote B (vigentes, algunos con 1-2 pagos) ----
-    for slot in range(5, 20):
-        prestamo = prestamos_por_slot[slot]
-        if prestamo.estado in ("pagado", "cancelado", "novado"):
+    # TAG: "vigente" — pagar cuotas vencidas hasta FECHA_ANCLA
+    for slot, (_, monto, cuotas, delta_des, offset_pc, tag) in enumerate(_LOTES):
+        if tag != "vigente":
             continue
-        _, monto, cuotas, delta_des, offset_pc, _ = _LOTES_PRESTAMO[slot]
-        fecha_des = FECHA_INICIO + timedelta(days=delta_des)
-        cuota_aprox = (monto * Decimal("1.28") / cuotas).quantize(Decimal("1.00"))
-        # Pagar cuotas que vencieron antes de FECHA_ANCLA
-        n_pagadas = max(0, (FECHA_ANCLA - (fecha_des + timedelta(days=offset_pc))).days // 30)
-        for k in range(min(n_pagadas, cuotas - 1)):
-            fecha_pago = fecha_des + timedelta(days=offset_pc + k * 30 + 5)
+        prestamo_id = prestamos_por_slot.get(slot)
+        if prestamo_id is None:
+            continue
+        if await _estado_prestamo(session, prestamo_id) in ("cancelado", "novado", "pagado"):
+            continue
+        cuota_aprox = (monto * Decimal("1.30") / cuotas).quantize(Decimal("100.00"))
+        _fin_pc = FECHA_INICIO + timedelta(days=delta_des + offset_pc)
+        n_vencidas = max(0, (FECHA_ANCLA - _fin_pc).days // 30)
+        for k in range(min(n_vencidas, cuotas - 1)):
+            fecha_pago = FECHA_INICIO + timedelta(days=delta_des + offset_pc + k * 30 + 5)
             if fecha_pago > FECHA_ANCLA:
                 break
-            ikey = _ikey(f"pago-slot{slot}-c{k}")
-            with contextlib.suppress(Exception):
-                await registrar_pago(
-                    session, prestamo_id=prestamo.id,
-                    monto=cuota_aprox, canal="mostrador", caja_id=caja.id,
-                    fecha_negocio=fecha_pago, idempotency_key=ikey, actor_id=actor,
-                )
+            ok = await _try(session, registrar_pago(
+                session, prestamo_id=prestamo_id,
+                monto=cuota_aprox, canal="mostrador", caja_id=caja_id,
+                fecha_negocio=fecha_pago,
+                idempotency_key=_ikey("pago", slot, k), actor_id=actor,
+            ))
+            if ok:
+                await session.commit()
+
+    # TAG: "moroso" — sin pagos; las alarmas los marcan en mora
+
+    # TAG: "novar_refi" — un pago previo + refinanciar
+    for slot, (*_, tag) in enumerate(_LOTES):
+        if tag != "novar_refi":
+            continue
+        prestamo_id = prestamos_por_slot.get(slot)
+        if prestamo_id is None:
+            continue
+        if await _estado_prestamo(session, prestamo_id) != "vigente":
+            continue
+        _, monto, cuotas, delta_des, offset_pc, _ = _LOTES[slot]
+        cuota_aprox = (monto * Decimal("1.30") / cuotas).quantize(Decimal("100.00"))
+        fecha_pago1 = FECHA_INICIO + timedelta(days=delta_des + offset_pc + 5)
+        ok = await _try(session, registrar_pago(
+            session, prestamo_id=prestamo_id,
+            monto=cuota_aprox, canal="mostrador", caja_id=caja_id,
+            fecha_negocio=fecha_pago1,
+            idempotency_key=_ikey("pago", slot, 0), actor_id=actor,
+        ))
+        if ok:
+            await session.commit()
+        fecha_nov = FECHA_INICIO + timedelta(days=delta_des + 75)
+        if fecha_nov > FECHA_ANCLA:
+            continue
+        ok = await _try(session, nov.refinanciar(
+            session, prestamo_id=prestamo_id, caja_id=caja_id,
+            fecha_negocio=fecha_nov, tasa=Decimal("0.25"),
+            cantidad_cuotas=12, periodicidad="mensual",
+            fecha_primera_cuota=(fecha_nov + timedelta(days=30)).replace(day=1),
+            idempotency_key=_ikey("nov-refi", slot),
+            actor_id=actor,
+        ))
+        if ok:
             await session.commit()
 
-    # ---- Lote D: novaciones (refinanciacion y consolidacion) ----
-    # slot 20 → refinanciacion
-    p_refi = prestamos_por_slot.get(20)
-    if p_refi is not None and p_refi.estado == "vigente":
-        fecha_nov = FECHA_INICIO + timedelta(days=90)
-        with contextlib.suppress(Exception):
-            await nov.refinanciar(
-                session, prestamo_id=p_refi.id, caja_id=caja.id,
-                fecha_negocio=fecha_nov, tasa=Decimal("0.25"),
-                cantidad_cuotas=12, periodicidad="mensual",
-                fecha_primera_cuota=fecha_nov + timedelta(days=30),
-                idempotency_key=_ikey("nov-refi-20"),
-                actor_id=actor,
-            )
-
-    # slots 21 + 22 → consolidacion
-    p_c1 = prestamos_por_slot.get(21)
-    p_c2 = prestamos_por_slot.get(22)
-    if (
-        p_c1 is not None and p_c2 is not None
-        and p_c1.estado == "vigente" and p_c2.estado == "vigente"
-        and p_c1.persona_id == p_c2.persona_id
-    ):
-        fecha_nov = FECHA_INICIO + timedelta(days=95)
-        with contextlib.suppress(Exception):
-            await nov.consolidar(
-                session, prestamo_ids=[p_c1.id, p_c2.id], caja_id=caja.id,
-                fecha_negocio=fecha_nov, tasa=Decimal("0.27"),
-                cantidad_cuotas=12, periodicidad="mensual",
-                fecha_primera_cuota=fecha_nov + timedelta(days=30),
-                idempotency_key=_ikey("nov-consol-21-22"),
-                actor_id=actor,
-            )
-
-    await session.commit()
-
-    # ---- Rutas: 3 fechas para cobrador A, 2 fechas para cobrador B ----
-    fechas_ruta_a = [
-        FECHA_INICIO + timedelta(days=30),
-        FECHA_INICIO + timedelta(days=60),
-        FECHA_ANCLA,
-    ]
-    fechas_ruta_b = [
-        FECHA_INICIO + timedelta(days=45),
-        FECHA_INICIO + timedelta(days=90),
-    ]
-
-    for cobrador, fechas in [
-        (cobrador_a, fechas_ruta_a),
-        (cobrador_b, fechas_ruta_b),
-    ]:
-        for fecha_ruta in fechas:
-            ruta = await session.scalar(
-                select(RutaDiaria).where(
-                    RutaDiaria.cobrador_id == cobrador.id,
-                    RutaDiaria.fecha == fecha_ruta,
-                )
-            )
-            if ruta is None:
-                ruta = await generar_ruta(
-                    session, cobrador_id=cobrador.id, fecha=fecha_ruta, actor_id=actor,
-                )
-
-            paradas = await paradas_de_ruta(session, ruta.id)
-            ruta_obj = await obtener_ruta(session, ruta.id)
-            assert ruta_obj is not None
-
-            resultados_ciclo = ["pago", "parcial", "ausente", "promesa", "pago"]
-            cobros = 0
-            for k, p in enumerate(paradas[:5]):
-                parada = await obtener_parada(session, p.id)
-                if parada is None or parada.visitada_en is not None:
-                    continue
-                res_visita = resultados_ciclo[k % len(resultados_ciclo)]
-                monto_v = Decimal("18000.00") if res_visita in ("pago", "parcial") else None
-                try:
-                    await visitar(
-                        session, ruta=ruta_obj, parada=parada,
-                        resultado=res_visita, monto_cobrado=monto_v,
-                        foto_url=None, lat=None, lng=None,
-                        notas=f"visita full {res_visita}", caja_id=caja.id,
-                        fecha_negocio=fecha_ruta, actor_id=cobrador.id,
-                    )
-                    if monto_v is not None:
-                        cobros += 1
-                except Exception:  # noqa: BLE001
-                    pass
-
-            if cobros:
-                try:
-                    rendicion = await generar_rendicion(
-                        session, ruta_id=ruta.id, fecha_negocio=fecha_ruta,
-                        actor_id=cobrador.id,
-                    )
-                    # Aprobar la rendicion con el admin (nunca con el mismo cobrador)
-                    rendicion_obj = await obtener_rendicion(session, rendicion.id)
-                    if rendicion_obj is not None and rendicion_obj.estado == "pendiente":
-                        await cambiar_estado_rendicion(
-                            session, rendicion=rendicion_obj, estado="aprobada",
-                            actor_id=actor,
-                        )
-                except Exception:  # noqa: BLE001
-                    pass
-
+    # TAG: "novar_consol_a" + "novar_consol_b" — consolidar dos prestamos del mismo deudor
+    slots_consol_a = [s for s, (*_, t) in enumerate(_LOTES) if t == "novar_consol_a"]
+    slots_consol_b = [s for s, (*_, t) in enumerate(_LOTES) if t == "novar_consol_b"]
+    for sa, sb in zip(slots_consol_a, slots_consol_b, strict=False):
+        pa_id = prestamos_por_slot.get(sa)
+        pb_id = prestamos_por_slot.get(sb)
+        if pa_id is None or pb_id is None:
+            continue
+        # Leer estado y persona fresco desde la DB
+        pa = await session.scalar(select(Prestamo).where(Prestamo.id == pa_id))
+        pb = await session.scalar(select(Prestamo).where(Prestamo.id == pb_id))
+        if pa is None or pb is None:
+            continue
+        if pa.estado != "vigente" or pb.estado != "vigente":
+            continue
+        if pa.persona_id != pb.persona_id:
+            continue
+        _, _, _, delta_a, _, _ = _LOTES[sa]
+        fecha_nov = FECHA_INICIO + timedelta(days=delta_a + 80)
+        if fecha_nov > FECHA_ANCLA:
+            continue
+        ok = await _try(session, nov.consolidar(
+            session, prestamo_ids=[pa_id, pb_id], caja_id=caja_id,
+            fecha_negocio=fecha_nov, tasa=Decimal("0.27"),
+            cantidad_cuotas=12, periodicidad="mensual",
+            fecha_primera_cuota=(fecha_nov + timedelta(days=30)).replace(day=1),
+            idempotency_key=_ikey("nov-consol", sa, sb),
+            actor_id=actor,
+        ))
+        if ok:
             await session.commit()
+
+    # TAG: "excedente" — pago sobredimensionado (mas que la cuota) para generar excedente
+    for slot, (_, monto, cuotas, delta_des, offset_pc, tag) in enumerate(_LOTES):
+        if tag != "excedente":
+            continue
+        prestamo_id = prestamos_por_slot.get(slot)
+        if prestamo_id is None:
+            continue
+        if await _estado_prestamo(session, prestamo_id) in ("cancelado", "novado", "pagado"):
+            continue
+        cuota_real = (monto * Decimal("1.30") / cuotas).quantize(Decimal("100.00"))
+        monto_sobre = cuota_real * Decimal("2.5")
+        fecha_pago = FECHA_INICIO + timedelta(days=delta_des + offset_pc + 5)
+        if fecha_pago <= FECHA_ANCLA:
+            ok = await _try(session, registrar_pago(
+                session, prestamo_id=prestamo_id,
+                monto=monto_sobre, canal="mostrador", caja_id=caja_id,
+                fecha_negocio=fecha_pago,
+                idempotency_key=_ikey("pago", slot, 0), actor_id=actor,
+            ))
+            if ok:
+                await session.commit()
+        fecha_pago2 = fecha_pago + timedelta(days=35)
+        if fecha_pago2 <= FECHA_ANCLA:
+            ok = await _try(session, registrar_pago(
+                session, prestamo_id=prestamo_id,
+                monto=cuota_real, canal="mostrador", caja_id=caja_id,
+                fecha_negocio=fecha_pago2,
+                idempotency_key=_ikey("pago", slot, 1), actor_id=actor,
+            ))
+            if ok:
+                await session.commit()
+
+    # TAG: "cancelar_anticipado" — 1 pago normal + cancelacion anticipada
+    for slot, (_, _, cuotas, delta_des, offset_pc, tag) in enumerate(_LOTES):
+        if tag != "cancelar_anticipado":
+            continue
+        prestamo_id = prestamos_por_slot.get(slot)
+        if prestamo_id is None:
+            continue
+        if await _estado_prestamo(session, prestamo_id) not in ("vigente", "en_mora"):
+            continue
+        _, monto, cuotas, delta_des, offset_pc, _ = _LOTES[slot]
+        cuota_aprox = (monto * Decimal("1.30") / cuotas).quantize(Decimal("100.00"))
+        fecha_pago1 = FECHA_INICIO + timedelta(days=delta_des + offset_pc + 5)
+        if fecha_pago1 <= FECHA_ANCLA:
+            ok = await _try(session, registrar_pago(
+                session, prestamo_id=prestamo_id,
+                monto=cuota_aprox, canal="mostrador", caja_id=caja_id,
+                fecha_negocio=fecha_pago1,
+                idempotency_key=_ikey("pago", slot, 0), actor_id=actor,
+            ))
+            if ok:
+                await session.commit()
+        fecha_cancel = FECHA_INICIO + timedelta(days=delta_des + offset_pc + cuotas * 30 // 2)
+        if fecha_cancel <= FECHA_ANCLA:
+            ok = await _try(session, prest.cancelar(
+                session, prestamo_id=prestamo_id, caja_id=caja_id,
+                fecha_negocio=fecha_cancel, canal="mostrador",
+                idempotency_key=_ikey("cancel", slot), actor_id=actor,
+            ))
+            if ok:
+                await session.commit()
+
+    # TAG: "mix" — pagos alternando cuota completa / parcial
+    for slot, (_, monto, cuotas, delta_des, offset_pc, tag) in enumerate(_LOTES):
+        if tag != "mix":
+            continue
+        prestamo_id = prestamos_por_slot.get(slot)
+        if prestamo_id is None:
+            continue
+        if await _estado_prestamo(session, prestamo_id) in ("cancelado", "novado", "pagado"):
+            continue
+        cuota_aprox = (monto * Decimal("1.30") / cuotas).quantize(Decimal("100.00"))
+        monto_parcial = (cuota_aprox * Decimal("0.60")).quantize(Decimal("100.00"))
+        _fin_pc = FECHA_INICIO + timedelta(days=delta_des + offset_pc)
+        n_vencidas = max(0, (FECHA_ANCLA - _fin_pc).days // 30)
+        for k in range(min(n_vencidas, cuotas - 1)):
+            fecha_pago = FECHA_INICIO + timedelta(days=delta_des + offset_pc + k * 30 + 5)
+            if fecha_pago > FECHA_ANCLA:
+                break
+            monto_k = cuota_aprox if k % 2 == 0 else monto_parcial
+            ok = await _try(session, registrar_pago(
+                session, prestamo_id=prestamo_id,
+                monto=monto_k, canal="mostrador", caja_id=caja_id,
+                fecha_negocio=fecha_pago,
+                idempotency_key=_ikey("pago", slot, k), actor_id=actor,
+            ))
+            if ok:
+                await session.commit()
+
+    # ---- Rutas: cobrador A x3 fechas + cobrador B x2 fechas ----
+    rutas_cfg = [
+        (cobrador_a_id, FECHA_INICIO + timedelta(days=30)),
+        (cobrador_a_id, FECHA_INICIO + timedelta(days=60)),
+        (cobrador_a_id, FECHA_ANCLA),
+        (cobrador_b_id, FECHA_INICIO + timedelta(days=45)),
+        (cobrador_b_id, FECHA_INICIO + timedelta(days=90)),
+    ]
+    resultados_ciclo = ["pago", "parcial", "ausente", "promesa", "pago", "se_niega", "pago"]
+
+    for cobrador_id_ruta, fecha_ruta in rutas_cfg:
+        ruta = await session.scalar(
+            select(RutaDiaria).where(
+                RutaDiaria.cobrador_id == cobrador_id_ruta,
+                RutaDiaria.fecha == fecha_ruta,
+            )
+        )
+        if ruta is None:
+            ruta = await generar_ruta(
+                session, cobrador_id=cobrador_id_ruta, fecha=fecha_ruta, actor_id=actor,
+            )
+
+        ruta_id_local = ruta.id
+        paradas = await paradas_de_ruta(session, ruta_id_local)
+        ruta_obj = await obtener_ruta(session, ruta_id_local)
+        assert ruta_obj is not None
+
+        cobros = 0
+        for k, p in enumerate(paradas[:6]):
+            parada = await obtener_parada(session, p.id)
+            if parada is None or parada.visitada_en is not None:
+                continue
+            res_visita = resultados_ciclo[k % len(resultados_ciclo)]
+            monto_v = Decimal("20000.00") if res_visita in ("pago", "parcial") else None
+            ok = await _try(session, visitar(
+                session, ruta=ruta_obj, parada=parada,
+                resultado=res_visita, monto_cobrado=monto_v,
+                foto_url=None, lat=None, lng=None,
+                notas=f"seed full {res_visita}", caja_id=caja_id,
+                fecha_negocio=fecha_ruta, actor_id=cobrador_id_ruta,
+            ))
+            if ok:
+                await session.commit()
+                if monto_v is not None:
+                    cobros += 1
+            # Re-fetch ruta_obj after potential rollback
+            ruta_obj = await obtener_ruta(session, ruta_id_local)
+            if ruta_obj is None:
+                break
+
+        if cobros:
+            ok = await _try(session, generar_rendicion(
+                session, ruta_id=ruta_id_local, fecha_negocio=fecha_ruta,
+                actor_id=cobrador_id_ruta,
+            ))
+            if ok:
+                await session.commit()
+                rendicion_obj = await obtener_rendicion(session, ruta_id_local)
+                if rendicion_obj is not None and rendicion_obj.estado == "pendiente":
+                    ok2 = await _try(session, cambiar_estado_rendicion(
+                        session, rendicion=rendicion_obj, estado="aprobada",
+                        actor_id=actor,
+                    ))
+                    if ok2:
+                        await session.commit()
+
+        await session.commit()
 
     # ---- Liquidaciones de comisiones: 3 periodos ----
-    periodos = [
-        (FECHA_INICIO, FECHA_INICIO + timedelta(days=59)),
-        (FECHA_INICIO + timedelta(days=60), FECHA_INICIO + timedelta(days=119)),
-        (FECHA_INICIO + timedelta(days=120), FECHA_ANCLA),
+    periodos_liq = [
+        (FECHA_INICIO,                          FECHA_INICIO + timedelta(days=59)),
+        (FECHA_INICIO + timedelta(days=60),     FECHA_INICIO + timedelta(days=119)),
+        (FECHA_INICIO + timedelta(days=120),    FECHA_ANCLA),
     ]
-    for k, (desde, hasta) in enumerate(periodos):
+    for k, (desde, hasta) in enumerate(periodos_liq):
         liq = await session.scalar(
             select(ComisionLiquidacion).where(
-                ComisionLiquidacion.vendedor_id == vendedor.id,
+                ComisionLiquidacion.vendedor_id == vendedor_id,
                 ComisionLiquidacion.periodo_desde == desde,
             )
         )
         if liq is None:
             try:
                 liq = await generar_liquidacion(
-                    session, vendedor_id=vendedor.id,
+                    session, vendedor_id=vendedor_id,
                     periodo_desde=desde, periodo_hasta=hasta,
                     actor_id=actor,
                 )
-            except Exception:
+            except Exception:  # noqa: BLE001
                 await session.rollback()
                 continue
 
         if liq.estado == "borrador" and liq.monto_total and liq.monto_total > Decimal("0"):
-            await aprobar_liquidacion(session, liquidacion=liq, actor_id=actor)
-            with contextlib.suppress(Exception):
-                await pagar_liquidacion(
-                    session, liquidacion_id=liq.id, caja_id=caja.id,
-                    fecha_negocio=hasta, idempotency_key=_ikey(f"liq-{k}"),
-                    actor_id=actor,
+            ok = await _try(session, aprobar_liquidacion(session, liquidacion=liq, actor_id=actor))
+            if ok:
+                await session.commit()
+                liq = await session.scalar(
+                    select(ComisionLiquidacion).where(ComisionLiquidacion.id == liq.id)
                 )
+            if liq is not None and liq.estado == "aprobada":
+                ok2 = await _try(session, pagar_liquidacion(
+                    session, liquidacion_id=liq.id, caja_id=caja_id,
+                    fecha_negocio=hasta,
+                    idempotency_key=_ikey("liq", k), actor_id=actor,
+                ))
+                if ok2:
+                    await session.commit()
         await session.commit()
 
-    # ---- Snapshots de cartera: una vez por semana en el rango ----
+    # ---- Snapshots semanales ----
     fecha_snap = FECHA_INICIO
     while fecha_snap <= FECHA_ANCLA:
         try:  # noqa: SIM105
@@ -629,63 +860,63 @@ async def sembrar_full(session: AsyncSession) -> dict:
             await session.rollback()
         fecha_snap += timedelta(weeks=1)
 
-    # ---- Alertas de mora para cada mes ----
-    for mes_offset in range(6):
-        fecha_alarma = FECHA_INICIO + timedelta(days=mes_offset * 30)
+    # ---- Alertas de mora (mensual + cierre) ----
+    for mes in range(6):
+        fecha_alarma = FECHA_INICIO + timedelta(days=mes * 30)
         try:  # noqa: SIM105
             await procesar_alarmas(session, fecha=fecha_alarma, actor_id=actor)
             await session.commit()
         except Exception:  # noqa: BLE001
             await session.rollback()
-
-    # Alarmas al cierre
     try:  # noqa: SIM105
         await procesar_alarmas(session, fecha=FECHA_ANCLA, actor_id=actor)
         await session.commit()
     except Exception:  # noqa: BLE001
         await session.rollback()
 
-    # ---- CRM: tareas e incidentes para personas morosas (slots 15-19) ----
-    for slot in range(15, 20):
-        persona_id = _persona_para_slot(_LOTES_PRESTAMO[slot][0])
-        with contextlib.suppress(Exception):
-            tarea = await crear_tarea(
-                session, persona_id=persona_id, operador_id=operador.id,
-                titulo=f"Gestionar mora — cliente full slot {slot}",
-                descripcion="Contactar al deudor para acordar plan de pago.",
-                prioridad="alta",
-                vencimiento=FECHA_ANCLA + timedelta(days=7),
-                origen="alarma", actor_id=actor, commit=False,
-            )
-            session.add(tarea)
-            await session.flush()
-
-        with contextlib.suppress(Exception):
-            await crear_incidente(
-                session, persona_id=persona_id,
-                tipo="mora",
-                titulo=f"Deuda vencida — slot {slot}",
-                severidad="alta",
-                detalle="Primera cuota vencida, sin contacto desde desembolso.",
-                operador_id=operador.id, actor_id=actor,
-            )
-
+    # ---- CRM: tareas e incidentes para morosos (slots tag=="moroso") ----
+    slots_morosos = [s for s, (*_, t) in enumerate(_LOTES) if t == "moroso"]
+    for slot in slots_morosos:
+        p_idx = _LOTES[slot][0]
+        persona_id = _pid(p_idx)
+        ok = await _try(session, crear_tarea(
+            session, persona_id=persona_id, operador_id=operador_id,
+            titulo=f"Gestionar mora — slot {slot}",
+            descripcion="Contactar deudor para plan de regularizacion.",
+            prioridad="alta",
+            vencimiento=FECHA_ANCLA + timedelta(days=7),
+            origen="alarma", actor_id=actor, commit=False,
+        ))
+        if ok:
+            await session.commit()
+        ok2 = await _try(session, crear_incidente(
+            session, persona_id=persona_id,
+            tipo="mora",
+            titulo=f"Deuda vencida >30 dias — slot {slot}",
+            severidad="alta",
+            detalle="Primera cuota sin pago. Requiere gestion de cobranza.",
+            operador_id=operador_id, actor_id=actor,
+        ))
+        if ok2:
+            await session.commit()
     await session.commit()
 
-    # ---- Documentos: cronograma y recibo por prestamo (primeros 10 slots) ----
+    # ---- Documentos: cronograma + recibo para primeros 10 slots ----
     for slot in range(min(10, len(prestamos_por_slot))):
-        prestamo = prestamos_por_slot[slot]
+        prestamo_id_doc = prestamos_por_slot.get(slot)
+        if prestamo_id_doc is None:
+            continue
         for tipo in ("cronograma", "recibo"):
-            with contextlib.suppress(Exception):
-                await docs.generar(
-                    session, tipo=tipo, prestamo_id=prestamo.id,
-                    actor_id=actor,
-                    idempotency_key=_ikey(f"doc-{tipo}-{slot}"),
-                )
-
+            ok = await _try(session, docs.generar(
+                session, tipo=tipo, prestamo_id=prestamo_id_doc,
+                actor_id=actor,
+                idempotency_key=_ikey("doc", tipo, slot),
+            ))
+            if ok:
+                await session.commit()
     await session.commit()
 
-    # ---- Marcador final (crash-safe: se escribe y commitea ultimo) ----
+    # ---- Marcador final (crash-safe) ----
     await _marcar_completo(session)
     await session.commit()
 
@@ -693,7 +924,7 @@ async def sembrar_full(session: AsyncSession) -> dict:
 
 
 async def _conteos(session: AsyncSession) -> dict:
-    from sqlalchemy import func
+    from sqlalchemy import func, text
 
     from app.m01_personas.modelos import Persona
     from app.modelos_stub import (
@@ -707,9 +938,17 @@ async def _conteos(session: AsyncSession) -> dict:
     async def _c(modelo) -> int:
         return await session.scalar(select(func.count()).select_from(modelo)) or 0
 
+    estados = {}
+    res = await session.execute(
+        text("SELECT estado, count(*) FROM prestamo GROUP BY estado")
+    )
+    for estado, cnt in res.all():
+        estados[estado] = cnt
+
     return {
         "personas": await _c(Persona),
-        "prestamos": await _c(Prestamo),
+        "prestamos": sum(estados.values()),
+        "prestamos_por_estado": estados,
         "solicitudes": await _c(SolicitudCredito),
         "pagos": await _c(Pago),
         "alertas": await _c(Alerta),
@@ -720,7 +959,6 @@ async def _conteos(session: AsyncSession) -> dict:
 
 
 async def _reset_marcador(session: AsyncSession) -> None:
-    """Elimina el marcador para forzar re-siembra (--reset)."""
     marcador = await session.scalar(
         select(IdempotencyKey).where(
             IdempotencyKey.clave == MARCADOR_COMPLETO,
@@ -736,10 +974,8 @@ async def _reset_marcador(session: AsyncSession) -> None:
 async def _main() -> None:
     from app.db import async_session_maker
 
-    reset = "--reset" in sys.argv
-
     async with async_session_maker() as session:
-        if reset:
+        if "--reset" in sys.argv:
             await _reset_marcador(session)
         res = await sembrar_full(session)
         await session.commit()

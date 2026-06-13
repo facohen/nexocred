@@ -1,7 +1,7 @@
 """C3: add 'cancelada' to cuota.estado check constraint"""
 
+
 from alembic import op
-import sqlalchemy as sa
 
 revision: str = "0007_cuota_estado_cancelada"
 down_revision: str | None = "0006_criticos"

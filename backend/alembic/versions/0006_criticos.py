@@ -1,7 +1,8 @@
 """criticos: unique parcial prestamo.solicitud_id"""
 
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
 
 revision: str = "0006_criticos"
 down_revision: str | None = "0005_snapshot_nn"
