@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { TransactionButton } from "@/components/TransactionButton";
 import { FormField } from "@/components/FormField";
 import type { components } from "@/lib/api/schema";
 import { uuidv7 } from "./uuidv7";
@@ -28,14 +29,17 @@ export function VisitaCaptureForm({
 }: {
   parada: Parada;
   rutaId: string;
-  onGuardar: (v: VisitaEncolada) => void;
+  onGuardar: (v: VisitaEncolada) => void | Promise<void>;
   onCancelar: () => void;
 }) {
+  const [visitaId] = useState(() => uuidv7());
+  const [pagoId] = useState(() => uuidv7());
   const [resultado, setResultado] = useState<string>("pago");
   const [monto, setMonto] = useState<string>(parada.saldo_exigible ?? "");
   const [notas, setNotas] = useState<string>("");
   const [geo, setGeo] = useState<{ lat: string; lng: string } | null>(null);
   const [foto, setFoto] = useState<string | null>(null);
+  const [guardando, setGuardando] = useState(false);
 
   const esPago = resultado === "pago";
 
@@ -47,23 +51,29 @@ export function VisitaCaptureForm({
     setFoto(`foto://${parada.id}-${Date.now()}`);
   }
 
-  function guardar() {
-    const visita: VisitaEncolada = {
-      id: uuidv7(),
-      rutaId,
-      paradaId: parada.id,
-      prestamoId: parada.prestamo_id,
-      orden: parada.orden,
-      resultado,
-      montoCobrado: esPago ? (monto || "0.00") : null,
-      pagoId: esPago ? uuidv7() : null,
-      fotoUrl: foto,
-      lat: geo?.lat ?? null,
-      lng: geo?.lng ?? null,
-      notas: notas || null,
-      visitadaEn: new Date().toISOString(),
-    };
-    onGuardar(visita);
+  async function guardar() {
+    if (guardando) return;
+    setGuardando(true);
+    try {
+      const visita: VisitaEncolada = {
+        id: visitaId,
+        rutaId,
+        paradaId: parada.id,
+        prestamoId: parada.prestamo_id,
+        orden: parada.orden,
+        resultado,
+        montoCobrado: esPago ? (monto || "0.00") : null,
+        pagoId: esPago ? pagoId : null,
+        fotoUrl: foto,
+        lat: geo?.lat ?? null,
+        lng: geo?.lng ?? null,
+        notas: notas || null,
+        visitadaEn: new Date().toISOString(),
+      };
+      await onGuardar(visita);
+    } finally {
+      setGuardando(false);
+    }
   }
 
   return (
@@ -113,9 +123,9 @@ export function VisitaCaptureForm({
       </div>
 
       <div className="flex gap-2">
-        <Button type="button" onClick={guardar}>
+        <TransactionButton type="button" pending={guardando} onClick={guardar}>
           Guardar visita
-        </Button>
+        </TransactionButton>
         <Button type="button" variant="ghost" onClick={onCancelar}>
           Cancelar
         </Button>
