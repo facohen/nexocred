@@ -9,7 +9,10 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "gen:api": "node scripts/gen-api.mjs"
+    "gen:api": "node scripts/gen-api.mjs",
+    "gen:api:export": "cd ../backend && conda run --no-capture-output -n nexocred python -m scripts.exportar_openapi",
+    "gen:api:full": "npm run gen:api:export && npm run gen:api",
+    "gen:api:check": "node scripts/gen-api.mjs && git diff --exit-code -- src/lib/api/schema.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.51.0",
@@ -20,6 +23,8 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
     "idb": "^8.0.3",
+    "openapi-fetch": "^0.17.0",
+    "openapi-react-query": "^0.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.52.0",

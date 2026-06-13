@@ -2,42 +2,18 @@
  * Contract-shaped fixtures for F1a/F1b screens. Money fields are ALWAYS
  * strings. These power MSW in dev and tests so the frontend builds and runs
  * with no backend.
+ *
+ * Los tipos se DERIVAN del schema OpenAPI generado (`components["schemas"]`),
+ * no se escriben a mano. Si el backend cambia un contrato, el typecheck de
+ * estos fixtures falla en CI — evita el drift que ya causó bugs de runtime.
  */
 
-export interface Referencia {
-  id: string;
-  nombre: string;
-  vinculo: string;
-  telefono: string;
-}
+import type { components } from "@/lib/api/schema";
 
-export interface Persona {
-  id: string;
-  apellido: string;
-  nombre: string;
-  dni: string;
-  cuil: string;
-  fecha_nac: string;
-  estado_civil: string;
-  email: string;
-  telefono: string;
-  domicilio_calle: string;
-  domicilio_numero: string | null;
-  domicilio_piso: string | null;
-  domicilio_localidad: string;
-  domicilio_provincia: string;
-  observaciones_domicilio: string | null;
-  tipo_vivienda: string;
-  ingresos_declarados: string;
-  ingresos_en_blanco: string;
-  ingresos_totales: string;
-  empleador: string | null;
-  cuit_empleador: string | null;
-  fecha_ingreso_laboral: string | null;
-  referido_por_id: string | null;
-  activo: boolean;
-  referencias: Referencia[];
-}
+type S = components["schemas"];
+
+export type Referencia = S["ReferenciaOut"];
+export type Persona = S["PersonaOut"];
 
 export const personas: Persona[] = [
   {
@@ -66,7 +42,7 @@ export const personas: Persona[] = [
     referido_por_id: null,
     activo: true,
     referencias: [
-      { id: "ref-1", nombre: "Juan Gómez", vinculo: "conyuge", telefono: "11-5555-2222" },
+      { id: "ref-1", persona_id: "persona-1", nombre: "Juan Gómez", apellido: "Gómez", vinculo: "conyuge", telefono: "11-5555-2222", es_alternativo: false, notas: null },
     ],
   },
   {
@@ -95,20 +71,12 @@ export const personas: Persona[] = [
     referido_por_id: null,
     activo: true,
     referencias: [
-      { id: "ref-2", nombre: "Ana Pérez", vinculo: "hermana", telefono: "11-4444-9999" },
+      { id: "ref-2", persona_id: "persona-2", nombre: "Ana Pérez", apellido: "Pérez", vinculo: "hermana", telefono: "11-4444-9999", es_alternativo: false, notas: null },
     ],
   },
 ];
 
-export interface DeudaBcra {
-  id: string;
-  persona_id: string;
-  entidad: string;
-  monto: string;
-  situacion: number;
-  fecha_informe: string;
-  fuente: string;
-}
+export type DeudaBcra = S["DeudaBcraOut"];
 
 export const deudaBcra: Record<string, DeudaBcra[]> = {
   "persona-1": [
@@ -135,19 +103,7 @@ export const deudaBcra: Record<string, DeudaBcra[]> = {
   ],
 };
 
-export interface Producto {
-  id: string;
-  nombre: string;
-  descripcion: string | null;
-  estado: string;
-  version_vigente: number;
-  activo: boolean;
-  periodicidad: string | null;
-  plazos_permitidos: number[];
-  monto_minimo: string | null;
-  monto_maximo: string | null;
-  gastos: { nombre: string; tipo: string; valor: string }[];
-}
+export type Producto = S["ProductoOut"];
 
 export const productos: Producto[] = [
   {
@@ -162,8 +118,8 @@ export const productos: Producto[] = [
     monto_minimo: "50000.00",
     monto_maximo: "2000000.00",
     gastos: [
-      { nombre: "Gasto de otorgamiento", tipo: "porcentaje", valor: "2.50" },
-      { nombre: "Seguro de vida", tipo: "porcentaje", valor: "0.30" },
+      { id: "gasto-1", producto_id: "producto-1", nombre: "Gasto de otorgamiento", tipo: "porcentaje", valor: "2.50", financiado: true, jurisdiccion: null, activo: true },
+      { id: "gasto-2", producto_id: "producto-1", nombre: "Seguro de vida", tipo: "porcentaje", valor: "0.30", financiado: true, jurisdiccion: null, activo: true },
     ],
   },
   {
@@ -177,7 +133,7 @@ export const productos: Producto[] = [
     plazos_permitidos: [12, 24, 36],
     monto_minimo: "200000.00",
     monto_maximo: "5000000.00",
-    gastos: [{ nombre: "Gasto de inscripción", tipo: "fijo", valor: "15000.00" }],
+    gastos: [{ id: "gasto-3", producto_id: "producto-2", nombre: "Gasto de inscripción", tipo: "fijo", valor: "15000.00", financiado: false, jurisdiccion: null, activo: true }],
   },
 ];
 
@@ -186,13 +142,7 @@ export const perfilesPricing = [
   { id: "perfil-b", nombre: "Perfil B", descripcion: "Riesgo medio", orden: 2, activo: true },
 ];
 
-export interface FilaCronograma {
-  numero: number;
-  vencimiento: string;
-  capital: string;
-  interes: string;
-  cuota: string;
-}
+export type FilaCronograma = S["FilaCronogramaOut"];
 
 export function buildCronograma(
   capital: string,
@@ -226,19 +176,7 @@ export const simuladorOut = {
   cuotas: buildCronograma("100000.00", 12),
 };
 
-export interface Solicitud {
-  id: string;
-  persona_id: string;
-  producto_id: string;
-  monto: string;
-  cantidad_cuotas: number;
-  estado: string;
-  vendedor_id: string | null;
-  perfil_pricing_id: string | null;
-  tasa_resuelta: string | null;
-  score: string | null;
-  motivo_rechazo: string | null;
-}
+export type Solicitud = S["SolicitudOut"];
 
 export const solicitudes: Solicitud[] = [
   {
@@ -251,7 +189,7 @@ export const solicitudes: Solicitud[] = [
     vendedor_id: "user-vendedor",
     perfil_pricing_id: "perfil-a",
     tasa_resuelta: "30.00",
-    score: "720",
+    score: 720,
     motivo_rechazo: null,
   },
   {
@@ -269,6 +207,9 @@ export const solicitudes: Solicitud[] = [
   },
 ];
 
+// NOTE: hand-written on purpose. The OpenAPI `ChecklistOut` schema is a flat
+// boolean record ({edad, cuota_ingreso, bcra, mora_previa}) — a different shape
+// than this per-rule row used by the checklist UI. No schema alias applies.
 export interface ChecklistPolitica {
   regla: string;
   etiqueta: string;
@@ -306,31 +247,9 @@ export const checklistPoliticas: Record<string, ChecklistPolitica[]> = {
   ],
 };
 
-export interface Cuota {
-  id: string;
-  numero: number;
-  vencimiento: string;
-  capital: string;
-  interes: string;
-  cuota: string;
-  punitorio_acumulado: string;
-  estado: string;
-  saldo: string;
-}
+export type Cuota = S["CuotaOut"];
 
-export interface Prestamo {
-  id: string;
-  persona_id: string;
-  producto_id: string;
-  solicitud_id: string | null;
-  capital: string;
-  estado: string;
-  fecha_desembolso: string | null;
-  tasa_punitorio_diario: string;
-  monto_desembolsado: string | null;
-  snapshot_terminos: Record<string, unknown> | null;
-  created_at: string;
-}
+export type Prestamo = S["PrestamoOut"];
 
 export const prestamos: Prestamo[] = [
   {
@@ -353,7 +272,10 @@ export const prestamos: Prestamo[] = [
   },
 ];
 
-export const cuotas: Record<string, Cuota[]> = {
+// The cuotas endpoint augments CuotaOut with a UI-side `saldo` (see
+// `useCuotas` in queries.ts: `CuotaOut & { saldo: string }`). It is not part of
+// the OpenAPI schema, so we mirror that same intersection here.
+export const cuotas: Record<string, (Cuota & { saldo: string })[]> = {
   "prestamo-1": Array.from({ length: 12 }, (_, i) => ({
     id: `cuota-${i + 1}`,
     numero: i + 1,
@@ -367,27 +289,9 @@ export const cuotas: Record<string, Cuota[]> = {
   })),
 };
 
-export interface Imputacion {
-  id: string;
-  concepto: string;
-  monto: string;
-  orden_waterfall: number;
-  cuota_numero: number | null;
-  cuota_id: string | null;
-}
+export type Imputacion = S["ImputacionOut"];
 
-export interface Pago {
-  id: string;
-  prestamo_id: string;
-  monto: string;
-  excedente: string;
-  estado: string;
-  canal: string | null;
-  fecha_negocio: string | null;
-  corrige_pago_id: string | null;
-  created_at: string;
-  imputaciones: Imputacion[];
-}
+export type Pago = S["PagoDetalleOut"];
 
 export const pagos: Pago[] = [
   {
@@ -439,32 +343,14 @@ export const payoff: Record<string, { fecha_negocio: string; capital: string; in
   },
 };
 
-export interface Caja {
-  id: string;
-  nombre: string;
-  tipo: string | null;
-  saldo_teorico: string;
-  activo: boolean;
-}
+export type Caja = S["CajaOut"];
 
 export const cajas: Caja[] = [
   { id: "caja-1", nombre: "Caja Central", tipo: "efectivo", saldo_teorico: "1250000.00", activo: true },
   { id: "caja-2", nombre: "Caja Sucursal Sur", tipo: "efectivo", saldo_teorico: "320000.00", activo: true },
 ];
 
-export interface Movimiento {
-  id: string;
-  caja_id: string;
-  tipo: string;
-  monto: string;
-  fecha_negocio: string;
-  concepto: string;
-  categoria: string;
-  contraparte_caja_id: string | null;
-  pago_id: string | null;
-  referencia: string | null;
-  created_at: string;
-}
+export type Movimiento = S["MovimientoOut"];
 
 export const movimientos: Record<string, Movimiento[]> = {
   "caja-1": [
@@ -504,14 +390,11 @@ export const posicionConsolidada = {
   cajas: cajas,
 };
 
-export interface Novacion {
-  id: string;
-  tipo: string;
-  estado: string;
-  nuevo_prestamo_id: string | null;
-  created_at: string;
-  origenes: string[];
-}
+// Aliased to NovacionDetalleOut (= NovacionOut + `origenes`). The fixture backs
+// both the list endpoint (NovacionOut) and the detail/POST endpoints
+// (NovacionDetalleOut, which the UI reads `origenes` from), so we use the
+// superset to satisfy every consumer.
+export type Novacion = S["NovacionDetalleOut"];
 
 export const novaciones: Novacion[] = [
   {

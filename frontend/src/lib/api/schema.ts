@@ -4746,6 +4746,15 @@ export interface components {
             /** Efectos */
             efectos: components["schemas"]["EfectoOut"][];
         };
+        ErrorEnvelope: {
+            error: {
+                code: string;
+                message: string;
+                details?: {
+                    [key: string]: unknown;
+                };
+            };
+        };
     };
     responses: never;
     parameters: never;
