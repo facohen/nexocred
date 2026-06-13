@@ -11,11 +11,14 @@ export default defineConfig({
     // offline write path is the IndexedDB queue (features/ruta/queue.ts), and
     // Background Sync (sw-sync.ts) replays it via the tested sincronizarRuta.
     VitePWA({
-      registerType: "autoUpdate",
+      // prompt (no autoUpdate): NUNCA recargar la app mientras un cobrador está
+      // cargando un cobro en la calle. El usuario decide cuándo actualizar; el
+      // estado seguro vive en IndexedDB de todos modos.
+      registerType: "prompt",
       manifest: {
         name: "NexoCred",
         short_name: "NexoCred",
-        description: "Originación, cobranza y La Ruta",
+        description: "Originación, cobranza y Ruta de Cobranza",
         theme_color: "#0f172a",
         background_color: "#ffffff",
         display: "standalone",
@@ -24,15 +27,18 @@ export default defineConfig({
       },
       workbox: {
         navigateFallback: "/index.html",
+        // Las navegaciones a la API nunca deben devolver el shell SPA.
+        navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {
-            // Cache the assigned route + its stops so La Ruta loads offline.
+            // Cache the assigned route + its stops so Ruta de Cobranza loads offline.
             urlPattern: ({ url }) => /\/api\/v1\/rutas(\/[^/]+)?(\/paradas)?$/.test(url.pathname),
             handler: "NetworkFirst",
             options: {
               cacheName: "ruta-asignada",
               networkTimeoutSeconds: 4,
-              expiration: { maxEntries: 32, maxAgeSeconds: 60 * 60 * 24 },
+              // 48h: la jornada de campo puede pasar las 24h previas.
+              expiration: { maxEntries: 32, maxAgeSeconds: 60 * 60 * 48 },
             },
           },
         ],

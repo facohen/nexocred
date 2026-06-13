@@ -16,6 +16,8 @@ export function SolicitudDetailPage() {
   const accion = useAccionSolicitud(solicitudId);
   // Stable key per (solicitud) disbursement intent: a double-click / re-submit
   // reuses the same Idempotency-Key so the backend dedupes the disbursement.
+  // solicitudId es dependencia DELIBERADA: regenera la key al cambiar de solicitud.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const desembolsoKey = useMemo(() => newIdempotencyKey(), [solicitudId]);
 
   const checklist = checklistData?.checklist ?? [];
