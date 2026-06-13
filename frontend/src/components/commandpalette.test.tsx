@@ -22,10 +22,13 @@ function renderPalette() {
 }
 
 describe("CommandPalette", () => {
-  it("lista destinos navegables cuando esta abierta", () => {
+  it("lista áreas de trabajo y acciones cuando está abierta (sin query)", () => {
     renderPalette();
-    expect(screen.getByText("Personas")).toBeInTheDocument();
-    expect(screen.getByText("Caja")).toBeInTheDocument();
+    // Áreas de trabajo (verbos), no entidades de base de datos
+    expect(screen.getByText("Mi bandeja")).toBeInTheDocument();
+    expect(screen.getByText("Tablero Ejecutivo")).toBeInTheDocument();
     expect(screen.getByText("Usuarios")).toBeInTheDocument();
+    // Acción rápida global (también accesible por botón visible)
+    expect(screen.getByText("Registrar pago")).toBeInTheDocument();
   });
 });

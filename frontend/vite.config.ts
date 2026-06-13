@@ -44,6 +44,22 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Solo vendors estables (mejor cacheo entre deploys). El splitting por
+        // feature lo hace el lazy-loading del router, no manualChunks.
+        manualChunks: {
+          "react-vendor": ["react", "react-dom"],
+          router: ["@tanstack/react-router"],
+          query: ["@tanstack/react-query"],
+          table: ["@tanstack/react-table"],
+          charts: ["@tremor/react"],
+          forms: ["react-hook-form", "zod"],
+        },
+      },
+    },
+  },
   server: {
     host: "127.0.0.1",
     proxy: {

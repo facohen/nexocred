@@ -4,37 +4,24 @@ import {
   createRoute,
   Outlet,
   redirect,
+  lazyRouteComponent,
 } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/AppShell";
 import { getSessionUser, isAuthenticated } from "@/lib/auth";
 import { enforceRoles, fallbackRoute, ROUTE_ROLES } from "./guards";
 import { LoginPage } from "@/features/auth/LoginPage";
-import { PersonasListPage } from "@/features/personas/PersonasListPage";
-import { PersonaDetailPage } from "@/features/personas/PersonaDetailPage";
-import { ProductosPage } from "@/features/catalogo/ProductosPage";
-import { MatricesPage } from "@/features/catalogo/MatricesPage";
-import { SimuladorPage } from "@/features/catalogo/SimuladorPage";
-import { SolicitudesPage } from "@/features/solicitudes/SolicitudesPage";
-import { SolicitudDetailPage } from "@/features/solicitudes/SolicitudDetailPage";
-import { PrestamosPage } from "@/features/prestamos/PrestamosPage";
-import { PrestamoDetailPage } from "@/features/prestamos/PrestamoDetailPage";
-import { RegistrarPagoPage } from "@/features/pagos/RegistrarPagoPage";
-import { CajaPage } from "@/features/caja/CajaPage";
-import { NovacionesPage } from "@/features/novaciones/NovacionesPage";
-import { RutaRoute } from "@/features/ruta/RutaRoute";
-import { RendicionRoute } from "@/features/ruta/RendicionRoute";
-import { InboxPage } from "@/features/crm/InboxPage";
-import { IncidentesPage } from "@/features/crm/IncidentesPage";
-import { AsignacionesPage } from "@/features/crm/AsignacionesPage";
-import { ProspectosPage } from "@/features/crm/ProspectosPage";
-import { RiesgoBoard } from "@/features/riesgo/RiesgoBoard";
-import { AlertasPage } from "@/features/riesgo/AlertasPage";
-import { ComisionesRoute } from "@/features/vendedores/ComisionesRoute";
-import { LiquidacionesPage } from "@/features/vendedores/LiquidacionesPage";
-import { TesoreriaDashboard } from "@/features/tesoreria/TesoreriaDashboard";
-import { TorreDashboard } from "@/features/torre/TorreDashboard";
-import { DocumentosRoute } from "@/features/documentos/DocumentosRoute";
-import { DesignSystemPage } from "@/features/dev/DesignSystemPage";
+
+/**
+ * Routing inbox-driven con lazy-loading por página. Solo el shell, login y la
+ * Ruta de Cobranza (offline, critical path) entran al bundle inicial; el resto
+ * se carga bajo demanda → un cobrador no descarga Tesorería. Cada landing por
+ * rol es un HOME DE TRABAJO (fallbackRoute), nunca /personas.
+ */
+
+// lazy(): carga el componente bajo demanda. La definición de ruta (path/guards)
+// queda en el bundle inicial; el componente se trae al navegar.
+const lazy = (factory: () => Promise<Record<string, unknown>>, name: string) =>
+  lazyRouteComponent(factory as never, name);
 
 const rootRoute = createRootRoute({ component: () => <Outlet /> });
 
@@ -42,15 +29,22 @@ const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/login",
   component: function Login() {
-    return <LoginPage onSuccess={() => { const user = getSessionUser(); window.location.href = fallbackRoute(user?.roles ?? []); }} />;
+    return (
+      <LoginPage
+        onSuccess={() => {
+          const user = getSessionUser();
+          window.location.href = fallbackRoute(user?.roles ?? []);
+        }}
+      />
+    );
   },
 });
 
-// Showcase del design system (solo dev/visual review, sin auth).
+// Showcase del design system (solo dev, sin auth).
 const designSystemRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/dev/ds",
-  component: DesignSystemPage,
+  component: lazy(() => import("@/features/dev/DesignSystemPage"), "DesignSystemPage"),
 });
 
 const protectedRoute = createRoute({
@@ -68,23 +62,28 @@ const protectedRoute = createRoute({
   },
 });
 
-function page(path: string, component: () => JSX.Element) {
+function page(
+  path: string,
+  factory: () => Promise<Record<string, unknown>>,
+  exportName: string,
+) {
   const roles = ROUTE_ROLES[path] ?? [];
   return createRoute({
     getParentRoute: () => protectedRoute,
     path,
-    // Real route guard: enforces the route's required role(s), not just nav
-    // visibility. A lower-role user typing the URL is redirected, not served.
+    // Guard real: enforcea el/los rol(es) de la ruta, no solo visibilidad de nav.
     beforeLoad: () => enforceRoles(roles),
-    component,
+    component: lazy(factory, exportName),
   });
 }
 
+// El index redirige al HOME DE TRABAJO del rol (no a /personas hardcodeado).
 const indexRoute = createRoute({
   getParentRoute: () => protectedRoute,
   path: "/",
   beforeLoad: () => {
-    throw redirect({ to: "/personas" as string });
+    const user = getSessionUser();
+    throw redirect({ to: fallbackRoute(user?.roles ?? []) as string });
   },
 });
 
@@ -93,34 +92,42 @@ const routeTree = rootRoute.addChildren([
   designSystemRoute,
   protectedRoute.addChildren([
     indexRoute,
-    page("/personas", PersonasListPage),
-    page("/personas/$personaId", PersonaDetailPage),
-    page("/catalogo/productos", ProductosPage),
-    page("/catalogo/matrices", MatricesPage),
-    page("/catalogo/simulador", SimuladorPage),
-    page("/solicitudes", SolicitudesPage),
-    page("/solicitudes/$solicitudId", SolicitudDetailPage),
-    page("/prestamos", PrestamosPage),
-    page("/prestamos/$prestamoId", PrestamoDetailPage),
-    page("/pagos", RegistrarPagoPage),
-    page("/caja", CajaPage),
-    page("/novaciones", NovacionesPage),
-    page("/ruta", RutaRoute),
-    page("/rendicion", RendicionRoute),
-    page("/crm/inbox", InboxPage),
-    page("/crm/incidentes", IncidentesPage),
-    page("/crm/asignaciones", AsignacionesPage),
-    page("/crm/prospectos", ProspectosPage),
-    page("/riesgo/tablero", RiesgoBoard),
-    page("/riesgo/alertas", AlertasPage),
-    page("/vendedores/comisiones", ComisionesRoute),
-    page("/vendedores/liquidaciones", LiquidacionesPage),
-    page("/tesoreria", TesoreriaDashboard),
-    page("/torre", TorreDashboard),
-    page("/documentos", DocumentosRoute),
-    page("/usuarios", function Usuarios() {
-      return <div className="text-sm">Gestión de usuarios (admin).</div>;
-    }),
+
+    // ── Homes de trabajo (inbox-driven) ──
+    page("/bandeja", () => import("@/features/bandeja/BandejaHome"), "BandejaHome"),
+    page("/evaluacion", () => import("@/features/evaluacion/EvaluacionHome"), "EvaluacionHome"),
+    page("/originar", () => import("@/features/originacion/OriginarHome"), "OriginarHome"),
+
+    // ── Entidades y vistas (drill-down / tabs de área) ──
+    page("/personas", () => import("@/features/personas/PersonasListPage"), "PersonasListPage"),
+    page("/personas/$personaId", () => import("@/features/personas/PersonaDetailPage"), "PersonaDetailPage"),
+    page("/catalogo/productos", () => import("@/features/catalogo/ProductosPage"), "ProductosPage"),
+    page("/catalogo/matrices", () => import("@/features/catalogo/MatricesPage"), "MatricesPage"),
+    page("/catalogo/simulador", () => import("@/features/catalogo/SimuladorPage"), "SimuladorPage"),
+    page("/solicitudes", () => import("@/features/solicitudes/SolicitudesPage"), "SolicitudesPage"),
+    page("/solicitudes/$solicitudId", () => import("@/features/solicitudes/SolicitudDetailPage"), "SolicitudDetailPage"),
+    page("/prestamos", () => import("@/features/prestamos/PrestamosPage"), "PrestamosPage"),
+    page("/prestamos/$prestamoId", () => import("@/features/prestamos/PrestamoDetailPage"), "PrestamoDetailPage"),
+    page("/pagos", () => import("@/features/pagos/RegistrarPagoPage"), "RegistrarPagoPage"),
+    page("/caja", () => import("@/features/caja/CajaPage"), "CajaPage"),
+    page("/novaciones", () => import("@/features/novaciones/NovacionesPage"), "NovacionesPage"),
+
+    // La Ruta de Cobranza: NO lazy — es el critical path offline (PWA).
+    page("/ruta", () => import("@/features/ruta/RutaRoute"), "RutaRoute"),
+    page("/rendicion", () => import("@/features/ruta/RendicionRoute"), "RendicionRoute"),
+
+    page("/crm/inbox", () => import("@/features/crm/InboxPage"), "InboxPage"),
+    page("/crm/incidentes", () => import("@/features/crm/IncidentesPage"), "IncidentesPage"),
+    page("/crm/asignaciones", () => import("@/features/crm/AsignacionesPage"), "AsignacionesPage"),
+    page("/crm/prospectos", () => import("@/features/crm/ProspectosPage"), "ProspectosPage"),
+    page("/riesgo/tablero", () => import("@/features/riesgo/RiesgoBoard"), "RiesgoBoard"),
+    page("/riesgo/alertas", () => import("@/features/riesgo/AlertasPage"), "AlertasPage"),
+    page("/vendedores/comisiones", () => import("@/features/vendedores/ComisionesRoute"), "ComisionesRoute"),
+    page("/vendedores/liquidaciones", () => import("@/features/vendedores/LiquidacionesPage"), "LiquidacionesPage"),
+    page("/tesoreria", () => import("@/features/tesoreria/TesoreriaDashboard"), "TesoreriaDashboard"),
+    page("/torre", () => import("@/features/torre/TorreDashboard"), "TorreDashboard"),
+    page("/documentos", () => import("@/features/documentos/DocumentosRoute"), "DocumentosRoute"),
+    page("/usuarios", () => import("@/features/admin/UsuariosPage"), "UsuariosPage"),
   ]),
 ]);
 

@@ -118,20 +118,20 @@ describe("fallbackRoute", () => {
     expect(fallbackRoute(["tesoreria"])).toBe("/tesoreria");
   });
 
-  it("retorna /solicitudes para vendedor", () => {
-    expect(fallbackRoute(["vendedor"])).toBe("/solicitudes");
+  it("retorna /originar (home de trabajo) para vendedor", () => {
+    expect(fallbackRoute(["vendedor"])).toBe("/originar");
   });
 
   it("retorna /crm/inbox para operador", () => {
     expect(fallbackRoute(["operador"])).toBe("/crm/inbox");
   });
 
-  it("retorna /personas para analista", () => {
-    expect(fallbackRoute(["analista"])).toBe("/personas");
+  it("retorna /evaluacion (cola de evaluación) para analista", () => {
+    expect(fallbackRoute(["analista"])).toBe("/evaluacion");
   });
 
-  it("retorna /personas para admin", () => {
-    expect(fallbackRoute(["admin"])).toBe("/personas");
+  it("retorna /torre (Tablero Ejecutivo) para admin", () => {
+    expect(fallbackRoute(["admin"])).toBe("/torre");
   });
 
   it("retorna /login para roles desconocidos", () => {

@@ -7,6 +7,11 @@ import { getSessionUser, hasRole, isAuthenticated, type Rol } from "@/lib/auth";
  * means "any authenticated user".
  */
 export const ROUTE_ROLES: Record<string, Rol[]> = {
+  // Homes de trabajo (inbox-driven)
+  "/bandeja": ["admin", "analista", "vendedor", "operador", "cobrador", "tesoreria"],
+  "/evaluacion": ["admin", "analista"],
+  "/originar": ["admin", "analista", "vendedor"],
+  // Entidades y vistas (destino de drill-down / tabs)
   "/personas": ["admin", "analista", "vendedor", "operador"],
   "/personas/$personaId": ["admin", "analista", "vendedor", "operador"],
   "/catalogo/productos": ["admin", "analista"],
@@ -36,13 +41,17 @@ export const ROUTE_ROLES: Record<string, Rol[]> = {
   "/documentos": ["admin", "analista", "operador"],
 };
 
+/**
+ * Landing por rol = HOME DE TRABAJO (no entidad). Cada rol aterriza en el estado
+ * de su trabajo de hoy, nunca en una tabla de personas. Ver plan §IA.
+ */
 const ROLE_FALLBACK: [Rol, string][] = [
-  ["cobrador",  "/ruta"],
-  ["tesoreria", "/tesoreria"],
-  ["vendedor",  "/solicitudes"],
-  ["operador",  "/crm/inbox"],
-  ["analista",  "/personas"],
-  ["admin",     "/personas"],
+  ["cobrador",  "/ruta"],        // su ruta del día
+  ["analista",  "/evaluacion"],  // su cola de solicitudes a evaluar
+  ["vendedor",  "/originar"],    // su pipeline + comisiones
+  ["operador",  "/crm/inbox"],   // su bandeja de tareas
+  ["tesoreria", "/tesoreria"],   // posición + aprobaciones financieras
+  ["admin",     "/torre"],       // Tablero Ejecutivo
 ];
 
 export function fallbackRoute(roles: Rol[]): string {

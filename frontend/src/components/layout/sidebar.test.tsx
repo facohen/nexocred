@@ -16,8 +16,9 @@ describe("Sidebar RBAC", () => {
   it("un cobrador NO ve la nav admin (Usuarios)", () => {
     renderSidebar({ email: "c@x", nombre: "Cobrador", roles: ["cobrador"] });
     expect(screen.queryByRole("link", { name: /Usuarios/i })).not.toBeInTheDocument();
-    // pero sí ve Pagos / Caja
-    expect(screen.getByRole("link", { name: /Pagos/i })).toBeInTheDocument();
+    // pero sí ve sus áreas de trabajo: Cobrar y Cartera
+    expect(screen.getByRole("link", { name: /Cobrar/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Cartera/i })).toBeInTheDocument();
   });
 
   it("un admin SÍ ve Usuarios", () => {

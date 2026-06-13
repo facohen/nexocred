@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
+import { AreaTabs } from "./AreaTabs";
 import { CommandPalette } from "@/components/CommandPalette";
 import { ConnectivityProvider } from "@/lib/connectivity";
 import { useOnline } from "@/features/ruta/useOnline";
@@ -39,6 +40,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               hasta recuperar la conexión.
             </div>
           )}
+          <AreaTabs />
           <main className="flex-1 p-6">{children}</main>
         </div>
         <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
