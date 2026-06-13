@@ -60,4 +60,29 @@ describe("TorreDashboard", () => {
     renderWithProviders(<TorreDashboard />, { ...admin, roles: ["admin"] });
     expect(await screen.findByRole("alert")).toBeInTheDocument();
   });
+
+  it("muestra aging de cartera con la escala de mora (Al día / PAR30 / Castigo)", async () => {
+    renderWithProviders(<TorreDashboard />, { ...admin, roles: ["admin"] });
+    expect(await screen.findByText(/Salud de cartera/i)).toBeInTheDocument();
+    // Los tramos de la escala ordinal de mora en la sección de aging.
+    expect(screen.getByText("Al día")).toBeInTheDocument();
+    expect(screen.getByText("PAR60")).toBeInTheDocument();
+    expect(screen.getByText("Castigo")).toBeInTheDocument();
+  });
+
+  it("usa el nombre renombrado 'Alertas Activas' (no 'Alertas en vivo')", async () => {
+    renderWithProviders(<TorreDashboard />, { ...admin, roles: ["admin"] });
+    expect(await screen.findByText("Alertas Activas")).toBeInTheDocument();
+    expect(screen.queryByText(/Alertas en vivo/i)).not.toBeInTheDocument();
+  });
+
+  it("los KPIs de pulso son deep-links (drill-down accionable)", async () => {
+    renderWithProviders(<TorreDashboard />, { ...admin, roles: ["admin"] });
+    const cards = await screen.findAllByTestId("pulso-card");
+    // cada card está envuelta en un <a href> a su cola correspondiente
+    cards.forEach((card) => {
+      const link = card.closest("a");
+      expect(link).toHaveAttribute("href");
+    });
+  });
 });
