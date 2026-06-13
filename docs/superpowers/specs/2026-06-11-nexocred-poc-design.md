@@ -340,16 +340,19 @@ POST   /transferencias-internas           Mover fondos entre cajas
 ```
 GET    /rutas                             Rutas del día con estado
 POST   /rutas                             Generar ruta diaria para cobrador
-GET    /rutas/{id}                        Detalle de ruta con paradas ordenadas
+GET    /rutas/{id}                        Detalle de ruta con paradas (solo ruta propia o admin)
 GET    /rutas/{id}/paradas                Lista de paradas con saldo exigible
-POST   /rutas/{id}/paradas/{parada_id}/visitar  Registrar resultado de visita (resultado, monto, foto, geotag)
-POST   /rutas/{id}/sync                   Sync idempotente de paradas desde dispositivo offline
+POST   /rutas/{id}/paradas/{parada_id}/visitar  Registrar resultado de visita (solo ruta propia o admin)
+POST   /rutas/{id}/sync                   Sync idempotente de paradas desde dispositivo (solo ruta propia o admin)
 GET    /rendiciones                       Historial de rendiciones
 POST   /rendiciones                       Cerrar rendición del día (cobrado - descargos)
 GET    /rendiciones/{id}                  Detalle con descargos y diferencia
 POST   /rendiciones/{id}/descargos        Agregar gasto de campo
 PATCH  /rendiciones/{id}/descargos/{desc_id}  Aprobar/rechazar descargo (admin)
+PATCH  /rendiciones/{id}/estado           Transición de estado; cobrador no puede aprobar su propia rendición (403)
 ```
+
+> **Ownership:** `visitar`, `sync` y `detalle` verifican `ruta.cobrador_id == actor.id`; admin exento. Ver §5.11.
 
 ### M06 — Novaciones
 
@@ -608,12 +611,12 @@ Si el PRD contradice alguno de estos casos, gana el PRD y esta seccion debe actu
 ### 5.6 Maquinas de estado minimas
 
 - `solicitud`: `borrador -> en_analisis -> aprobada|rechazada|desistida -> desembolsada`.
-- `prestamo`: `vigente -> en_mora -> cancelado|novado|incobrable`.
-- `cuota`: `pendiente -> parcial -> pagada -> tolerada`; `vencida` es derivado por fecha, no estado persistido obligatorio.
+- `prestamo`: `vigente -> en_mora -> cancelado|novado|incobrable`. Solo se pueden registrar pagos sobre préstamos en estado `vigente` o `en_mora`; cualquier otro estado devuelve 409 `prestamo_no_cobrable`.
+- `cuota`: `pendiente -> parcial -> pagada -> tolerada`; además `cancelada` cuando el préstamo es novado (las cuotas pendientes/parciales se cancelan en bloque al confirmar la novación). `vencida` es derivado por fecha, no estado persistido obligatorio.
 - `pago`: `registrado -> aplicado|a_aplicar -> corregido`; un pago corregido no se edita.
 - `caja`: movimientos append-only; arqueos diarios cierran periodos y no se reabren sin ajuste auditado.
 - `rendicion`: `abierta -> presentada -> aprobada|observada`.
-- `novacion`: `borrador -> confirmada -> anulada`; confirmar crea nuevo prestamo y cierra/relaciona origenes.
+- `novacion`: `borrador -> confirmada -> anulada`; confirmar crea nuevo prestamo, cierra/relaciona origenes Y cancela todas las cuotas `pendiente`/`parcial` del préstamo origen.
 - `documento_emitido`: vigente por defecto; `anulado_en` y `anulado_por` modelan anulacion.
 
 Las transiciones invalidas deben devolver error de dominio estable, no excepciones genericas.
@@ -633,6 +636,24 @@ Las operaciones financieras y offline deben ser idempotentes:
 
 El backend debe soportar `Idempotency-Key` para operaciones de mostrador/admin y UUIDv7 generado en dispositivo para La Ruta. En operaciones que cambian saldos se debe usar transaccion de base de datos y lock de las filas afectadas del prestamo/caja.
 
+#### Reglas de locking (implementadas en `locking.py`)
+
+Las siguientes operaciones deben adquirir un `SELECT ... FOR UPDATE` sobre la fila objetivo **antes** de cualquier validación de estado, para eliminar la ventana de carrera TOCTOU bajo concurrencia:
+
+| Operación | Fila bloqueada | Función |
+|-----------|---------------|---------|
+| `desembolsar()` | `solicitud_credito` por `solicitud_id` | `bloquear_solicitud` |
+| `corregir_uow()` | `prestamo` por `prestamo_id` del pago | `bloquear_prestamo` |
+| `registrar_pago_uow()` | `prestamo` por `prestamo_id` | `bloquear_prestamo` |
+| `pagar_liquidacion()` | `comision_liquidacion` por `liquidacion_id` | `bloquear_liquidacion` |
+| Cualquier operación sobre caja | `caja` por `caja_id` | `bloquear_caja` |
+
+Patrón de aplicación: adquirir lock → `session.refresh(objeto)` si el objeto fue cargado antes del lock → validar estado → ejecutar efecto. Nunca leer estado para decisiones de negocio sobre un objeto no bloqueado en rutas concurrentes.
+
+#### Idempotency-Key en el frontend
+
+La `Idempotency-Key` debe generarse una vez por intento de operación y rotarse en el frontend **solo tras éxito confirmado** por el servidor. En caso de error (timeout, 5xx, 4xx de negocio), el retry debe reutilizar la misma key. Esto garantiza que el backend pueda deduplicar reintentos sin bloquear segundas operaciones legítimas desde la misma sesión.
+
 ### 5.8 Auditoria minima
 
 Debe auditarse, como minimo:
@@ -650,6 +671,33 @@ Debe auditarse, como minimo:
 - Cambios de parametros globales, productos, tasas y matrices.
 
 Cada evento debe incluir actor, accion, entidad, entidad_id, timestamp, ip/user-agent si existe, diff o metadata relevante, y resultado.
+
+### 5.11 Control de acceso y ownership
+
+Más allá del RBAC por rol (§5.8/M12), los endpoints de campo aplican reglas de **ownership**:
+
+#### Rendiciones — separación de roles
+
+`PATCH /rendiciones/{id}` con `estado=aprobada` requiere que el actor **no sea el mismo cobrador** que generó la rendición. Un cobrador puede presentar su propia rendición (`estado=presentada`) pero no aprobarla. La aprobación requiere rol `admin` o un cobrador distinto con permisos de supervisión. Violación devuelve 403 `aprobacion_propia_no_permitida`.
+
+#### Rutas — ownership estricto
+
+Los endpoints `visitar`, `sync` y `detalle` de una ruta verifican que `ruta.cobrador_id == actor.id`. Un cobrador con rol válido no puede operar sobre la ruta de otro cobrador. Los usuarios con rol `admin` están exentos. Violación devuelve 403 `acceso_denegado`.
+
+#### Navegación post-login (`fallbackRoute`)
+
+Tras autenticarse, cada rol aterriza en su ruta funcional primaria. No existe un destino único `/personas` para todos:
+
+| Rol | Ruta de aterrizaje |
+|-----|--------------------|
+| `cobrador` | `/ruta` |
+| `tesoreria` | `/tesoreria` |
+| `vendedor` | `/solicitudes` |
+| `operador` | `/crm/inbox` |
+| `analista` | `/personas` |
+| `admin` | `/personas` |
+
+Redirigir a un destino inaccesible para el rol del usuario genera un loop infinito de guards. La función `fallbackRoute(roles)` en `guards.ts` encapsula esta tabla y debe usarse tanto en `enforceRoles` como en el redirect post-login del router.
 
 ### 5.9 BCRA
 
@@ -759,4 +807,11 @@ Cada plan hijo debe incluir:
 
 ---
 
-*Spec reparado — 2026-06-11. Listo para planes incrementales de implementación.*
+---
+
+## Historial de revisiones
+
+| Fecha | Cambios |
+|-------|---------|
+| 2026-06-11 | Versión inicial. Spec base del POC. |
+| 2026-06-13 | §5.6: estado `cancelada` en `cuota` y semántica de novación. §5.7: tabla de locking obligatorio + regla de rotación de Idempotency-Key en frontend. §5.11 (nuevo): ownership de rutas, separación cobrador/aprobador en rendiciones, `fallbackRoute` por rol. §3 M05: notas de ownership en endpoints. Basado en auditoría `AUDITORIA_CODIGO_2026-06-12.md`, críticos C1–C8 resueltos. |
