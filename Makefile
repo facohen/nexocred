@@ -108,7 +108,7 @@ wait-db: ## Espera a que postgres acepte conexiones
 migrate: up ## Aplica todas las migraciones (alembic upgrade head)
 	cd backend && $(BACKEND_ENV) $(CONDA_RUN) alembic upgrade head
 
-migrate-down: ## Revierte la base a cero (alembic downgrade base)
+migrate-down: ## Revierte la base a cero (alembic downgrade base) — solo en schema vacio
 	cd backend && $(BACKEND_ENV) $(CONDA_RUN) alembic downgrade base
 
 revision: ## Genera una nueva migracion autogenerada. Uso: make revision m="mensaje"
@@ -117,9 +117,10 @@ revision: ## Genera una nueva migracion autogenerada. Uso: make revision m="mens
 # ============================================================================
 # Datos sinteticos (DESTRUCTIVO)
 # ============================================================================
-reset-db: up ## Resetea el schema: downgrade base + upgrade head (BORRA todos los datos)
-	@echo ">> Reseteando schema de la base (downgrade base -> upgrade head)..."
-	cd backend && $(BACKEND_ENV) $(CONDA_RUN) alembic downgrade base
+reset-db: up ## Resetea la base: DROP + CREATE + upgrade head (BORRA todos los datos)
+	@echo ">> Reseteando la base (DROP + CREATE + upgrade head)..."
+	$(COMPOSE) exec -T db psql -U nexocred postgres -c "DROP DATABASE IF EXISTS nexocred;"
+	$(COMPOSE) exec -T db psql -U nexocred postgres -c "CREATE DATABASE nexocred OWNER nexocred;"
 	cd backend && $(BACKEND_ENV) $(CONDA_RUN) alembic upgrade head
 
 seed: up ## Genera datos sinteticos BORRANDO la base primero (pide confirmacion)

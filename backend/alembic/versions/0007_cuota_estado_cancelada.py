@@ -20,6 +20,9 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_constraint("cuota_estado_check", "cuota", type_="check")
+    # Filas con 'cancelada' no son válidas en el schema anterior; se marcan
+    # como 'pagada' (cuota cerrada) para no violar el constraint al revertir.
+    op.execute("UPDATE cuota SET estado = 'pagada' WHERE estado = 'cancelada'")
     op.create_check_constraint(
         "cuota_estado_check",
         "cuota",
