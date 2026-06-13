@@ -6,8 +6,8 @@ import {
   redirect,
 } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/AppShell";
-import { isAuthenticated } from "@/lib/auth";
-import { enforceRoles, ROUTE_ROLES } from "./guards";
+import { getSessionUser, isAuthenticated } from "@/lib/auth";
+import { enforceRoles, fallbackRoute, ROUTE_ROLES } from "./guards";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { PersonasListPage } from "@/features/personas/PersonasListPage";
 import { PersonaDetailPage } from "@/features/personas/PersonaDetailPage";
@@ -41,7 +41,7 @@ const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/login",
   component: function Login() {
-    return <LoginPage onSuccess={() => (window.location.href = "/personas")} />;
+    return <LoginPage onSuccess={() => { const user = getSessionUser(); window.location.href = fallbackRoute(user?.roles ?? []); }} />;
   },
 });
 

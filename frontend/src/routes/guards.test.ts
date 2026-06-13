@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { redirect } from "@tanstack/react-router";
-import { enforceRoles, ROUTE_ROLES } from "./guards";
+import { enforceRoles, ROUTE_ROLES, fallbackRoute } from "./guards";
 import { setToken, clearToken, setSessionUser } from "@/lib/auth";
 
 function loginAs(roles: ("admin" | "analista" | "cobrador" | "vendedor" | "operador" | "tesoreria")[]) {
@@ -104,5 +104,50 @@ describe("route guards", () => {
       expect(ROUTE_ROLES[path]).toBeDefined();
       expect(ROUTE_ROLES[path].length).toBeGreaterThan(0);
     }
+  });
+});
+
+// ── C8: fallbackRoute ──────────────────────────────────────────────────────
+
+describe("fallbackRoute", () => {
+  it("retorna /ruta para cobrador", () => {
+    expect(fallbackRoute(["cobrador"])).toBe("/ruta");
+  });
+
+  it("retorna /tesoreria para tesoreria", () => {
+    expect(fallbackRoute(["tesoreria"])).toBe("/tesoreria");
+  });
+
+  it("retorna /solicitudes para vendedor", () => {
+    expect(fallbackRoute(["vendedor"])).toBe("/solicitudes");
+  });
+
+  it("retorna /crm/inbox para operador", () => {
+    expect(fallbackRoute(["operador"])).toBe("/crm/inbox");
+  });
+
+  it("retorna /personas para analista", () => {
+    expect(fallbackRoute(["analista"])).toBe("/personas");
+  });
+
+  it("retorna /personas para admin", () => {
+    expect(fallbackRoute(["admin"])).toBe("/personas");
+  });
+
+  it("retorna /login para roles desconocidos", () => {
+    expect(fallbackRoute([])).toBe("/login");
+  });
+});
+
+describe("enforceRoles con fallbackRoute", () => {
+  it("cobrador bloqueado de /personas redirige a /ruta no a /personas", () => {
+    loginAs(["cobrador"]);
+    try {
+      enforceRoles(["analista", "admin"]);
+      expect.fail("expected redirect");
+    } catch (e) {
+      expect(e).toEqual(redirect({ to: "/ruta" as string }));
+    }
+    clearToken();
   });
 });

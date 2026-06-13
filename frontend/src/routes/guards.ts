@@ -36,11 +36,28 @@ export const ROUTE_ROLES: Record<string, Rol[]> = {
   "/documentos": ["admin", "analista", "operador"],
 };
 
+const ROLE_FALLBACK: [Rol, string][] = [
+  ["cobrador",  "/ruta"],
+  ["tesoreria", "/tesoreria"],
+  ["vendedor",  "/solicitudes"],
+  ["operador",  "/crm/inbox"],
+  ["analista",  "/personas"],
+  ["admin",     "/personas"],
+];
+
+export function fallbackRoute(roles: Rol[]): string {
+  for (const [rol, ruta] of ROLE_FALLBACK) {
+    if (roles.includes(rol)) return ruta;
+  }
+  return "/login";
+}
+
 /**
  * Real route guard for use in `beforeLoad`. Enforces authentication and the
  * required role(s) server-of-truth side. Unauthenticated → redirect to /login;
- * authenticated-but-unauthorized → redirect to /personas (403-equivalent for
- * this SPA). Uses the session roles which come from the JWT, never the email.
+ * authenticated-but-unauthorized → redirect to their role's fallback route
+ * (403-equivalent for this SPA). Uses the session roles which come from the
+ * JWT, never the email.
  */
 export function enforceRoles(roles: Rol[]): void {
   if (!isAuthenticated()) {
@@ -49,6 +66,6 @@ export function enforceRoles(roles: Rol[]): void {
   if (roles.length === 0) return;
   const user = getSessionUser();
   if (!hasRole(user, ...roles)) {
-    throw redirect({ to: "/personas" as string });
+    throw redirect({ to: fallbackRoute(user?.roles ?? []) as string });
   }
 }
