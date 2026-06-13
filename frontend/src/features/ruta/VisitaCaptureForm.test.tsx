@@ -8,13 +8,17 @@ type Parada = components["schemas"]["ParadaConSaldoOut"];
 
 const paradaBase: Parada = {
   id: "parada-1",
+  ruta_id: "ruta-1",
   prestamo_id: "prestamo-1",
   orden: 1,
   saldo_exigible: "100.00",
-  nombre_cliente: "Test Cliente",
-  direccion: "Calle 123",
+  resultado: null,
+  monto_cobrado: null,
+  foto_url: null,
   lat: null,
   lng: null,
+  notas: null,
+  visitada_en: null,
 };
 
 describe("VisitaCaptureForm", () => {

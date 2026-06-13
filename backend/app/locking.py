@@ -52,7 +52,9 @@ async def bloquear_solicitud(session: AsyncSession, solicitud_id: uuid.UUID) -> 
     return sol
 
 
-async def bloquear_liquidacion(session: AsyncSession, liquidacion_id: uuid.UUID) -> ComisionLiquidacion:
+async def bloquear_liquidacion(
+    session: AsyncSession, liquidacion_id: uuid.UUID
+) -> ComisionLiquidacion:
     res = await session.execute(
         select(ComisionLiquidacion)
         .where(ComisionLiquidacion.id == liquidacion_id)

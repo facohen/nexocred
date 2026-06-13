@@ -13,6 +13,8 @@ from tests.api.test_solicitudes import (
     crear_solicitud,
     sync_bcra,
 )
+from tests.integration._helpers_f1c import cuil_valido
+from tests.integration.test_comisiones import _prestamo_con_comision as _pcc
 
 
 def _h(token: str) -> dict:
@@ -129,6 +131,7 @@ class TestC1DobleDesembolso:
 async def _seed_pago_aplicado(client, token, session) -> dict:
     """Create a prestamo with one pago applied, return the pago dict."""
     from datetime import date
+
     from tests.integration.test_pagos_waterfall import _prestamo_desembolsado
 
     prestamo_id, caja_id = await _prestamo_desembolsado(client, token, session)
@@ -190,7 +193,9 @@ class TestC2DobleCorrección:
     ):
         """Corregir un pago crea exactamente una reversa con monto negativo."""
         from datetime import date
+
         from sqlalchemy import select as sa_select
+
         from app.modelos_stub import Pago
 
         pago = await _seed_pago_aplicado(client, admin_token, session)
@@ -236,10 +241,12 @@ class TestC3PrestamoNovado:
     async def test_novar_cancela_cuotas_del_origen(
         self, client, admin_token, session
     ):
-        """Después de novar, todas las cuotas pendientes del préstamo origen tienen estado='cancelada'."""
-        from sqlalchemy import select as sa_select, text
-        from app.modelos_stub import Cuota
+        """Después de novar, las cuotas pendientes del préstamo origen tienen estado='cancelada'."""
         import uuid as uuid_mod
+
+        from sqlalchemy import select as sa_select
+
+        from app.modelos_stub import Cuota
 
         prestamo = await _seed_prestamo_vigente(client, admin_token, session)
         fpc = (date.today() + timedelta(days=30)).isoformat()
@@ -340,9 +347,6 @@ class TestC3PrestamoNovado:
 
 # ── helpers for C5 ─────────────────────────────────────────────────────────
 
-from tests.integration.test_comisiones import _prestamo_con_comision as _pcc
-from tests.integration._helpers_f1c import cuil_valido
-
 
 async def _seed_vendedor_con_devengo(client, token, session, dni: str) -> tuple[dict, str]:
     """Create a vendedor user with one comision_devengo. Returns (vendedor_id_str, caja_id)."""
@@ -358,7 +362,7 @@ class TestC5DobleLiquidacion:
     async def test_generar_liquidacion_dos_veces_no_duplica_devengos(
         self, client, admin_token, session
     ):
-        """Generar liquidación, aprobarla, generar otra del mismo período → segunda tiene monto_total=0."""
+        """Generar liquidación, aprobarla, generar otra → segunda tiene monto_total=0."""
         vendedor, _devengo = await _seed_vendedor_con_devengo(
             client, admin_token, session, "71000032"
         )
@@ -578,7 +582,9 @@ async def _crear_segundo_cobrador(client, admin_token: str) -> dict:
     return {"id": usuario_id, "token": token}
 
 
-async def _seed_ruta_con_parada(client, cobrador_usuario: dict, admin_token: str, session, dni: str) -> dict:
+async def _seed_ruta_con_parada(
+    client, cobrador_usuario: dict, admin_token: str, session, dni: str
+) -> dict:
     """Create a ruta with at least one parada assigned to cobrador. Returns {ruta_id, parada_id}."""
     from tests.integration._helpers_f1c import relajar_bcra
     from tests.integration.test_pagos_waterfall import _prestamo_desembolsado
