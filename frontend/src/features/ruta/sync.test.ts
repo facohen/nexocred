@@ -7,7 +7,7 @@ import { getDB } from "./db";
 import { sincronizarRuta } from "./sync";
 import { setToken, setSessionUser } from "@/lib/auth";
 
-const BASE = "http://localhost/api/v1";
+const BASE = "/api/v1";
 
 function authCobrador() {
   setToken({ access_token: "t", refresh_token: "r", token_type: "bearer" });

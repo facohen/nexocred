@@ -21,7 +21,7 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, ...p }: { children: React.ReactNode }) => <a {...p}>{children}</a>,
 }));
 
-const BASE = "http://localhost/api/v1";
+const BASE = "/api/v1";
 
 describe("Botones transaccionales: disable durante la mutacion en vuelo", () => {
   beforeEach(() => {

@@ -29,9 +29,13 @@ export interface ApiFetchOptions {
   signal?: AbortSignal;
 }
 
+// URL relativa: el browser la resuelve contra el origen actual.
+// En dev (Vite) el proxy reenvía /api/* → localhost:8001; en prod nginx hace
+// lo mismo. En tests MSW matchea el path relativo sin importar el origen jsdom.
+// Nunca hardcodear host:puerto.
 const BASE_URL =
   (import.meta as { env?: Record<string, string> }).env?.VITE_API_BASE_URL ??
-  "http://localhost/api/v1";
+  "/api/v1";
 
 function buildUrl(path: string, query?: ApiFetchOptions["query"]): string {
   const url = `${BASE_URL}${path}`;

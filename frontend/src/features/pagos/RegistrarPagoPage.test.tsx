@@ -12,7 +12,7 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, ...p }: { children: React.ReactNode }) => <a {...p}>{children}</a>,
 }));
 
-const BASE = "http://localhost/api/v1";
+const BASE = "/api/v1";
 
 function makePagoResponse(id = "p1") {
   return {

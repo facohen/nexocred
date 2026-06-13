@@ -9,7 +9,7 @@ vi.mock("@tanstack/react-router", () => ({
   useParams: () => ({}),
 }));
 
-const BASE = "http://localhost/api/v1";
+const BASE = "/api/v1";
 
 describe("useAccionSolicitud · Idempotency-Key", () => {
   it("envia Idempotency-Key al desembolsar (accion money-creating)", async () => {

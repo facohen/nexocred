@@ -1,7 +1,7 @@
 import { http, HttpResponse } from "msw";
 import * as fx from "./fixtures";
 
-const BASE = "http://localhost/api/v1";
+const BASE = "/api/v1";
 
 function err(code: string, message: string, status: number) {
   return HttpResponse.json({ error: { code, message } }, { status });

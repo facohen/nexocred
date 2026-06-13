@@ -7,7 +7,7 @@ import { LoginPage } from "./LoginPage";
 import { SessionProvider } from "@/lib/session";
 import { clearToken, getToken } from "@/lib/auth";
 
-const BASE = "http://localhost/api/v1";
+const BASE = "/api/v1";
 
 function renderLogin(onSuccess = vi.fn()) {
   return render(

@@ -7,7 +7,7 @@ import { renderWithProviders } from "@/test/utils";
 import { RendicionPage } from "./RendicionPage";
 import { setToken, setSessionUser } from "@/lib/auth";
 
-const BASE = "http://localhost/api/v1";
+const BASE = "/api/v1";
 const cobrador = { email: "cobrador@nexocred.test", nombre: "Cobra", roles: ["cobrador"] as const };
 
 beforeEach(() => {

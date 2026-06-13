@@ -6,7 +6,7 @@ import { renderWithProviders } from "@/test/utils";
 import { TesoreriaDashboard } from "./TesoreriaDashboard";
 import { setToken, setSessionUser } from "@/lib/auth";
 
-const BASE = "http://localhost/api/v1";
+const BASE = "/api/v1";
 const tesoreria = { email: "tesoreria@nexocred.test", nombre: "Tes", roles: ["tesoreria"] as const };
 
 beforeEach(() => {

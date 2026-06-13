@@ -4,7 +4,7 @@ import { server } from "@/mocks/server";
 import { apiFetch, ApiError } from "./client";
 import { setToken, clearToken } from "@/lib/auth";
 
-const BASE = "http://localhost/api/v1";
+const BASE = "/api/v1";
 
 describe("apiFetch", () => {
   beforeEach(() => clearToken());

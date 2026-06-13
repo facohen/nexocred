@@ -14,7 +14,7 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, ...p }: { children: React.ReactNode }) => <a {...p}>{children}</a>,
 }));
 
-const BASE = "http://localhost/api/v1";
+const BASE = "/api/v1";
 
 describe("Personas list", () => {
   it("renderiza filas de fixtures y filtra por busqueda", async () => {

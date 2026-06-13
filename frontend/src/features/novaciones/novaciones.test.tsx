@@ -12,7 +12,7 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, ...p }: { children: React.ReactNode }) => <a {...p}>{children}</a>,
 }));
 
-const BASE = "http://localhost/api/v1";
+const BASE = "/api/v1";
 
 describe("Novaciones", () => {
   it("permite elegir el tipo y ejecutar la novacion mostrando la cadena", async () => {

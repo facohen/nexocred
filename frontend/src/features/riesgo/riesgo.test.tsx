@@ -8,7 +8,7 @@ import { RiesgoBoard } from "./RiesgoBoard";
 import { AlertasPage } from "./AlertasPage";
 import { setToken, setSessionUser } from "@/lib/auth";
 
-const BASE = "http://localhost/api/v1";
+const BASE = "/api/v1";
 const admin = { email: "admin@nexocred.test", nombre: "Admin", roles: ["admin"] as const };
 
 beforeEach(() => {
