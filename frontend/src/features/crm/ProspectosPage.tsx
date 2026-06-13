@@ -10,16 +10,16 @@ export function ProspectosPage() {
   const promover = usePromoverProspecto();
   const [aviso, setAviso] = useState<string | null>(null);
 
-  if (q.isLoading) return <p className="p-4 text-sm text-foreground/60">Cargando prospectos…</p>;
-  if (q.isError) return <p role="alert" className="p-4 text-sm text-red-700">No se pudieron cargar los prospectos.</p>;
+  if (q.isLoading) return <p className="p-4 text-sm text-text-muted">Cargando prospectos…</p>;
+  if (q.isError) return <p role="alert" className="p-4 text-sm text-neg">No se pudieron cargar los prospectos.</p>;
   const prospectos = q.data?.data ?? [];
 
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold">Prospectos</h1>
-      {aviso && <p className="text-sm text-green-700">{aviso}</p>}
+      {aviso && <p className="text-sm text-pos">{aviso}</p>}
       {prospectos.length === 0 ? (
-        <p className="text-sm text-foreground/60">Sin prospectos.</p>
+        <p className="text-sm text-text-muted">Sin prospectos.</p>
       ) : (
         <ul className="space-y-2">
           {prospectos.map((p) => (
@@ -27,7 +27,7 @@ export function ProspectosPage() {
               <Card className="flex items-center justify-between">
                 <div>
                   <div className="text-sm font-medium">{p.nombre}</div>
-                  {p.telefono && <div className="text-xs text-foreground/60">{p.telefono}</div>}
+                  {p.telefono && <div className="text-xs text-text-muted">{p.telefono}</div>}
                   <Badge tone="default">{p.estado}</Badge>
                 </div>
                 <Button

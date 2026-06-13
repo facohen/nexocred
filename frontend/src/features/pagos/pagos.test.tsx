@@ -21,7 +21,7 @@ describe("RegistrarPago", () => {
     await userEvent.type(screen.getByLabelText(/monto/i), "54166.67");
     await userEvent.click(screen.getByRole("button", { name: /registrar pago/i }));
 
-    expect(await screen.findByText(/imputaciones/i)).toBeInTheDocument();
+    expect(await screen.findByText(/imputaci/i)).toBeInTheDocument();
     // waterfall: capital imputado
     expect(screen.getByText("$ 41.666,67")).toHaveClass("tabular-nums");
   });

@@ -21,11 +21,11 @@ export function RendicionPage({ rendicionId }: { rendicionId: string }) {
   const [monto, setMonto] = useState("");
   const [aviso, setAviso] = useState<string | null>(null);
 
-  if (q.isLoading) return <p className="p-4 text-sm text-foreground/60">Cargando rendición…</p>;
+  if (q.isLoading) return <p className="p-4 text-sm text-text-muted">Cargando rendición…</p>;
   if (q.isError) {
     const msg = q.error instanceof ApiError ? q.error.message : "Error al cargar la rendición";
     return (
-      <div role="alert" className="m-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+      <div role="alert" className="m-4 rounded-lg border border-neg-border bg-neg-bg p-3 text-sm text-neg">
         {msg}
       </div>
     );
@@ -54,15 +54,15 @@ export function RendicionPage({ rendicionId }: { rendicionId: string }) {
       <Card>
         <div className="grid grid-cols-3 gap-3 text-sm">
           <div>
-            <div className="text-foreground/60">Total cobrado</div>
+            <div className="text-text-muted">Total cobrado</div>
             <MoneyText value={r.total_cobrado} className="font-semibold" />
           </div>
           <div>
-            <div className="text-foreground/60">Total descargos</div>
+            <div className="text-text-muted">Total descargos</div>
             <MoneyText value={r.total_descargos} className="font-semibold" />
           </div>
           <div>
-            <div className="text-foreground/60">Diferencia</div>
+            <div className="text-text-muted">Diferencia</div>
             <MoneyText value={r.diferencia} className="font-semibold" />
           </div>
         </div>
@@ -71,7 +71,7 @@ export function RendicionPage({ rendicionId }: { rendicionId: string }) {
       <Card>
         <CardTitle>Descargos</CardTitle>
         {r.descargos.length === 0 ? (
-          <p className="text-sm text-foreground/60">Sin descargos.</p>
+          <p className="text-sm text-text-muted">Sin descargos.</p>
         ) : (
           <ul className="divide-y divide-border text-sm">
             {r.descargos.map((d) => (
@@ -92,7 +92,7 @@ export function RendicionPage({ rendicionId }: { rendicionId: string }) {
             Agregar descargo
           </Button>
         </div>
-        {aviso && <p className="mt-2 text-sm text-foreground/70">{aviso}</p>}
+        {aviso && <p className="mt-2 text-sm text-text-muted">{aviso}</p>}
       </Card>
 
       <div className="flex gap-2">

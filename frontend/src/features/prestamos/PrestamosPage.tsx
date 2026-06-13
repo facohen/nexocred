@@ -31,10 +31,10 @@ export function PrestamosPage() {
     [],
   );
 
-  if (isLoading) return <div className="animate-pulse text-foreground/40">Cargando préstamos…</div>;
+  if (isLoading) return <div className="animate-pulse text-text-subtle">Cargando préstamos…</div>;
   if (isError)
     return (
-      <div role="alert" className="text-red-700">
+      <div role="alert" className="text-neg">
         No se pudieron cargar los préstamos.
       </div>
     );

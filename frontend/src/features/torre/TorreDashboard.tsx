@@ -45,8 +45,8 @@ export function TorreDashboard() {
   }
   if (resumenQ.isError || pulsoQ.isError) {
     return (
-      <div role="alert" className="m-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-        No se pudo cargar La Torre.
+      <div role="alert" className="m-4 rounded-lg border border-neg-border bg-neg-bg p-3 text-sm text-neg">
+        No se pudo cargar el Tablero Ejecutivo.
       </div>
     );
   }
@@ -61,8 +61,8 @@ export function TorreDashboard() {
   if (!resumen.tiene_snapshot || !pulso.tiene_snapshot) {
     return (
       <div className="space-y-3">
-        <h1 className="text-xl font-bold">La Torre</h1>
-        <div className="rounded-lg border border-dashed border-border bg-muted/30 p-8 text-center text-sm text-foreground/60">
+        <h1 className="text-xl font-bold">Tablero Ejecutivo</h1>
+        <div className="rounded-lg border border-dashed border-border bg-surface-sunken p-8 text-center text-sm text-text-muted">
           Aún no hay snapshot de cartera. Ejecutá el job de snapshot (o esperá la
           corrida nocturna) para ver los indicadores.
         </div>
@@ -77,9 +77,9 @@ export function TorreDashboard() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">La Torre</h1>
+        <h1 className="text-xl font-bold">Tablero Ejecutivo</h1>
         <div className="text-right">
-          <div className="text-xs text-foreground/60">Índice Nexo</div>
+          <div className="text-xs text-text-muted">Índice Nexo</div>
           <div data-testid="indice-nexo" className="text-2xl font-bold tabular-nums">
             {resumen.indice_nexo.replace(".", ",")}
           </div>
@@ -90,7 +90,7 @@ export function TorreDashboard() {
         {pulso.tarjetas.map((t) => (
           <div key={t.clave} data-testid="pulso-card">
             <Card>
-              <div className="text-xs text-foreground/60">{t.etiqueta}</div>
+              <div className="text-xs text-text-muted">{t.etiqueta}</div>
               <ValorTarjeta clave={t.clave} valor={t.valor} />
             </Card>
           </div>
@@ -98,8 +98,8 @@ export function TorreDashboard() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-lg border border-border bg-white p-4">
-          <h3 className="mb-3 text-sm font-semibold text-foreground/80">Operación de hoy</h3>
+        <div className="rounded-lg border border-border bg-surface p-4">
+          <h3 className="mb-3 text-sm font-semibold text-text">Operación de hoy</h3>
           {op ? (
             <ul className="space-y-1 text-sm">
               <li className="flex justify-between"><span>Cobranza del día</span><MoneyText value={op.cobranza_del_dia} /></li>
@@ -109,12 +109,12 @@ export function TorreDashboard() {
               <li className="flex justify-between"><span>Pipeline solicitudes</span><span className="tabular-nums">{op.pipeline_solicitudes}</span></li>
             </ul>
           ) : (
-            <p className="text-sm text-foreground/60">Sin datos.</p>
+            <p className="text-sm text-text-muted">Sin datos.</p>
           )}
         </div>
 
-        <div className="rounded-lg border border-border bg-white p-4">
-          <h3 className="mb-3 text-sm font-semibold text-foreground/80">Negocio del mes</h3>
+        <div className="rounded-lg border border-border bg-surface p-4">
+          <h3 className="mb-3 text-sm font-semibold text-text">Negocio del mes</h3>
           {negocio ? (
             <ul className="space-y-1 text-sm">
               <li className="flex justify-between"><span>Colocación</span><MoneyText value={negocio.colocacion_mes} /></li>
@@ -122,17 +122,17 @@ export function TorreDashboard() {
               <li className="flex justify-between"><span>Punitorios cobrados</span><MoneyText value={negocio.punitorios_cobrados_mes} /></li>
             </ul>
           ) : (
-            <p className="text-sm text-foreground/60">Sin datos.</p>
+            <p className="text-sm text-text-muted">Sin datos.</p>
           )}
         </div>
       </div>
 
-      <div className="rounded-lg border border-border bg-white p-4">
-        <h3 className="mb-3 text-sm font-semibold text-foreground/80">
+      <div className="rounded-lg border border-border bg-surface p-4">
+        <h3 className="mb-3 text-sm font-semibold text-text">
           Alertas en vivo {saludQ.data ? "" : ""}
         </h3>
         {alertas.length === 0 ? (
-          <p className="text-sm text-foreground/60">Sin alertas activas.</p>
+          <p className="text-sm text-text-muted">Sin alertas activas.</p>
         ) : (
           <ul className="space-y-1 text-sm">
             {alertas.map((a) => (
@@ -145,7 +145,7 @@ export function TorreDashboard() {
                 </a>
                 <span className="flex items-center gap-2">
                   {a.severidad && <Badge tone={a.severidad === "alta" ? "danger" : "warning"}>{a.severidad}</Badge>}
-                  <span className="tabular-nums text-foreground/60">{a.metrica}: {a.valor}</span>
+                  <span className="tabular-nums text-text-muted">{a.metrica}: {a.valor}</span>
                 </span>
               </li>
             ))}

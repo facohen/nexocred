@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useRegistrarPago } from "@/lib/api/queries";
+import { useRegistrarPago, usePrestamos, useCajas } from "@/lib/api/queries";
 import { newIdempotencyKey } from "@/lib/utils";
 import { ApiError } from "@/lib/api/client";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { TransactionButton } from "@/components/TransactionButton";
 import { Input } from "@/components/ui/input";
 import { MoneyText } from "@/components/MoneyText";
+import { EntityCombobox, type EntityOption } from "@/components/EntityCombobox";
+import { formatMoney } from "@/lib/money";
 import { CorreccionDialog } from "./CorreccionDialog";
 import type { components } from "@/lib/api/schema";
 
@@ -17,15 +19,30 @@ const CONCEPTO_LABEL: Record<string, string> = {
 };
 
 export function RegistrarPagoPage() {
-  const [prestamoId, setPrestamoId] = useState("prestamo-1");
+  // IDs antes hardcodeados → ahora seleccionados por inbox (EntityCombobox).
+  const [prestamoId, setPrestamoId] = useState<string | null>(null);
   const [monto, setMonto] = useState("");
   const [canal, setCanal] = useState("efectivo");
-  const [cajaId, setCajaId] = useState("caja-1");
+  const [cajaId, setCajaId] = useState<string | null>(null);
   // Stable key so retries of the SAME pago reuse it (idempotency).
   // Rotated after each successful submission so a new pago gets a fresh key.
   const [idemKey, setIdemKey] = useState(() => newIdempotencyKey());
   const [error, setError] = useState<string | null>(null);
   const [correccionPago, setCorreccionPago] = useState<string | null>(null);
+
+  const prestamosQ = usePrestamos();
+  const cajasQ = useCajas();
+
+  const prestamoOptions: EntityOption[] = (prestamosQ.data?.data ?? []).map((p) => ({
+    id: p.id,
+    label: `Préstamo #${p.id}`,
+    hint: p.capital != null ? `$ ${formatMoney(p.capital)}` : undefined,
+  }));
+  const cajaOptions: EntityOption[] = (cajasQ.data?.data ?? []).map((c) => ({
+    id: c.id,
+    label: c.nombre,
+    hint: `$ ${formatMoney(c.saldo_teorico)}`,
+  }));
 
   const registrar = useRegistrarPago();
   const resultado = registrar.data;
@@ -59,7 +76,12 @@ export function RegistrarPagoPage() {
             <label htmlFor="prestamo" className="text-sm font-medium">
               Préstamo
             </label>
-            <Input id="prestamo" value={prestamoId} onChange={(e) => setPrestamoId(e.target.value)} />
+            <EntityCombobox
+              value={prestamoId}
+              onChange={(id) => setPrestamoId(id)}
+              options={prestamoOptions}
+              placeholder="Buscar préstamo…"
+            />
           </div>
           <div className="space-y-1">
             <label htmlFor="monto" className="text-sm font-medium">
@@ -77,7 +99,12 @@ export function RegistrarPagoPage() {
             <label htmlFor="caja" className="text-sm font-medium">
               Caja
             </label>
-            <Input id="caja" value={cajaId} onChange={(e) => setCajaId(e.target.value)} />
+            <EntityCombobox
+              value={cajaId}
+              onChange={(id) => setCajaId(id)}
+              options={cajaOptions}
+              placeholder="Buscar caja…"
+            />
           </div>
           <TransactionButton
             type="submit"
@@ -88,7 +115,7 @@ export function RegistrarPagoPage() {
           </TransactionButton>
         </form>
         {error && (
-          <p role="alert" className="mt-2 text-sm text-red-600">
+          <p role="alert" className="mt-2 text-sm text-neg">
             {error}
           </p>
         )}
@@ -97,18 +124,18 @@ export function RegistrarPagoPage() {
       {resultado && (
         <Card>
           <div className="flex items-center justify-between">
-            <CardTitle>Imputaciones (waterfall)</CardTitle>
+            <CardTitle>Orden de Imputación</CardTitle>
             <Button variant="outline" size="sm" onClick={() => setCorreccionPago(resultado.id)}>
               Corregir
             </Button>
           </div>
-          <p className="mb-3 text-sm text-foreground/60">
-            Pago <MoneyText value={resultado.monto ?? null} /> · excedente{" "}
+          <p className="mb-3 text-sm text-text-muted">
+            Pago <MoneyText value={resultado.monto ?? null} intent="income" /> · excedente{" "}
             <MoneyText value={resultado.excedente} />
           </p>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-foreground/60">
+              <tr className="text-left text-text-muted">
                 <th className="py-1">Orden</th>
                 <th className="py-1">Concepto</th>
                 <th className="py-1">Cuota</th>

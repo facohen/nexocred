@@ -60,11 +60,11 @@ export function PersonasListPage() {
         />
       </Dialog>
       {isLoading ? (
-        <div className="animate-pulse rounded-lg border border-border bg-white p-8 text-center text-foreground/40">
+        <div className="animate-pulse rounded-lg border border-border bg-surface p-8 text-center text-text-subtle">
           Cargando…
         </div>
       ) : isError ? (
-        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-8 text-center text-red-700">
+        <div role="alert" className="rounded-lg border border-neg-border bg-neg-bg p-8 text-center text-neg">
           No se pudieron cargar las personas.
         </div>
       ) : (

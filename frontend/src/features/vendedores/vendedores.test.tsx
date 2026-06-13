@@ -21,7 +21,7 @@ describe("ComisionesPage", () => {
     renderWithProviders(<ComisionesPage vendedorId="user-vendedor" />, { ...admin, roles: ["admin"] });
     expect(await screen.findByTestId("total-devengada")).toHaveTextContent(/5\.000,00/);
     expect(await screen.findByTestId("total-clawback")).toHaveTextContent(/-1\.500,00|1\.500,00/);
-    expect((await screen.findAllByText(/clawback/i)).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText(/Reversión de Comisión/i)).length).toBeGreaterThan(0);
   });
 
   it("estado de error", async () => {

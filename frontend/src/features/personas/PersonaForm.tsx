@@ -113,14 +113,14 @@ const SelectField = forwardRef<
   return (
     <div className="space-y-1">
       <label htmlFor={id} className="text-sm font-medium">
-        {label} {required && <span className="text-red-600">*</span>}
+        {label} {required && <span className="text-neg">*</span>}
       </label>
       <select
         id={id}
         ref={ref}
         aria-invalid={Boolean(error)}
         defaultValue=""
-        className="h-9 w-full rounded-md border border-border bg-white px-2 text-sm"
+        className="h-9 w-full rounded-md border border-input bg-surface px-2 text-sm text-text"
         {...rest}
       >
         <option value="" disabled>
@@ -133,7 +133,7 @@ const SelectField = forwardRef<
         ))}
       </select>
       {error && (
-        <p role="alert" className="text-xs text-red-600">
+        <p role="alert" className="text-xs text-neg">
           {error.message}
         </p>
       )}
@@ -297,7 +297,7 @@ export function PersonaForm({ onCreated }: { onCreated: (id: string) => void }) 
       </fieldset>
 
       {apiError && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-neg">
           {apiError}
         </p>
       )}

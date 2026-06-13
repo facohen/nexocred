@@ -12,8 +12,8 @@ export function IncidentesPage() {
   const [titulo, setTitulo] = useState("");
   const [aviso, setAviso] = useState<string | null>(null);
 
-  if (q.isLoading) return <p className="p-4 text-sm text-foreground/60">Cargando incidentes…</p>;
-  if (q.isError) return <p role="alert" className="p-4 text-sm text-red-700">No se pudieron cargar los incidentes.</p>;
+  if (q.isLoading) return <p className="p-4 text-sm text-text-muted">Cargando incidentes…</p>;
+  if (q.isError) return <p role="alert" className="p-4 text-sm text-neg">No se pudieron cargar los incidentes.</p>;
   const incidentes = q.data?.data ?? [];
 
   return (
@@ -35,11 +35,11 @@ export function IncidentesPage() {
             Crear incidente
           </Button>
         </div>
-        {aviso && <p className="mt-2 text-sm text-green-700">{aviso}</p>}
+        {aviso && <p className="mt-2 text-sm text-pos">{aviso}</p>}
       </Card>
 
       {incidentes.length === 0 ? (
-        <p className="text-sm text-foreground/60">Sin incidentes.</p>
+        <p className="text-sm text-text-muted">Sin incidentes.</p>
       ) : (
         <ul className="space-y-2">
           {incidentes.map((i) => (
@@ -47,7 +47,7 @@ export function IncidentesPage() {
               <Card className="flex items-center justify-between">
                 <div>
                   <div className="text-sm font-medium">{i.titulo}</div>
-                  {i.detalle && <div className="text-xs text-foreground/60">{i.detalle}</div>}
+                  {i.detalle && <div className="text-xs text-text-muted">{i.detalle}</div>}
                 </div>
                 <div className="flex gap-2">
                   {i.severidad && <Badge tone="warning">{i.severidad}</Badge>}

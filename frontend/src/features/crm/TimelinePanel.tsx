@@ -15,8 +15,8 @@ const TONO: Record<string, "default" | "success" | "warning" | "danger"> = {
  */
 export function TimelinePanel({ personaId }: { personaId: string }) {
   const q = useTimeline(personaId);
-  if (q.isLoading) return <p className="text-sm text-foreground/60">Cargando timeline…</p>;
-  if (q.isError) return <p role="alert" className="text-sm text-red-700">No se pudo cargar el timeline.</p>;
+  if (q.isLoading) return <p className="text-sm text-text-muted">Cargando timeline…</p>;
+  if (q.isError) return <p role="alert" className="text-sm text-neg">No se pudo cargar el timeline.</p>;
 
   const eventos = [...(q.data?.data ?? [])].sort(
     (a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime(),
@@ -26,7 +26,7 @@ export function TimelinePanel({ personaId }: { personaId: string }) {
     <Card>
       <CardTitle>Timeline 360</CardTitle>
       {eventos.length === 0 ? (
-        <p className="text-sm text-foreground/60">Sin actividad.</p>
+        <p className="text-sm text-text-muted">Sin actividad.</p>
       ) : (
         <ol className="space-y-2">
           {eventos.map((e, idx) => (
@@ -34,7 +34,7 @@ export function TimelinePanel({ personaId }: { personaId: string }) {
               <Badge tone={TONO[e.tipo] ?? "default"}>{e.tipo}</Badge>
               <div>
                 <div>{e.detalle ?? e.tipo}</div>
-                <div className="text-xs text-foreground/50">{new Date(e.fecha).toLocaleString("es-AR")}</div>
+                <div className="text-xs text-text-subtle">{new Date(e.fecha).toLocaleString("es-AR")}</div>
               </div>
             </li>
           ))}

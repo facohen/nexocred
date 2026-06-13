@@ -42,10 +42,10 @@ export function SolicitudesPage() {
     [],
   );
 
-  if (isLoading) return <div className="animate-pulse text-foreground/40">Cargando solicitudes…</div>;
+  if (isLoading) return <div className="animate-pulse text-text-subtle">Cargando solicitudes…</div>;
   if (isError)
     return (
-      <div role="alert" className="text-red-700">
+      <div role="alert" className="text-neg">
         No se pudieron cargar las solicitudes.
       </div>
     );

@@ -77,14 +77,14 @@ export function VisitaCaptureForm({
   }
 
   return (
-    <div className="space-y-3 rounded-lg border border-border bg-muted/40 p-3">
+    <div className="space-y-3 rounded-lg border border-border bg-surface-sunken p-3">
       <div>
         <label htmlFor="resultado" className="text-sm font-medium">
           Resultado
         </label>
         <select
           id="resultado"
-          className="mt-1 h-9 w-full rounded-md border border-border bg-white px-2 text-sm"
+          className="mt-1 h-9 w-full rounded-md border border-input bg-surface px-2 text-sm text-text"
           value={resultado}
           onChange={(e) => setResultado(e.target.value)}
         >

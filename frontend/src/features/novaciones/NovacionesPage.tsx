@@ -13,12 +13,12 @@ const TIPOS: { value: Tipo; label: string }[] = [
   { value: "refinanciar", label: "Refinanciar" },
   { value: "consolidar", label: "Consolidar" },
   { value: "transferir", label: "Transferir" },
-  { value: "repactar-rapido", label: "Repactar rápido" },
+  { value: "repactar-rapido", label: "Repactar" },
 ];
 
 export function NovacionesPage() {
   const [tipo, setTipo] = useState<Tipo>("refinanciar");
-  const [prestamoId, setPrestamoId] = useState("prestamo-1");
+  const [prestamoId, setPrestamoId] = useState("");
   const novacion = useNovacion();
   const resultado = novacion.data;
   const errorMsg =
@@ -67,7 +67,7 @@ export function NovacionesPage() {
       </Card>
 
       {errorMsg && (
-        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <div role="alert" className="rounded-lg border border-neg-border bg-neg-bg p-3 text-sm text-neg">
           {errorMsg}
         </div>
       )}

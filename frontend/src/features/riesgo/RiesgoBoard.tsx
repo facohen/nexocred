@@ -7,7 +7,7 @@ import { formatPercent } from "./format";
 function Kpi({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <Card className="p-3">
-      <div className="text-xs text-foreground/60">{label}</div>
+      <div className="text-xs text-text-muted">{label}</div>
       <div className="text-lg font-semibold tabular-nums">{value}</div>
     </Card>
   );
@@ -26,14 +26,14 @@ export function RiesgoBoard() {
   if (tableroQ.isLoading) {
     return (
       <div data-testid="riesgo-loading" className="space-y-2 p-4">
-        <div className="h-6 w-1/3 animate-pulse rounded bg-foreground/10" />
-        <div className="h-24 w-full animate-pulse rounded bg-foreground/10" />
+        <div className="h-6 w-1/3 animate-pulse rounded bg-text/10" />
+        <div className="h-24 w-full animate-pulse rounded bg-text/10" />
       </div>
     );
   }
   if (tableroQ.isError) {
     return (
-      <div role="alert" className="m-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+      <div role="alert" className="m-4 rounded-lg border border-neg-border bg-neg-bg p-3 text-sm text-neg">
         No se pudo cargar el tablero de riesgo.
       </div>
     );
@@ -56,26 +56,26 @@ export function RiesgoBoard() {
         <Kpi label="Pérdida esperada" value={<MoneyText value={t.perdida_esperada} />} />
       </div>
 
-      <div className="rounded-lg border border-border bg-white p-4">
+      <div className="rounded-lg border border-border bg-surface p-4">
         <CardTitle>Aging de cartera</CardTitle>
         <ul className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-5">
           {aging.map(([tramo, monto]) => (
             <li key={tramo} className="rounded border border-border p-2">
-              <div className="text-xs text-foreground/60">{tramo}</div>
+              <div className="text-xs text-text-muted">{tramo}</div>
               <MoneyText value={String(monto)} className="font-medium" />
             </li>
           ))}
         </ul>
       </div>
 
-      <div className="rounded-lg border border-border bg-white p-4">
+      <div className="rounded-lg border border-border bg-surface p-4">
         <CardTitle>Cosechas</CardTitle>
         {cosechas.length === 0 ? (
-          <p className="text-sm text-foreground/60">Sin cosechas.</p>
+          <p className="text-sm text-text-muted">Sin cosechas.</p>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border text-left text-foreground/60">
+              <tr className="border-b border-border text-left text-text-muted">
                 <th className="py-1">Mes</th>
                 <th className="py-1">Capital</th>
                 <th className="py-1">Mora</th>
@@ -96,10 +96,10 @@ export function RiesgoBoard() {
         )}
       </div>
 
-      <div className="rounded-lg border border-border bg-white p-4">
+      <div className="rounded-lg border border-border bg-surface p-4">
         <CardTitle>Concentración</CardTitle>
         {concentracion.length === 0 ? (
-          <p className="text-sm text-foreground/60">Sin datos de concentración.</p>
+          <p className="text-sm text-text-muted">Sin datos de concentración.</p>
         ) : (
           <ul className="space-y-1 text-sm">
             {concentracion.map((c) => (
@@ -107,7 +107,7 @@ export function RiesgoBoard() {
                 <span>{c.clave}</span>
                 <span className="flex gap-3">
                   <MoneyText value={c.valor} />
-                  <span className="tabular-nums text-foreground/60">{formatPercent(c.share)}</span>
+                  <span className="tabular-nums text-text-muted">{formatPercent(c.share)}</span>
                 </span>
               </li>
             ))}

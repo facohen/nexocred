@@ -27,11 +27,11 @@ export function BcraPanel({ personaId }: { personaId: string }) {
       </div>
       <div aria-label="Deuda BCRA">
         {deudas.length === 0 ? (
-          <p className="text-sm text-foreground/50">Sin deuda informada.</p>
+          <p className="text-sm text-text-subtle">Sin deuda informada.</p>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-foreground/60">
+              <tr className="text-left text-text-muted">
                 <th className="py-1">Entidad</th>
                 <th className="py-1">Situación</th>
                 <th className="py-1 text-right">Monto</th>

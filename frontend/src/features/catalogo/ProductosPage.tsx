@@ -10,10 +10,10 @@ export function ProductosPage() {
   const productos = data?.data ?? [];
   const detalle = productos.find((p) => p.id === selected) ?? productos[0];
 
-  if (isLoading) return <div className="animate-pulse text-foreground/40">Cargando catálogo…</div>;
+  if (isLoading) return <div className="animate-pulse text-text-subtle">Cargando catálogo…</div>;
   if (isError)
     return (
-      <div role="alert" className="text-red-700">
+      <div role="alert" className="text-neg">
         No se pudo cargar el catálogo.
       </div>
     );
@@ -27,13 +27,13 @@ export function ProductosPage() {
             <button
               key={p.id}
               onClick={() => setSelected(p.id)}
-              className="block w-full rounded-lg border border-border bg-white p-3 text-left hover:bg-muted"
+              className="block w-full rounded-lg border border-border bg-surface p-3 text-left hover:bg-surface-sunken"
             >
               <div className="flex items-center justify-between">
                 <span className="font-medium">{p.nombre}</span>
                 <Badge tone={p.estado === "publicado" ? "success" : "warning"}>{p.estado}</Badge>
               </div>
-              <span className="text-xs text-foreground/50">v{p.version_vigente}</span>
+              <span className="text-xs text-text-subtle">v{p.version_vigente}</span>
             </button>
           ))}
         </div>
@@ -41,24 +41,24 @@ export function ProductosPage() {
           {detalle && (
             <Card>
               <CardTitle>{detalle.nombre}</CardTitle>
-              <p className="mb-3 text-sm text-foreground/70">{detalle.descripcion}</p>
+              <p className="mb-3 text-sm text-text-muted">{detalle.descripcion}</p>
               <dl className="mb-4 grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <dt className="text-xs text-foreground/50">Periodicidad</dt>
+                  <dt className="text-xs text-text-subtle">Periodicidad</dt>
                   <dd>{detalle.periodicidad ?? "—"}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-foreground/50">Plazos</dt>
+                  <dt className="text-xs text-text-subtle">Plazos</dt>
                   <dd>{(detalle.plazos_permitidos ?? []).join(", ")}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-foreground/50">Monto mínimo</dt>
+                  <dt className="text-xs text-text-subtle">Monto mínimo</dt>
                   <dd>
                     <MoneyText value={detalle.monto_minimo ?? null} />
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-foreground/50">Monto máximo</dt>
+                  <dt className="text-xs text-text-subtle">Monto máximo</dt>
                   <dd>
                     <MoneyText value={detalle.monto_maximo ?? null} />
                   </dd>
@@ -70,7 +70,7 @@ export function ProductosPage() {
                   {(detalle.gastos ?? []).map((g, i) => (
                     <tr key={i} className="border-t border-border">
                       <td className="py-1">{g.nombre}</td>
-                      <td className="py-1 text-foreground/60">{g.tipo}</td>
+                      <td className="py-1 text-text-muted">{g.tipo}</td>
                       <td className="py-1 text-right">
                         {g.tipo === "porcentaje" ? `${g.valor}%` : <MoneyText value={g.valor} />}
                       </td>

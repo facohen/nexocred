@@ -58,7 +58,7 @@ export function AsignacionesPage() {
         </div>
       </Card>
 
-      {aviso && <p className="text-sm text-green-700">{aviso}</p>}
+      {aviso && <p className="text-sm text-pos">{aviso}</p>}
     </div>
   );
 }

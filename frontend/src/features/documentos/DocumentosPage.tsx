@@ -21,14 +21,14 @@ export function DocumentosPage({ prestamoId }: { prestamoId: string }) {
   const [motivo, setMotivo] = useState("");
   const [aviso, setAviso] = useState<string | null>(null);
 
-  if (q.isLoading) return <p className="p-4 text-sm text-foreground/60">Cargando documentos…</p>;
-  if (q.isError) return <p role="alert" className="p-4 text-sm text-red-700">No se pudieron cargar los documentos.</p>;
+  if (q.isLoading) return <p className="p-4 text-sm text-text-muted">Cargando documentos…</p>;
+  if (q.isError) return <p role="alert" className="p-4 text-sm text-neg">No se pudieron cargar los documentos.</p>;
   const documentos = q.data?.data ?? [];
 
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold">Documentos</h1>
-      {aviso && <p className="text-sm text-green-700">{aviso}</p>}
+      {aviso && <p className="text-sm text-pos">{aviso}</p>}
 
       <Card>
         <CardTitle>Generar documento</CardTitle>
@@ -37,7 +37,7 @@ export function DocumentosPage({ prestamoId }: { prestamoId: string }) {
             <label htmlFor="tipo-doc" className="text-sm font-medium">Tipo</label>
             <select
               id="tipo-doc"
-              className="h-9 rounded-md border border-border bg-white px-2 text-sm"
+              className="h-9 rounded-md border border-input bg-surface px-2 text-sm text-text"
               value={tipo}
               onChange={(e) => setTipo(e.target.value)}
             >
@@ -59,7 +59,7 @@ export function DocumentosPage({ prestamoId }: { prestamoId: string }) {
       </Card>
 
       {documentos.length === 0 ? (
-        <p className="text-sm text-foreground/60">Sin documentos.</p>
+        <p className="text-sm text-text-muted">Sin documentos.</p>
       ) : (
         <ul className="space-y-2">
           {documentos.map((d) => {
@@ -73,7 +73,7 @@ export function DocumentosPage({ prestamoId }: { prestamoId: string }) {
                         {d.tipo} · N° {d.numero}{" "}
                         {anulado && <Badge tone="danger">anulado</Badge>}
                       </div>
-                      <div className="font-mono text-xs text-foreground/50">{d.hash_sha256.slice(0, 16)}…</div>
+                      <div className="font-mono text-xs text-text-subtle">{d.hash_sha256.slice(0, 16)}…</div>
                     </div>
                     <div className="flex gap-2">
                       <Button

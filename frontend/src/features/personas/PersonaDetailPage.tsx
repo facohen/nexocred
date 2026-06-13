@@ -8,7 +8,7 @@ import { TimelinePanel } from "@/features/crm/TimelinePanel";
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <dt className="text-xs text-foreground/50">{label}</dt>
+      <dt className="text-xs text-text-subtle">{label}</dt>
       <dd className="text-sm">{value ?? "—"}</dd>
     </div>
   );
@@ -20,14 +20,14 @@ export function PersonaDetailPage() {
 
   if (isError) {
     return (
-      <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+      <div role="alert" className="rounded-lg border border-neg-border bg-neg-bg p-3 text-sm text-neg">
         No se pudo cargar la ficha de la persona. Reintentá más tarde.
       </div>
     );
   }
 
   if (isLoading || !persona) {
-    return <div className="animate-pulse text-foreground/40">Cargando ficha…</div>;
+    return <div className="animate-pulse text-text-subtle">Cargando ficha…</div>;
   }
 
   return (
@@ -36,7 +36,7 @@ export function PersonaDetailPage() {
         <h1 className="text-xl font-bold">
           {persona.apellido}, {persona.nombre}
         </h1>
-        <p className="text-sm text-foreground/60">
+        <p className="text-sm text-text-muted">
           DNI {persona.dni} · CUIL {persona.cuil}
         </p>
       </div>
@@ -68,7 +68,7 @@ export function PersonaDetailPage() {
       <Card>
         <CardTitle>Referencias</CardTitle>
         {(persona.referencias ?? []).length === 0 ? (
-          <p className="text-sm text-foreground/50">Sin referencias.</p>
+          <p className="text-sm text-text-subtle">Sin referencias.</p>
         ) : (
           <ul className="space-y-1 text-sm">
             {(persona.referencias ?? []).map((r, i) => (

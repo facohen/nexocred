@@ -7,16 +7,16 @@ import { MoneyText } from "@/components/MoneyText";
 function Skeleton({ testid }: { testid?: string }) {
   return (
     <div data-testid={testid} className="space-y-2">
-      <div className="h-4 w-1/3 animate-pulse rounded bg-foreground/10" />
-      <div className="h-4 w-full animate-pulse rounded bg-foreground/10" />
-      <div className="h-4 w-2/3 animate-pulse rounded bg-foreground/10" />
+      <div className="h-4 w-1/3 animate-pulse rounded bg-surface-sunken" />
+      <div className="h-4 w-full animate-pulse rounded bg-surface-sunken" />
+      <div className="h-4 w-2/3 animate-pulse rounded bg-surface-sunken" />
     </div>
   );
 }
 
 function ErrorAlert({ children }: { children: React.ReactNode }) {
   return (
-    <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+    <div role="alert" className="rounded-lg border border-neg-border bg-neg-bg p-3 text-sm text-neg">
       {children}
     </div>
   );
@@ -26,7 +26,9 @@ export function CajaPage() {
   const cajasQ = useCajas();
   const posicionQ = usePosicionConsolidada();
   const cajas = cajasQ.data?.data ?? [];
-  const [cajaId, setCajaId] = useState("caja-1");
+  const [cajaIdSel, setCajaId] = useState("");
+  // Por defecto la primera caja cargada (antes era un id hardcodeado).
+  const cajaId = cajaIdSel || cajas[0]?.id || "";
   const movQ = useMovimientos(cajaId);
   const movimientos = movQ.data?.data ?? [];
 
@@ -65,14 +67,14 @@ export function CajaPage() {
         <div className="mb-3 flex items-center gap-2">
           <CardTitle>Ledger (append-only)</CardTitle>
           {cajasQ.isError ? (
-            <span className="ml-auto text-sm text-red-600">No se pudieron cargar las cajas</span>
+            <span className="ml-auto text-sm text-neg">No se pudieron cargar las cajas</span>
           ) : (
             <select
               aria-label="Seleccionar caja"
               value={cajaId}
               onChange={(e) => setCajaId(e.target.value)}
               disabled={cajasQ.isLoading}
-              className="ml-auto rounded-md border border-border px-2 py-1 text-sm"
+              className="ml-auto rounded-md border border-input bg-surface px-2 py-1 text-sm text-text"
             >
               {cajas.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -87,11 +89,11 @@ export function CajaPage() {
         ) : movQ.isError ? (
           <ErrorAlert>No se pudieron cargar los movimientos de la caja.</ErrorAlert>
         ) : movimientos.length === 0 ? (
-          <p className="text-sm text-foreground/50">Sin movimientos en esta caja.</p>
+          <p className="text-sm text-text-subtle">Sin movimientos en esta caja.</p>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-foreground/60">
+              <tr className="text-left text-text-muted">
                 <th className="py-1">Fecha</th>
                 <th className="py-1">Concepto</th>
                 <th className="py-1">Tipo</th>

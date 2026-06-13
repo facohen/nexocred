@@ -14,8 +14,8 @@ export function RendicionRoute() {
   const rendiciones = q.data?.data ?? [];
   const actual = rendiciones[0];
 
-  if (q.isLoading) return <p className="p-4 text-sm text-foreground/60">Cargando rendición…</p>;
-  if (q.isError) return <p role="alert" className="p-4 text-sm text-red-700">No se pudo cargar la rendición.</p>;
-  if (!actual) return <p className="p-4 text-sm text-foreground/60">No hay rendiciones abiertas.</p>;
+  if (q.isLoading) return <p className="p-4 text-sm text-text-muted">Cargando rendición…</p>;
+  if (q.isError) return <p role="alert" className="p-4 text-sm text-neg">No se pudo cargar la rendición.</p>;
+  if (!actual) return <p className="p-4 text-sm text-text-muted">No hay rendiciones abiertas.</p>;
   return <RendicionPage rendicionId={actual.id} />;
 }

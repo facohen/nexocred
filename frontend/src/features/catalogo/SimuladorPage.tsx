@@ -72,19 +72,19 @@ export function SimuladorPage() {
           <CardTitle>Cronograma</CardTitle>
           <div className="mb-3 grid grid-cols-3 gap-4 text-sm">
             <div>
-              <dt className="text-xs text-foreground/50">Total capital</dt>
+              <dt className="text-xs text-text-subtle">Total capital</dt>
               <dd>
                 <MoneyText value={resultado.total_capital} />
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-foreground/50">Total interés</dt>
+              <dt className="text-xs text-text-subtle">Total interés</dt>
               <dd>
                 <MoneyText value={resultado.total_interes} />
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-foreground/50">Total a pagar</dt>
+              <dt className="text-xs text-text-subtle">Total a pagar</dt>
               <dd className="font-semibold">
                 <MoneyText value={resultado.total_a_pagar} />
               </dd>
@@ -92,7 +92,7 @@ export function SimuladorPage() {
           </div>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-foreground/60">
+              <tr className="text-left text-text-muted">
                 <th className="py-1">#</th>
                 <th className="py-1">Vencimiento</th>
                 <th className="py-1 text-right">Capital</th>

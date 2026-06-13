@@ -22,10 +22,10 @@ export function MatricesPage() {
     };
   }, [filas]);
 
-  if (isLoading) return <div className="animate-pulse text-foreground/40">Cargando matriz…</div>;
+  if (isLoading) return <div className="animate-pulse text-text-subtle">Cargando matriz…</div>;
   if (isError)
     return (
-      <div role="alert" className="text-red-700">
+      <div role="alert" className="text-neg">
         No se pudo cargar la matriz de tasas.
       </div>
     );
@@ -37,7 +37,7 @@ export function MatricesPage() {
         <CardTitle>Tasa de interés directo (%)</CardTitle>
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-foreground/60">
+            <tr className="text-left text-text-muted">
               <th className="py-1">Perfil \ Plazo</th>
               {plazos.map((p) => (
                 <th key={p} className="py-1 text-right">

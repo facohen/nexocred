@@ -14,18 +14,18 @@ export function AlertasPage() {
   const [justificacion, setJustificacion] = useState("");
   const [aviso, setAviso] = useState<string | null>(null);
 
-  if (q.isLoading) return <p data-testid="alertas-loading" className="p-4 text-sm text-foreground/60">Cargando alertas…</p>;
-  if (q.isError) return <p role="alert" className="p-4 text-sm text-red-700">No se pudieron cargar las alertas.</p>;
+  if (q.isLoading) return <p data-testid="alertas-loading" className="p-4 text-sm text-text-muted">Cargando alertas…</p>;
+  if (q.isError) return <p role="alert" className="p-4 text-sm text-neg">No se pudieron cargar las alertas.</p>;
 
   const alertas = (q.data?.data ?? []).filter((a) => a.estado === "activa");
 
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold">Alertas</h1>
-      {aviso && <p className="text-sm text-green-700">{aviso}</p>}
+      {aviso && <p className="text-sm text-pos">{aviso}</p>}
 
       {alertas.length === 0 ? (
-        <p className="text-sm text-foreground/60">No hay alertas activas.</p>
+        <p className="text-sm text-text-muted">No hay alertas activas.</p>
       ) : (
         <ul className="space-y-2">
           {alertas.map((a) => (
@@ -36,7 +36,7 @@ export function AlertasPage() {
                   <div className="flex gap-2">
                     {a.severidad && <Badge tone={a.severidad === "alta" ? "danger" : "warning"}>{a.severidad}</Badge>}
                     {a.metrica && (
-                      <span className="text-xs text-foreground/60 tabular-nums">
+                      <span className="text-xs text-text-muted tabular-nums">
                         {a.metrica}: {a.valor}
                       </span>
                     )}

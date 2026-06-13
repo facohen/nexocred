@@ -25,8 +25,8 @@ export function LiquidacionesPage() {
   const [desde, setDesde] = useState("2026-06-01");
   const [hasta, setHasta] = useState("2026-06-30");
 
-  if (q.isLoading) return <p className="p-4 text-sm text-foreground/60">Cargando liquidaciones…</p>;
-  if (q.isError) return <p role="alert" className="p-4 text-sm text-red-700">No se pudieron cargar las liquidaciones.</p>;
+  if (q.isLoading) return <p className="p-4 text-sm text-text-muted">Cargando liquidaciones…</p>;
+  if (q.isError) return <p role="alert" className="p-4 text-sm text-neg">No se pudieron cargar las liquidaciones.</p>;
   const liquidaciones = q.data ?? [];
 
   return (
@@ -48,13 +48,13 @@ export function LiquidacionesPage() {
         </div>
       </Card>
 
-      <div className="rounded-lg border border-border bg-white p-4">
+      <div className="rounded-lg border border-border bg-surface p-4">
         {liquidaciones.length === 0 ? (
-          <p className="text-sm text-foreground/60">Sin liquidaciones.</p>
+          <p className="text-sm text-text-muted">Sin liquidaciones.</p>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border text-left text-foreground/60">
+              <tr className="border-b border-border text-left text-text-muted">
                 <th className="py-1">Período</th>
                 <th className="py-1">Monto</th>
                 <th className="py-1">Estado</th>

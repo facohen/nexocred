@@ -13,8 +13,8 @@ import { VisitaCaptureForm } from "./VisitaCaptureForm";
 function Skeleton() {
   return (
     <div className="space-y-2">
-      <div className="h-4 w-2/3 animate-pulse rounded bg-foreground/10" />
-      <div className="h-4 w-full animate-pulse rounded bg-foreground/10" />
+      <div className="h-4 w-2/3 animate-pulse rounded bg-surface-sunken" />
+      <div className="h-4 w-full animate-pulse rounded bg-surface-sunken" />
     </div>
   );
 }
@@ -66,12 +66,12 @@ export function RutaPage({ rutaId }: { rutaId: string }) {
   return (
     <div data-testid="ruta-root" className="mx-auto max-w-md space-y-4 px-1 pb-24">
       <header className="flex items-center justify-between">
-        <h1 className="text-lg font-bold">La Ruta</h1>
+        <h1 className="text-lg font-bold">Ruta de Cobranza</h1>
         <div className="flex items-center gap-2">
           <Badge tone={online ? "success" : "warning"}>
             {online ? "En línea" : "Sin conexión"}
           </Badge>
-          <span data-testid="sync-status" className="text-xs text-foreground/70">
+          <span data-testid="sync-status" className="text-xs text-text-muted">
             {pendientes} pendiente{pendientes === 1 ? "" : "s"}
           </span>
         </div>
@@ -83,7 +83,7 @@ export function RutaPage({ rutaId }: { rutaId: string }) {
         </label>
         <select
           id="caja"
-          className="mt-1 h-9 w-full rounded-md border border-border bg-white px-2 text-sm"
+          className="mt-1 h-9 w-full rounded-md border border-input bg-surface px-2 text-sm text-text"
           value={cajaId}
           onChange={(e) => setCajaId(e.target.value)}
         >
@@ -95,7 +95,7 @@ export function RutaPage({ rutaId }: { rutaId: string }) {
           ))}
         </select>
         {!cajaId && (
-          <p className="mt-1 text-xs text-amber-700">
+          <p className="mt-1 text-xs text-warn">
             Seleccioná una caja para poder sincronizar los cobros de la ruta.
           </p>
         )}
@@ -112,14 +112,14 @@ export function RutaPage({ rutaId }: { rutaId: string }) {
           {sincronizando ? "Sincronizando…" : "Sincronizar"}
         </TransactionButton>
         {ultimo?.enviado && (
-          <span className="text-xs text-foreground/60">
+          <span className="text-xs text-text-muted">
             {ultimo.aplicadas} aplicadas · {ultimo.omitidas} omitidas · {ultimo.rechazadas} rechazadas
           </span>
         )}
       </div>
 
       {error && (
-        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-2 text-sm text-red-700">
+        <div role="alert" className="rounded-lg border border-neg-border bg-neg-bg p-2 text-sm text-neg">
           {error}
         </div>
       )}
@@ -127,11 +127,11 @@ export function RutaPage({ rutaId }: { rutaId: string }) {
       {paradasQ.isLoading ? (
         <Skeleton />
       ) : paradasQ.isError ? (
-        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-2 text-sm text-red-700">
+        <div role="alert" className="rounded-lg border border-neg-border bg-neg-bg p-2 text-sm text-neg">
           No se pudo cargar la ruta.
         </div>
       ) : paradas.length === 0 ? (
-        <p className="text-sm text-foreground/60">No hay paradas asignadas.</p>
+        <p className="text-sm text-text-muted">No hay paradas asignadas.</p>
       ) : (
         <ol className="space-y-3">
           {paradas.map((p) => (

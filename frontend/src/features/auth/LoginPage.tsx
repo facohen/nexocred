@@ -45,16 +45,16 @@ export function LoginPage({ onSuccess }: { onSuccess?: () => void }) {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted">
+    <div className="flex min-h-screen items-center justify-center bg-bg">
       <div className="w-full max-w-sm space-y-4">
 
         {/* Formulario */}
         <form
           onSubmit={handleSubmit}
-          className="space-y-4 rounded-lg border border-border bg-white p-8 shadow-sm"
+          className="space-y-4 rounded-lg border border-border bg-surface p-8 shadow-sm"
         >
-          <h1 className="text-xl font-bold">NexoCred</h1>
-          <p className="text-sm text-foreground/60">Ingresá tus credenciales</p>
+          <h1 className="text-xl font-bold text-text">NexoCred</h1>
+          <p className="text-sm text-text-muted">Ingresá tus credenciales</p>
 
           <div className="space-y-1">
             <label htmlFor="email" className="text-sm font-medium">Email</label>
@@ -79,7 +79,7 @@ export function LoginPage({ onSuccess }: { onSuccess?: () => void }) {
           </div>
 
           {error && (
-            <p role="alert" className="text-sm text-red-600">{error}</p>
+            <p role="alert" className="text-sm text-neg">{error}</p>
           )}
 
           <Button type="submit" className="w-full" disabled={loading}>
@@ -88,9 +88,9 @@ export function LoginPage({ onSuccess }: { onSuccess?: () => void }) {
         </form>
 
         {/* Hint de usuarios demo */}
-        <div className="rounded-lg border border-border bg-white p-4 shadow-sm">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground/40">
-            Usuarios de demo — contraseña: <span className="font-mono">{DEMO_PASSWORD}</span>
+        <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-subtle">
+            Usuarios de demo — contraseña: <span className="font-num">{DEMO_PASSWORD}</span>
           </p>
           <div className="space-y-1">
             {DEMO_USERS.map(({ rol, email: demoEmail }) => {
@@ -102,17 +102,17 @@ export function LoginPage({ onSuccess }: { onSuccess?: () => void }) {
                   onClick={() => { setEmail(demoEmail); setPassword(DEMO_PASSWORD); setError(null); }}
                   className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm transition-colors ${
                     isActive
-                      ? "bg-primary/10 ring-1 ring-primary/30"
-                      : "hover:bg-muted"
+                      ? "bg-brand-subtle ring-1 ring-brand/30"
+                      : "hover:bg-surface-sunken"
                   }`}
                 >
-                  <span className={`w-4 text-center text-xs ${isActive ? "text-primary" : "text-foreground/20"}`}>
+                  <span className={`w-4 text-center text-xs ${isActive ? "text-brand" : "text-text-subtle"}`}>
                     {isActive ? "▶" : "·"}
                   </span>
-                  <span className={`w-20 font-medium capitalize ${isActive ? "text-primary" : "text-foreground/70"}`}>
+                  <span className={`w-20 font-medium capitalize ${isActive ? "text-brand" : "text-text-muted"}`}>
                     {rol}
                   </span>
-                  <span className="font-mono text-xs text-foreground/40">{demoEmail}</span>
+                  <span className="font-num text-xs text-text-subtle">{demoEmail}</span>
                 </button>
               );
             })}

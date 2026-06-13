@@ -40,8 +40,8 @@ export function SolicitudDetailPage() {
         <div>
           <h1 className="text-xl font-bold">Solicitud {solicitudId}</h1>
           {solicitud && (
-            <p className="text-sm text-foreground/60">
-              <MoneyText value={solicitud.monto ?? null} /> · {solicitud.cantidad_cuotas} cuotas ·{" "}
+            <p className="text-sm text-text-muted">
+              <MoneyText value={solicitud.monto ?? null} intent="neutral" /> · {solicitud.cantidad_cuotas} cuotas ·{" "}
               <Badge>{solicitud.estado}</Badge>
             </p>
           )}
@@ -79,13 +79,13 @@ export function SolicitudDetailPage() {
       </div>
 
       {accionError && (
-        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <div role="alert" className="rounded-lg border border-neg-border bg-neg-bg p-3 text-sm text-neg">
           {accionError}
         </div>
       )}
 
       {checklistListo && bcraBlocked && (
-        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <div role="alert" className="rounded-lg border border-neg-border bg-neg-bg p-3 text-sm text-neg">
           La verificación BCRA está pendiente o vencida. No se puede aprobar la
           solicitud hasta resolverla.
         </div>
@@ -98,7 +98,7 @@ export function SolicitudDetailPage() {
             <li key={c.regla} className="flex items-center justify-between text-sm">
               <span>{c.etiqueta}</span>
               <span className="flex items-center gap-3">
-                <span className="text-foreground/60">{c.detalle}</span>
+                <span className="text-text-muted">{c.detalle}</span>
                 <Badge tone={c.ok ? "success" : "danger"}>{c.ok ? "OK" : "Falla"}</Badge>
               </span>
             </li>
