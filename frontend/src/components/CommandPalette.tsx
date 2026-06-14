@@ -17,7 +17,7 @@ interface QuickAction {
 
 const QUICK_ACTIONS: QuickAction[] = [
   { label: "Registrar pago", to: "/pagos", roles: ["admin", "cobrador", "operador", "tesoreria"] },
-  { label: "Nueva solicitud", to: "/originar", roles: ["admin", "analista", "vendedor"] },
+  { label: "Nueva solicitud", to: "/originar/nuevo", roles: ["admin", "analista", "vendedor"] },
   { label: "Nueva persona", to: "/personas", roles: ["admin", "analista", "vendedor", "operador"] },
 ];
 

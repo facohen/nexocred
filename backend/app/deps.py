@@ -59,3 +59,8 @@ def requiere_rol(
 # Dependencias de rol pre-construidas (evita llamar requiere_rol() en defaults).
 AdminUser = Annotated[Usuario, Depends(requiere_rol("admin"))]
 AdminOAnalista = Annotated[Usuario, Depends(requiere_rol("admin", "analista"))]
+# Originación temprana (crear/simular): el vendedor arma y cotiza la solicitud;
+# evaluar y desembolsar siguen restringidos a admin/analista.
+AdminAnalistaOVendedor = Annotated[
+    Usuario, Depends(requiere_rol("admin", "analista", "vendedor"))
+]

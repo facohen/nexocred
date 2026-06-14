@@ -11,6 +11,7 @@ export const ROUTE_ROLES: Record<string, Rol[]> = {
   "/bandeja": ["admin", "analista", "vendedor", "operador", "cobrador", "tesoreria"],
   "/evaluacion": ["admin", "analista"],
   "/originar": ["admin", "analista", "vendedor"],
+  "/originar/nuevo": ["admin", "analista", "vendedor"],
   // Entidades y vistas (destino de drill-down / tabs)
   "/personas": ["admin", "analista", "vendedor", "operador"],
   "/personas/$personaId": ["admin", "analista", "vendedor", "operador"],

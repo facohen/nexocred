@@ -125,6 +125,27 @@ export const handlers = [
   http.get(`${BASE}/solicitudes`, () =>
     HttpResponse.json({ data: fx.solicitudes, total: fx.solicitudes.length, page: 1, per_page: 50 }),
   ),
+  http.post(`${BASE}/solicitudes`, async ({ request }) => {
+    const body = (await request.json()) as {
+      persona_id: string;
+      producto_id: string;
+      monto: number | string;
+      cantidad_cuotas: number;
+      vendedor_id?: string | null;
+    };
+    return HttpResponse.json(
+      {
+        id: "sol-nueva",
+        persona_id: body.persona_id,
+        producto_id: body.producto_id,
+        monto: String(body.monto),
+        cantidad_cuotas: body.cantidad_cuotas,
+        estado: "borrador",
+        vendedor_id: body.vendedor_id ?? null,
+      },
+      { status: 201 },
+    );
+  }),
   http.get(`${BASE}/solicitudes/:id`, ({ params }) => {
     const s = fx.solicitudes.find((x) => x.id === params.id);
     if (!s) return err("no_encontrada", "Solicitud no encontrada", 404);

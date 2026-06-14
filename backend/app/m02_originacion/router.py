@@ -3,7 +3,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, Header, Query
 
-from app.deps import AdminOAnalista, CurrentUser, SessionDep
+from app.deps import (
+    AdminAnalistaOVendedor,
+    AdminOAnalista,
+    CurrentUser,
+    SessionDep,
+)
 from app.errors import ErrorAPI
 from app.m02_originacion import servicio
 from app.m02_originacion.schemas import (
@@ -39,17 +44,25 @@ async def _get_solicitud(session, solicitud_id: uuid.UUID):
     return sol
 
 
+def _es_vendedor(actor) -> bool:
+    return any(r.nombre == "vendedor" for r in actor.roles)
+
+
 @router.post("/solicitudes", response_model=SolicitudOut, status_code=201)
 async def crear_solicitud(
-    datos: SolicitudCreate, session: SessionDep, actor: AdminOAnalista
+    datos: SolicitudCreate, session: SessionDep, actor: AdminAnalistaOVendedor
 ) -> SolicitudOut:
+    # Atribución del vendedor: un vendedor SIEMPRE origina a su propio nombre
+    # (no puede crear a nombre de otro). Admin/analista pueden fijar el vendedor
+    # explícitamente vía body; si no lo hacen, queda sin vendedor.
+    vendedor_id = actor.id if _es_vendedor(actor) else datos.vendedor_id
     sol = await servicio.crear_solicitud(
         session,
         persona_id=datos.persona_id,
         producto_id=datos.producto_id,
         monto=datos.monto,
         cantidad_cuotas=datos.cantidad_cuotas,
-        vendedor_id=datos.vendedor_id,
+        vendedor_id=vendedor_id,
         actor_id=actor.id,
     )
     await session.commit()

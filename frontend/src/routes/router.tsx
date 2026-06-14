@@ -97,6 +97,7 @@ const routeTree = rootRoute.addChildren([
     page("/bandeja", () => import("@/features/bandeja/BandejaHome"), "BandejaHome"),
     page("/evaluacion", () => import("@/features/evaluacion/EvaluacionHome"), "EvaluacionHome"),
     page("/originar", () => import("@/features/originacion/OriginarHome"), "OriginarHome"),
+    page("/originar/nuevo", () => import("@/features/originacion/OriginarWizard"), "OriginarWizard"),
 
     // ── Entidades y vistas (drill-down / tabs de área) ──
     page("/personas", () => import("@/features/personas/PersonasListPage"), "PersonasListPage"),

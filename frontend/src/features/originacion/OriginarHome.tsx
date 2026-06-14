@@ -93,7 +93,7 @@ export function OriginarHome() {
         title="Originar"
         subtitle="Tu pipeline de solicitudes, de punta a punta."
         action={
-          <Button size="lg" onClick={() => navigate({ to: "/solicitudes" as string })}>
+          <Button size="lg" onClick={() => navigate({ to: "/originar/nuevo" as string })}>
             + Nueva solicitud
           </Button>
         }

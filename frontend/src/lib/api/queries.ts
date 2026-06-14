@@ -95,6 +95,18 @@ export function useSolicitudes() {
   });
 }
 
+export function useCrearSolicitud() {
+  const qc = useQueryClient();
+  return useMutation({
+    // Crear solicitud NO crea plata (queda en borrador) → sin Idempotency-Key.
+    // El backend atribuye el vendedor automáticamente cuando el actor es vendedor
+    // (ignora vendedor_id del body en ese caso); admin/analista pueden fijarlo.
+    mutationFn: (body: Sch["SolicitudCreate"]) =>
+      apiFetch<Sch["SolicitudOut"]>("/solicitudes", { method: "POST", body }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["solicitudes"] }),
+  });
+}
+
 export function useSolicitud(id: string) {
   return useQuery({
     queryKey: ["solicitud", id],
