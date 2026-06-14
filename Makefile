@@ -119,6 +119,8 @@ revision: ## Genera una nueva migracion autogenerada. Uso: make revision m="mens
 # ============================================================================
 reset-db: up ## Resetea la base: DROP + CREATE + upgrade head (BORRA todos los datos)
 	@echo ">> Reseteando la base (DROP + CREATE + upgrade head)..."
+	@echo ">> Terminando conexiones activas a la base..."
+	$(COMPOSE) exec -T db psql -U nexocred postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='nexocred' AND pid <> pg_backend_pid();" >/dev/null
 	$(COMPOSE) exec -T db psql -U nexocred postgres -c "DROP DATABASE IF EXISTS nexocred;"
 	$(COMPOSE) exec -T db psql -U nexocred postgres -c "CREATE DATABASE nexocred OWNER nexocred;"
 	cd backend && $(BACKEND_ENV) $(CONDA_RUN) alembic upgrade head

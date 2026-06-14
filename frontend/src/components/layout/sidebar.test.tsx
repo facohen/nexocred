@@ -1,5 +1,12 @@
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+
+// El Sidebar usa useRouterState para resaltar el área activa de forma reactiva.
+// En este test unitario de RBAC no hay router montado: devolvemos un pathname fijo.
+vi.mock("@tanstack/react-router", () => ({
+  useRouterState: () => "/",
+}));
+
 import { Sidebar } from "./Sidebar";
 import { SessionContext } from "@/lib/auth";
 import type { SesionUsuario } from "@/lib/auth";

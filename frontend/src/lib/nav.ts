@@ -1,4 +1,5 @@
 import type { Rol } from "./auth";
+import type { NavIconName } from "@/components/layout/NavIcon";
 
 /**
  * Arquitectura de información organizada por TRABAJO (verbos), no por entidad.
@@ -23,8 +24,8 @@ export interface WorkArea {
   /** ruta principal del área (su primer tab) */
   to: string;
   seccion: SeccionNav;
-  /** ícono (emoji por ahora; se reemplaza por set de íconos en pulido) */
-  icon: string;
+  /** clave de ícono del set SVG (ver components/layout/NavIcon.tsx) */
+  icon: NavIconName;
   roles: Rol[];
   /** vistas internas del área (tabs horizontales). Vacío = área de una sola vista */
   tabs?: NavTab[];
@@ -46,7 +47,7 @@ export const WORK_AREAS: WorkArea[] = [
     label: "Mi bandeja",
     to: "/bandeja",
     seccion: "operacion",
-    icon: "📥",
+    icon: "inbox",
     roles: ["admin", "analista", "vendedor", "operador", "cobrador", "tesoreria"],
   },
   {
@@ -54,7 +55,7 @@ export const WORK_AREAS: WorkArea[] = [
     label: "Originar",
     to: "/originar",
     seccion: "operacion",
-    icon: "📝",
+    icon: "originar",
     roles: ["admin", "analista", "vendedor"],
     tabs: [
       { label: "Solicitudes", to: "/solicitudes" },
@@ -68,7 +69,7 @@ export const WORK_AREAS: WorkArea[] = [
     label: "Evaluar",
     to: "/evaluacion",
     seccion: "operacion",
-    icon: "🔎",
+    icon: "evaluar",
     roles: ["admin", "analista"],
   },
   {
@@ -76,7 +77,7 @@ export const WORK_AREAS: WorkArea[] = [
     label: "Cobrar",
     to: "/ruta",
     seccion: "operacion",
-    icon: "🚶",
+    icon: "cobrar",
     roles: ["cobrador", "admin"],
     tabs: [
       { label: "Ruta de Cobranza", to: "/ruta" },
@@ -88,7 +89,7 @@ export const WORK_AREAS: WorkArea[] = [
     label: "Cartera",
     to: "/prestamos",
     seccion: "operacion",
-    icon: "📁",
+    icon: "cartera",
     roles: ["admin", "analista", "cobrador", "operador", "tesoreria"],
     tabs: [
       { label: "Préstamos", to: "/prestamos" },
@@ -102,7 +103,7 @@ export const WORK_AREAS: WorkArea[] = [
     label: "Relación",
     to: "/crm/inbox",
     seccion: "operacion",
-    icon: "💬",
+    icon: "relacion",
     roles: ["operador", "admin"],
     tabs: [
       { label: "Inbox", to: "/crm/inbox" },
@@ -118,7 +119,7 @@ export const WORK_AREAS: WorkArea[] = [
     label: "Riesgo",
     to: "/riesgo/tablero",
     seccion: "control",
-    icon: "⚠️",
+    icon: "riesgo",
     roles: ["admin", "analista", "operador"],
     tabs: [
       { label: "Tablero", to: "/riesgo/tablero" },
@@ -130,7 +131,7 @@ export const WORK_AREAS: WorkArea[] = [
     label: "Dinero",
     to: "/tesoreria",
     seccion: "control",
-    icon: "💰",
+    icon: "dinero",
     roles: ["admin", "tesoreria", "vendedor"],
     tabs: [
       { label: "Tesorería", to: "/tesoreria" },
@@ -145,7 +146,7 @@ export const WORK_AREAS: WorkArea[] = [
     label: "Tablero Ejecutivo",
     to: "/torre",
     seccion: "direccion",
-    icon: "📊",
+    icon: "tablero",
     roles: ["admin", "tesoreria"],
   },
 
@@ -155,7 +156,7 @@ export const WORK_AREAS: WorkArea[] = [
     label: "Documentos",
     to: "/documentos",
     seccion: "sistema",
-    icon: "📄",
+    icon: "documentos",
     roles: ["admin", "analista", "operador"],
   },
   {
@@ -163,7 +164,7 @@ export const WORK_AREAS: WorkArea[] = [
     label: "Usuarios",
     to: "/usuarios",
     seccion: "sistema",
-    icon: "⚙️",
+    icon: "usuarios",
     roles: ["admin"],
   },
 ];
@@ -188,6 +189,21 @@ export function areasPorSeccion(
     label: SECCIONES[seccion],
     areas: visibles.filter((a) => a.seccion === seccion),
   })).filter((g) => g.areas.length > 0);
+}
+
+/** El área (y tab) que contiene un pathname dado. Fuente única para sidebar
+ * activo, AreaTabs y breadcrumb — así nunca divergen. */
+export function areaActiva(
+  pathname: string,
+  roles: Rol[] | undefined,
+): { area: WorkArea; tab?: NavTab } | undefined {
+  const coincide = (to: string) => pathname === to || pathname.startsWith(to + "/");
+  for (const area of areasVisibles(roles)) {
+    const tab = (area.tabs ?? []).find((t) => coincide(t.to));
+    if (tab) return { area, tab };
+    if (coincide(area.to)) return { area };
+  }
+  return undefined;
 }
 
 /** Para el ⌘K modo "Ir a": lista plana de destinos navegables (áreas + tabs). */

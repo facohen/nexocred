@@ -1,41 +1,35 @@
 import { useRouterState } from "@tanstack/react-router";
 import { useSession } from "@/lib/auth";
-import { areasVisibles } from "@/lib/nav";
+import { areaActiva } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
 /**
- * Tabs horizontales de las vistas internas del área activa. Se muestran solo
- * si el área del path actual tiene más de un tab. Mantiene la jerarquía
- * SECCIÓN → ÁREA → TABS sin aplanar todo en el sidebar.
+ * Tabs horizontales de las vistas internas del área activa. Solo aparecen si el
+ * área del path actual tiene 2+ tabs. Estilo pill marcado (fondo de marca en el
+ * activo) para que se lea claramente como navegación y no como contenido.
  */
 export function AreaTabs() {
   const { user } = useSession();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const areas = areasVisibles(user?.roles);
-
-  // El área activa es la que contiene el path (por su `to` o por alguno de sus tabs).
-  const area = areas.find(
-    (a) =>
-      pathname === a.to ||
-      pathname.startsWith(a.to + "/") ||
-      (a.tabs ?? []).some((t) => pathname === t.to || pathname.startsWith(t.to + "/")),
-  );
+  const activa = areaActiva(pathname, user?.roles);
+  const area = activa?.area;
 
   if (!area || !area.tabs || area.tabs.length < 2) return null;
 
   return (
-    <div className="flex gap-1 border-b border-border bg-surface px-6">
+    <div className="flex items-center gap-1 border-b border-border bg-surface px-4 sm:px-6">
       {area.tabs.map((tab) => {
         const active = pathname === tab.to || pathname.startsWith(tab.to + "/");
         return (
           <a
             key={tab.to}
             href={tab.to}
+            aria-current={active ? "page" : undefined}
             className={cn(
-              "-mb-px border-b-2 px-3 py-2.5 text-sm transition-colors duration-fast",
+              "my-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-fast",
               active
-                ? "border-brand font-medium text-brand"
-                : "border-transparent text-text-muted hover:text-text",
+                ? "bg-brand-subtle text-brand"
+                : "text-text-muted hover:bg-surface-sunken hover:text-text",
             )}
           >
             {tab.label}
