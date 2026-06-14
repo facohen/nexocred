@@ -63,6 +63,26 @@ export function decodeRolesFromToken(accessToken: string | null | undefined): Ro
   }
 }
 
+/**
+ * Decode the user id (JWT `sub` claim) from the access token. Same trust model
+ * as decodeRolesFromToken: the backend signs `sub`; we only read it. Needed for
+ * endpoints scoped to the current user (e.g. metas/cartera del vendedor) since
+ * SesionUsuario intentionally does not duplicate the id.
+ */
+export function decodeUserIdFromToken(
+  accessToken: string | null | undefined,
+): string | null {
+  if (!accessToken) return null;
+  const parts = accessToken.split(".");
+  if (parts.length < 2) return null;
+  try {
+    const payload = JSON.parse(decodeBase64Url(parts[1])) as { sub?: unknown };
+    return typeof payload.sub === "string" && payload.sub ? payload.sub : null;
+  } catch {
+    return null;
+  }
+}
+
 let memoryToken: TokenSet | null = null;
 let memoryUser: SesionUsuario | null = null;
 

@@ -561,6 +561,18 @@ export const liquidaciones = [
   { id: "liq-1", vendedor_id: "user-vendedor", periodo_desde: "2026-05-01", periodo_hasta: "2026-05-31", monto_total: "8200.00", estado: "borrador", egreso_id: null, aprobada_en: null },
 ];
 
+// MetaVendedorOut: avance real calculado por el backend (colocado vs meta).
+export const metaVendedor: S["MetaVendedorOut"] = {
+  vendedor_id: "user-vendedor",
+  periodo: "2026-06",
+  monto_meta: "500000.00",
+  cantidad_meta: 5,
+  monto_colocado: "300000.00",
+  cantidad_colocada: 2,
+  porcentaje_avance: "60.0",
+  updated_at: "2026-06-01T12:00:00Z",
+};
+
 export const tesoreriaPosicion = {
   capital_disponible: "3500000.00", capital_colocado: "1225000.00", utilizacion: "25.95", semaforo: "verde",
 };

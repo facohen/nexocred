@@ -428,6 +428,11 @@ export const handlers = [
 
   // ---- Vendedores / comisiones ----
   http.get(`${BASE}/vendedores/:id/comisiones`, () => HttpResponse.json(fx.comisiones)),
+  // Meta del período con avance real (forma MetaVendedorOut). El backend devuelve
+  // avance aunque no haya meta fijada; el mock refleja una meta con avance parcial.
+  http.get(`${BASE}/vendedores/:id/metas/:periodo`, ({ params }) =>
+    HttpResponse.json({ ...fx.metaVendedor, vendedor_id: params.id, periodo: params.periodo }),
+  ),
   http.post(`${BASE}/comisiones/clawback`, () =>
     HttpResponse.json({ ...fx.comisiones[2], id: `com-${Date.now()}` }, { status: 201 }),
   ),

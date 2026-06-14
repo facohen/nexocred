@@ -55,6 +55,19 @@ export function useSyncBcra(personaId: string) {
   });
 }
 
+// ---- Metas de vendedor ----
+// GET /vendedores/{id}/metas/{periodo} → meta del período con avance real
+// (monto_colocado / cantidad_colocada calculados en el backend desde los
+// desembolsos). El backend devuelve avance aunque no haya meta fijada (meta 0).
+export function useMetaVendedor(vendedorId: string | null, periodo: string) {
+  return useQuery({
+    queryKey: ["meta-vendedor", vendedorId ?? "", periodo],
+    enabled: Boolean(vendedorId),
+    queryFn: () =>
+      apiFetch<Sch["MetaVendedorOut"]>(`/vendedores/${vendedorId}/metas/${periodo}`),
+  });
+}
+
 // ---- Productos / simulador ----
 export function useProductos() {
   return useQuery({
