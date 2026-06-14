@@ -1,5 +1,4 @@
-import { Card } from "@tremor/react";
-import { CardTitle } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import { MoneyText } from "@/components/MoneyText";
 import { useTablero, useCosechas, useConcentracion } from "./hooks";
 import { formatPercent } from "./format";
@@ -42,8 +41,8 @@ export function RiesgoBoard() {
   if (tableroQ.isLoading) {
     return (
       <div data-testid="riesgo-loading" className="space-y-2 p-4">
-        <div className="h-6 w-1/3 animate-pulse rounded bg-text/10" />
-        <div className="h-24 w-full animate-pulse rounded bg-text/10" />
+        <div className="h-6 w-1/3 animate-pulse rounded bg-surface-sunken" />
+        <div className="h-24 w-full animate-pulse rounded bg-surface-sunken" />
       </div>
     );
   }

@@ -23,8 +23,8 @@ export function TesoreriaDashboard() {
   if (posQ.isLoading) {
     return (
       <div data-testid="tesoreria-loading" className="space-y-2 p-4">
-        <div className="h-6 w-1/3 animate-pulse rounded bg-text/10" />
-        <div className="h-24 w-full animate-pulse rounded bg-text/10" />
+        <div className="h-6 w-1/3 animate-pulse rounded bg-surface-sunken" />
+        <div className="h-24 w-full animate-pulse rounded bg-surface-sunken" />
       </div>
     );
   }
