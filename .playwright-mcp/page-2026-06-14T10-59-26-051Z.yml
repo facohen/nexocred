@@ -1,0 +1,63 @@
+- generic [ref=e3]:
+  - navigation "Navegación principal" [ref=e4]:
+    - generic [ref=e5]: NexoCred
+    - generic [ref=e6]:
+      - generic [ref=e7]: Operación
+      - link "Mi bandeja" [ref=e8] [cursor=pointer]:
+        - /url: /bandeja
+        - generic [ref=e9]: 📥
+        - text: Mi bandeja
+      - link "Originar" [ref=e10] [cursor=pointer]:
+        - /url: /originar
+        - generic [ref=e11]: 📝
+        - text: Originar
+      - link "Evaluar" [ref=e12] [cursor=pointer]:
+        - /url: /evaluacion
+        - generic [ref=e13]: 🔎
+        - text: Evaluar
+      - link "Cobrar" [ref=e14] [cursor=pointer]:
+        - /url: /ruta
+        - generic [ref=e15]: 🚶
+        - text: Cobrar
+      - link "Cartera" [ref=e16] [cursor=pointer]:
+        - /url: /prestamos
+        - generic [ref=e17]: 📁
+        - text: Cartera
+      - link "Relación" [ref=e18] [cursor=pointer]:
+        - /url: /crm/inbox
+        - generic [ref=e19]: 💬
+        - text: Relación
+    - generic [ref=e20]:
+      - generic [ref=e21]: Control
+      - link "Riesgo" [ref=e22] [cursor=pointer]:
+        - /url: /riesgo/tablero
+        - generic [ref=e23]: ⚠️
+        - text: Riesgo
+      - link "Dinero" [ref=e24] [cursor=pointer]:
+        - /url: /tesoreria
+        - generic [ref=e25]: 💰
+        - text: Dinero
+    - generic [ref=e26]:
+      - generic [ref=e27]: Dirección
+      - link "Tablero Ejecutivo" [ref=e28] [cursor=pointer]:
+        - /url: /torre
+        - generic [ref=e29]: 📊
+        - text: Tablero Ejecutivo
+    - generic [ref=e30]:
+      - generic [ref=e31]: Sistema
+      - link "Documentos" [ref=e32] [cursor=pointer]:
+        - /url: /documentos
+        - generic [ref=e33]: 📄
+        - text: Documentos
+      - link "Usuarios" [ref=e34] [cursor=pointer]:
+        - /url: /usuarios
+        - generic [ref=e35]: ⚙️
+        - text: Usuarios
+  - generic [ref=e36]:
+    - banner [ref=e37]:
+      - button "Buscar… ⌘K" [ref=e38] [cursor=pointer]
+      - generic [ref=e39]:
+        - generic [ref=e40]: Admin Full · admin
+        - button "Cambiar a modo oscuro" [ref=e41] [cursor=pointer]: ☾
+        - button "Salir" [ref=e42] [cursor=pointer]
+    - main [ref=e43]

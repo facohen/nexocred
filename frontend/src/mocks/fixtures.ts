@@ -272,10 +272,9 @@ export const prestamos: Prestamo[] = [
   },
 ];
 
-// The cuotas endpoint augments CuotaOut with a UI-side `saldo` (see
-// `useCuotas` in queries.ts: `CuotaOut & { saldo: string }`). It is not part of
-// the OpenAPI schema, so we mirror that same intersection here.
-export const cuotas: Record<string, (Cuota & { saldo: string })[]> = {
+// El backend devuelve un ARRAY PELADO de CuotaOut (sin wrapper {data}, sin campo
+// `saldo`). El mock refleja exactamente esa forma para cubrir el caso real.
+export const cuotas: Record<string, Cuota[]> = {
   "prestamo-1": Array.from({ length: 12 }, (_, i) => ({
     id: `cuota-${i + 1}`,
     numero: i + 1,
@@ -285,7 +284,6 @@ export const cuotas: Record<string, (Cuota & { saldo: string })[]> = {
     cuota: "54166.67",
     punitorio_acumulado: "0.00",
     estado: i < 2 ? "pagada" : "pendiente",
-    saldo: i < 2 ? "0.00" : "54166.67",
   })),
 };
 
@@ -307,7 +305,7 @@ export const pagos: Pago[] = [
     imputaciones: [
       {
         id: "imp-1",
-        concepto: "punitorio",
+        concepto: "punitorio_vencido",
         monto: "0.00",
         orden_waterfall: 1,
         cuota_numero: 1,
@@ -315,7 +313,7 @@ export const pagos: Pago[] = [
       },
       {
         id: "imp-2",
-        concepto: "interes",
+        concepto: "interes_vencido",
         monto: "12500.00",
         orden_waterfall: 2,
         cuota_numero: 1,
@@ -323,7 +321,7 @@ export const pagos: Pago[] = [
       },
       {
         id: "imp-3",
-        concepto: "capital",
+        concepto: "capital_vencido",
         monto: "41666.67",
         orden_waterfall: 3,
         cuota_numero: 1,
@@ -509,7 +507,7 @@ export const asignaciones = [
 
 export const riesgoTablero = {
   par30: "8.50", par60: "4.20", par90: "2.10",
-  aging: { "0": "1000000.00", "1-30": "120000.00", "31-60": "60000.00", "61-90": "30000.00", "90+": "15000.00" },
+  aging: { al_dia: "1000000.00", "1_30": "120000.00", "31_60": "60000.00", "61_90": "30000.00", "90_mas": "15000.00" },
   porcentaje_refinanciado: "6.30", perdida_esperada: "45000.00", cartera_total: "1225000.00",
 };
 
@@ -528,15 +526,17 @@ export const concentracion = [
 ];
 
 export const alertas = [
-  { id: "alerta-1", prestamo_id: "prestamo-1", persona_id: "persona-1", tipo: "mora_temprana", estado: "activa", severidad: "alta", metrica: "dias_atraso", valor: "15", operador_id: null, tarea_id: null, resuelta_en: null, justificacion: null },
+  { id: "alerta-1", prestamo_id: "prestamo-1", persona_id: "persona-1", tipo: "mora_temprana", estado: "activa", severidad: "critica", metrica: "dias_atraso", valor: "15", operador_id: null, tarea_id: null, resuelta_en: null, justificacion: null },
   { id: "alerta-2", prestamo_id: "prestamo-2", persona_id: "persona-2", tipo: "sobreendeudamiento", estado: "activa", severidad: "media", metrica: "ratio_cuota_ingreso", valor: "0.45", operador_id: null, tarea_id: null, resuelta_en: null, justificacion: null },
 ];
 
+// Forma real del backend: `porcentaje` es un RATIO ("0.0250" = 2,5 %), `tipo` es
+// el tipo de comisión ("originacion"). El mock anterior usaba "2.00"/"alta".
 export const comisiones = [
-  { id: "com-1", prestamo_id: "prestamo-1", vendedor_id: "user-vendedor", monto: "5000.00", estado: "devengada", tipo: "alta", porcentaje: "2.00", clawback_de_id: null },
-  { id: "com-2", prestamo_id: "prestamo-2", vendedor_id: "user-vendedor", monto: "3200.00", estado: "confirmada", tipo: "alta", porcentaje: "2.00", clawback_de_id: null },
-  { id: "com-3", prestamo_id: "prestamo-3", vendedor_id: "user-vendedor", monto: "-1500.00", estado: "clawback", tipo: "clawback", porcentaje: "2.00", clawback_de_id: "com-1" },
-  { id: "com-4", prestamo_id: "prestamo-4", vendedor_id: "user-vendedor", monto: "2800.00", estado: "liquidada", tipo: "alta", porcentaje: "2.00", clawback_de_id: null },
+  { id: "com-1", prestamo_id: "prestamo-1", vendedor_id: "user-vendedor", monto: "5000.00", estado: "devengada", tipo: "originacion", porcentaje: "0.0250", clawback_de_id: null },
+  { id: "com-2", prestamo_id: "prestamo-2", vendedor_id: "user-vendedor", monto: "3200.00", estado: "confirmada", tipo: "originacion", porcentaje: "0.0250", clawback_de_id: null },
+  { id: "com-3", prestamo_id: "prestamo-3", vendedor_id: "user-vendedor", monto: "-1500.00", estado: "clawback", tipo: "clawback", porcentaje: "0.0250", clawback_de_id: "com-1" },
+  { id: "com-4", prestamo_id: "prestamo-4", vendedor_id: "user-vendedor", monto: "2800.00", estado: "liquidada", tipo: "originacion", porcentaje: "0.0300", clawback_de_id: null },
 ];
 
 export const liquidaciones = [
@@ -580,7 +580,7 @@ export const torrePulso = {
 };
 export const torreSaludCartera = {
   tiene_snapshot: true,
-  aging: { "0": "1000000.00", "1-30": "120000.00", "31-60": "60000.00", "61-90": "30000.00", "90+": "15000.00" },
+  aging: { al_dia: "1000000.00", "1_30": "120000.00", "31_60": "60000.00", "61_90": "30000.00", "90_mas": "15000.00" },
   perdida_esperada: "45000.00",
   cosechas, cashflow: tesoreriaCashflow.tramos,
 };
@@ -597,7 +597,7 @@ export const torreNegocio = {
 export const torreAlertasLive = {
   total: 2,
   alertas: [
-    { id: "alerta-1", tipo: "mora_temprana", severidad: "alta", metrica: "dias_atraso", valor: "15", prestamo_id: "prestamo-1", persona_id: "persona-1" },
+    { id: "alerta-1", tipo: "mora_temprana", severidad: "critica", metrica: "dias_atraso", valor: "15", prestamo_id: "prestamo-1", persona_id: "persona-1" },
     { id: "alerta-2", tipo: "sobreendeudamiento", severidad: "media", metrica: "ratio_cuota_ingreso", valor: "0.45", prestamo_id: "prestamo-2", persona_id: "persona-2" },
   ],
 };

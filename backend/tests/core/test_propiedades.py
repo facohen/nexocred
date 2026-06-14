@@ -83,6 +83,22 @@ def test_cronograma_es_deterministico_y_reconcilia(capital, cuotas):
     assert a.total_capital == capital  # reconciliacion exacta
 
 
+@settings(max_examples=300)
+@given(
+    total_centavos=st.integers(min_value=0, max_value=10_000_00),
+    partes=st.integers(min_value=1, max_value=60),
+)
+def test_reparto_parejo_no_negativo_y_conserva(total_centavos, partes):
+    """BUG 3: el reparto nunca produce una fila negativa y conserva el total exacto."""
+    from nexocred_core.cronograma import _reparto_parejo
+
+    total = (Decimal(total_centavos) / Decimal(100)).quantize(Decimal("0.01"))
+    montos = _reparto_parejo(total, partes)
+    assert len(montos) == partes
+    assert all(m >= Decimal("0.00") for m in montos)  # ninguna cuota negativa
+    assert sum(montos) == total  # conservacion de plata exacta
+
+
 @settings(max_examples=100)
 @given(capital=montos_positivos)
 def test_saldo_exigible_no_negativo(capital):

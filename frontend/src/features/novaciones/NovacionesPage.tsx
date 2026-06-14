@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNovacion } from "@/lib/api/queries";
+import { newIdempotencyKey } from "@/lib/utils";
 import { ApiError } from "@/lib/api/client";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,9 @@ const TIPOS: { value: Tipo; label: string }[] = [
 export function NovacionesPage() {
   const [tipo, setTipo] = useState<Tipo>("refinanciar");
   const [prestamoId, setPrestamoId] = useState("");
+  // Key estable por intento: los retries del MISMO botón reusan la key (idempotencia);
+  // se rota sólo tras un éxito para que la siguiente novación tenga una key fresca.
+  const [idemKey, setIdemKey] = useState(() => newIdempotencyKey());
   const novacion = useNovacion();
   const resultado = novacion.data;
   const errorMsg =
@@ -58,7 +62,12 @@ export function NovacionesPage() {
             />
           </div>
           <TransactionButton
-            onClick={() => novacion.mutate({ tipo, body: { prestamo_id: prestamoId } })}
+            onClick={() =>
+              novacion.mutate(
+                { tipo, body: { prestamo_id: prestamoId }, idempotencyKey: idemKey },
+                { onSuccess: () => setIdemKey(newIdempotencyKey()) },
+              )
+            }
             pending={novacion.isPending}
           >
             {novacion.isPending ? "Ejecutando…" : "Ejecutar novación"}

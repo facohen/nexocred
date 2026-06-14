@@ -1,7 +1,7 @@
 """Generacion de cronograma por interes directo. Puro y deterministico."""
 
 from datetime import date, timedelta
-from decimal import Decimal
+from decimal import ROUND_FLOOR, Decimal
 
 from nexocred_core.errores import ErrorDominio, ImporteNegativoError
 from nexocred_core.modelos import (
@@ -10,7 +10,7 @@ from nexocred_core.modelos import (
     Periodicidad,
     TerminosPrestamo,
 )
-from nexocred_core.money import CERO, redondear, restar, sumar
+from nexocred_core.money import CENTAVO, CERO, redondear, sumar
 
 _DIAS_POR_PERIODICIDAD = {
     Periodicidad.SEMANAL: 7,
@@ -29,11 +29,20 @@ def _avanzar(desde: date, periodicidad: Periodicidad, pasos: int) -> date:
 
 
 def _reparto_parejo(total: Decimal, partes: int) -> list[Decimal]:
-    """Reparte 'total' en 'partes' montos de 2 decimales; el ultimo absorbe el residuo."""
-    base = redondear(total / Decimal(partes))
-    montos = [base] * (partes - 1)
-    ultimo = restar(total, sumar(*montos)) if montos else total
-    montos.append(ultimo)
+    """Reparte 'total' en 'partes' montos de 2 decimales, todos >= 0 y sumando exacto.
+
+    Usa largest-remainder: trunca hacia abajo y reparte el residuo de a centavos
+    sobre las primeras cuotas. Asi ninguna fila sale negativa (vs. cargar el residuo
+    al ultimo, que con redondeo hacia arriba daba un ultimo monto negativo) y se
+    conserva la suma exacta (invariante sagrada de conservacion de plata).
+    """
+    total_centavos = int((total / CENTAVO).to_integral_value(rounding=ROUND_FLOOR))
+    base = total_centavos // partes
+    residuo = total_centavos - base * partes  # 0 <= residuo < partes
+    montos: list[Decimal] = []
+    for i in range(partes):
+        centavos = base + (1 if i < residuo else 0)
+        montos.append(redondear(Decimal(centavos) * CENTAVO))
     return montos
 
 

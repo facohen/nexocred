@@ -1,0 +1,441 @@
+- generic [ref=e3]:
+  - navigation "Navegación principal" [ref=e4]:
+    - generic [ref=e5]: NexoCred
+    - generic [ref=e6]:
+      - generic [ref=e7]: Operación
+      - link "Mi bandeja" [ref=e8] [cursor=pointer]:
+        - /url: /bandeja
+        - generic [ref=e9]: 📥
+        - text: Mi bandeja
+      - link "Originar" [ref=e10] [cursor=pointer]:
+        - /url: /originar
+        - generic [ref=e11]: 📝
+        - text: Originar
+      - link "Evaluar" [ref=e12] [cursor=pointer]:
+        - /url: /evaluacion
+        - generic [ref=e13]: 🔎
+        - text: Evaluar
+      - link "Cobrar" [ref=e14] [cursor=pointer]:
+        - /url: /ruta
+        - generic [ref=e15]: 🚶
+        - text: Cobrar
+      - link "Cartera" [ref=e16] [cursor=pointer]:
+        - /url: /prestamos
+        - generic [ref=e17]: 📁
+        - text: Cartera
+      - link "Relación" [ref=e18] [cursor=pointer]:
+        - /url: /crm/inbox
+        - generic [ref=e19]: 💬
+        - text: Relación
+    - generic [ref=e20]:
+      - generic [ref=e21]: Control
+      - link "Riesgo" [ref=e22] [cursor=pointer]:
+        - /url: /riesgo/tablero
+        - generic [ref=e23]: ⚠️
+        - text: Riesgo
+      - link "Dinero" [ref=e24] [cursor=pointer]:
+        - /url: /tesoreria
+        - generic [ref=e25]: 💰
+        - text: Dinero
+    - generic [ref=e26]:
+      - generic [ref=e27]: Dirección
+      - link "Tablero Ejecutivo" [ref=e28] [cursor=pointer]:
+        - /url: /torre
+        - generic [ref=e29]: 📊
+        - text: Tablero Ejecutivo
+    - generic [ref=e30]:
+      - generic [ref=e31]: Sistema
+      - link "Documentos" [ref=e32] [cursor=pointer]:
+        - /url: /documentos
+        - generic [ref=e33]: 📄
+        - text: Documentos
+      - link "Usuarios" [ref=e34] [cursor=pointer]:
+        - /url: /usuarios
+        - generic [ref=e35]: ⚙️
+        - text: Usuarios
+  - generic [ref=e36]:
+    - banner [ref=e37]:
+      - button "Buscar… ⌘K" [ref=e38] [cursor=pointer]
+      - generic [ref=e39]:
+        - generic [ref=e40]: Admin Full · admin
+        - button "Cambiar a modo oscuro" [ref=e41] [cursor=pointer]: ☾
+        - button "Salir" [ref=e42] [cursor=pointer]
+    - generic [ref=e43]:
+      - link "Tablero" [ref=e44] [cursor=pointer]:
+        - /url: /riesgo/tablero
+      - link "Alertas" [ref=e45] [cursor=pointer]:
+        - /url: /riesgo/alertas
+    - main [ref=e46]:
+      - generic [ref=e47]:
+        - heading "Alertas" [level=1] [ref=e48]
+        - list [ref=e49]:
+          - listitem [ref=e50]:
+            - generic [ref=e51]:
+              - generic [ref=e52]:
+                - generic [ref=e53]: mora
+                - generic [ref=e54]:
+                  - generic [ref=e55]: media
+                  - generic [ref=e56]: "mora_30: 30"
+              - generic [ref=e57]:
+                - button "Resolver" [ref=e58] [cursor=pointer]
+                - button "Asignar" [ref=e59] [cursor=pointer]
+          - listitem [ref=e60]:
+            - generic [ref=e61]:
+              - generic [ref=e62]:
+                - generic [ref=e63]: mora
+                - generic [ref=e64]:
+                  - generic [ref=e65]: media
+                  - generic [ref=e66]: "mora_30: 30"
+              - generic [ref=e67]:
+                - button "Resolver" [ref=e68] [cursor=pointer]
+                - button "Asignar" [ref=e69] [cursor=pointer]
+          - listitem [ref=e70]:
+            - generic [ref=e71]:
+              - generic [ref=e72]:
+                - generic [ref=e73]: mora
+                - generic [ref=e74]:
+                  - generic [ref=e75]: media
+                  - generic [ref=e76]: "mora_30: 30"
+              - generic [ref=e77]:
+                - button "Resolver" [ref=e78] [cursor=pointer]
+                - button "Asignar" [ref=e79] [cursor=pointer]
+          - listitem [ref=e80]:
+            - generic [ref=e81]:
+              - generic [ref=e82]:
+                - generic [ref=e83]: mora
+                - generic [ref=e84]:
+                  - generic [ref=e85]: media
+                  - generic [ref=e86]: "mora_30: 30"
+              - generic [ref=e87]:
+                - button "Resolver" [ref=e88] [cursor=pointer]
+                - button "Asignar" [ref=e89] [cursor=pointer]
+          - listitem [ref=e90]:
+            - generic [ref=e91]:
+              - generic [ref=e92]:
+                - generic [ref=e93]: mora
+                - generic [ref=e94]:
+                  - generic [ref=e95]: media
+                  - generic [ref=e96]: "mora_30: 30"
+              - generic [ref=e97]:
+                - button "Resolver" [ref=e98] [cursor=pointer]
+                - button "Asignar" [ref=e99] [cursor=pointer]
+          - listitem [ref=e100]:
+            - generic [ref=e101]:
+              - generic [ref=e102]:
+                - generic [ref=e103]: mora
+                - generic [ref=e104]:
+                  - generic [ref=e105]: media
+                  - generic [ref=e106]: "mora_30: 30"
+              - generic [ref=e107]:
+                - button "Resolver" [ref=e108] [cursor=pointer]
+                - button "Asignar" [ref=e109] [cursor=pointer]
+          - listitem [ref=e110]:
+            - generic [ref=e111]:
+              - generic [ref=e112]:
+                - generic [ref=e113]: mora
+                - generic [ref=e114]:
+                  - generic [ref=e115]: critica
+                  - generic [ref=e116]: "mora_90: 91"
+              - generic [ref=e117]:
+                - button "Resolver" [ref=e118] [cursor=pointer]
+                - button "Asignar" [ref=e119] [cursor=pointer]
+          - listitem [ref=e120]:
+            - generic [ref=e121]:
+              - generic [ref=e122]:
+                - generic [ref=e123]: mora
+                - generic [ref=e124]:
+                  - generic [ref=e125]: critica
+                  - generic [ref=e126]: "mora_90: 119"
+              - generic [ref=e127]:
+                - button "Resolver" [ref=e128] [cursor=pointer]
+                - button "Asignar" [ref=e129] [cursor=pointer]
+          - listitem [ref=e130]:
+            - generic [ref=e131]:
+              - generic [ref=e132]:
+                - generic [ref=e133]: mora
+                - generic [ref=e134]:
+                  - generic [ref=e135]: media
+                  - generic [ref=e136]: "mora_30: 30"
+              - generic [ref=e137]:
+                - button "Resolver" [ref=e138] [cursor=pointer]
+                - button "Asignar" [ref=e139] [cursor=pointer]
+          - listitem [ref=e140]:
+            - generic [ref=e141]:
+              - generic [ref=e142]:
+                - generic [ref=e143]: mora
+                - generic [ref=e144]:
+                  - generic [ref=e145]: media
+                  - generic [ref=e146]: "mora_30: 30"
+              - generic [ref=e147]:
+                - button "Resolver" [ref=e148] [cursor=pointer]
+                - button "Asignar" [ref=e149] [cursor=pointer]
+          - listitem [ref=e150]:
+            - generic [ref=e151]:
+              - generic [ref=e152]:
+                - generic [ref=e153]: mora
+                - generic [ref=e154]:
+                  - generic [ref=e155]: media
+                  - generic [ref=e156]: "mora_30: 30"
+              - generic [ref=e157]:
+                - button "Resolver" [ref=e158] [cursor=pointer]
+                - button "Asignar" [ref=e159] [cursor=pointer]
+          - listitem [ref=e160]:
+            - generic [ref=e161]:
+              - generic [ref=e162]:
+                - generic [ref=e163]: mora
+                - generic [ref=e164]:
+                  - generic [ref=e165]: alta
+                  - generic [ref=e166]: "mora_60: 60"
+              - generic [ref=e167]:
+                - button "Resolver" [ref=e168] [cursor=pointer]
+                - button "Asignar" [ref=e169] [cursor=pointer]
+          - listitem [ref=e170]:
+            - generic [ref=e171]:
+              - generic [ref=e172]:
+                - generic [ref=e173]: mora
+                - generic [ref=e174]:
+                  - generic [ref=e175]: alta
+                  - generic [ref=e176]: "mora_60: 60"
+              - generic [ref=e177]:
+                - button "Resolver" [ref=e178] [cursor=pointer]
+                - button "Asignar" [ref=e179] [cursor=pointer]
+          - listitem [ref=e180]:
+            - generic [ref=e181]:
+              - generic [ref=e182]:
+                - generic [ref=e183]: mora
+                - generic [ref=e184]:
+                  - generic [ref=e185]: alta
+                  - generic [ref=e186]: "mora_60: 60"
+              - generic [ref=e187]:
+                - button "Resolver" [ref=e188] [cursor=pointer]
+                - button "Asignar" [ref=e189] [cursor=pointer]
+          - listitem [ref=e190]:
+            - generic [ref=e191]:
+              - generic [ref=e192]:
+                - generic [ref=e193]: mora
+                - generic [ref=e194]:
+                  - generic [ref=e195]: alta
+                  - generic [ref=e196]: "mora_60: 60"
+              - generic [ref=e197]:
+                - button "Resolver" [ref=e198] [cursor=pointer]
+                - button "Asignar" [ref=e199] [cursor=pointer]
+          - listitem [ref=e200]:
+            - generic [ref=e201]:
+              - generic [ref=e202]:
+                - generic [ref=e203]: mora
+                - generic [ref=e204]:
+                  - generic [ref=e205]: alta
+                  - generic [ref=e206]: "mora_60: 60"
+              - generic [ref=e207]:
+                - button "Resolver" [ref=e208] [cursor=pointer]
+                - button "Asignar" [ref=e209] [cursor=pointer]
+          - listitem [ref=e210]:
+            - generic [ref=e211]:
+              - generic [ref=e212]:
+                - generic [ref=e213]: mora
+                - generic [ref=e214]:
+                  - generic [ref=e215]: media
+                  - generic [ref=e216]: "mora_30: 30"
+              - generic [ref=e217]:
+                - button "Resolver" [ref=e218] [cursor=pointer]
+                - button "Asignar" [ref=e219] [cursor=pointer]
+          - listitem [ref=e220]:
+            - generic [ref=e221]:
+              - generic [ref=e222]:
+                - generic [ref=e223]: mora
+                - generic [ref=e224]:
+                  - generic [ref=e225]: alta
+                  - generic [ref=e226]: "mora_60: 60"
+              - generic [ref=e227]:
+                - button "Resolver" [ref=e228] [cursor=pointer]
+                - button "Asignar" [ref=e229] [cursor=pointer]
+          - listitem [ref=e230]:
+            - generic [ref=e231]:
+              - generic [ref=e232]:
+                - generic [ref=e233]: mora
+                - generic [ref=e234]:
+                  - generic [ref=e235]: alta
+                  - generic [ref=e236]: "mora_60: 60"
+              - generic [ref=e237]:
+                - button "Resolver" [ref=e238] [cursor=pointer]
+                - button "Asignar" [ref=e239] [cursor=pointer]
+          - listitem [ref=e240]:
+            - generic [ref=e241]:
+              - generic [ref=e242]:
+                - generic [ref=e243]: mora
+                - generic [ref=e244]:
+                  - generic [ref=e245]: media
+                  - generic [ref=e246]: "mora_30: 30"
+              - generic [ref=e247]:
+                - button "Resolver" [ref=e248] [cursor=pointer]
+                - button "Asignar" [ref=e249] [cursor=pointer]
+          - listitem [ref=e250]:
+            - generic [ref=e251]:
+              - generic [ref=e252]:
+                - generic [ref=e253]: mora
+                - generic [ref=e254]:
+                  - generic [ref=e255]: media
+                  - generic [ref=e256]: "mora_30: 30"
+              - generic [ref=e257]:
+                - button "Resolver" [ref=e258] [cursor=pointer]
+                - button "Asignar" [ref=e259] [cursor=pointer]
+          - listitem [ref=e260]:
+            - generic [ref=e261]:
+              - generic [ref=e262]:
+                - generic [ref=e263]: mora
+                - generic [ref=e264]:
+                  - generic [ref=e265]: media
+                  - generic [ref=e266]: "mora_30: 30"
+              - generic [ref=e267]:
+                - button "Resolver" [ref=e268] [cursor=pointer]
+                - button "Asignar" [ref=e269] [cursor=pointer]
+          - listitem [ref=e270]:
+            - generic [ref=e271]:
+              - generic [ref=e272]:
+                - generic [ref=e273]: mora
+                - generic [ref=e274]:
+                  - generic [ref=e275]: media
+                  - generic [ref=e276]: "mora_30: 30"
+              - generic [ref=e277]:
+                - button "Resolver" [ref=e278] [cursor=pointer]
+                - button "Asignar" [ref=e279] [cursor=pointer]
+          - listitem [ref=e280]:
+            - generic [ref=e281]:
+              - generic [ref=e282]:
+                - generic [ref=e283]: mora
+                - generic [ref=e284]:
+                  - generic [ref=e285]: alta
+                  - generic [ref=e286]: "mora_60: 89"
+              - generic [ref=e287]:
+                - button "Resolver" [ref=e288] [cursor=pointer]
+                - button "Asignar" [ref=e289] [cursor=pointer]
+          - listitem [ref=e290]:
+            - generic [ref=e291]:
+              - generic [ref=e292]:
+                - generic [ref=e293]: mora
+                - generic [ref=e294]:
+                  - generic [ref=e295]: media
+                  - generic [ref=e296]: "mora_30: 30"
+              - generic [ref=e297]:
+                - button "Resolver" [ref=e298] [cursor=pointer]
+                - button "Asignar" [ref=e299] [cursor=pointer]
+          - listitem [ref=e300]:
+            - generic [ref=e301]:
+              - generic [ref=e302]:
+                - generic [ref=e303]: mora
+                - generic [ref=e304]:
+                  - generic [ref=e305]: media
+                  - generic [ref=e306]: "mora_30: 30"
+              - generic [ref=e307]:
+                - button "Resolver" [ref=e308] [cursor=pointer]
+                - button "Asignar" [ref=e309] [cursor=pointer]
+          - listitem [ref=e310]:
+            - generic [ref=e311]:
+              - generic [ref=e312]:
+                - generic [ref=e313]: mora
+                - generic [ref=e314]:
+                  - generic [ref=e315]: media
+                  - generic [ref=e316]: "mora_30: 30"
+              - generic [ref=e317]:
+                - button "Resolver" [ref=e318] [cursor=pointer]
+                - button "Asignar" [ref=e319] [cursor=pointer]
+          - listitem [ref=e320]:
+            - generic [ref=e321]:
+              - generic [ref=e322]:
+                - generic [ref=e323]: mora
+                - generic [ref=e324]:
+                  - generic [ref=e325]: media
+                  - generic [ref=e326]: "mora_30: 30"
+              - generic [ref=e327]:
+                - button "Resolver" [ref=e328] [cursor=pointer]
+                - button "Asignar" [ref=e329] [cursor=pointer]
+          - listitem [ref=e330]:
+            - generic [ref=e331]:
+              - generic [ref=e332]:
+                - generic [ref=e333]: mora
+                - generic [ref=e334]:
+                  - generic [ref=e335]: media
+                  - generic [ref=e336]: "mora_30: 30"
+              - generic [ref=e337]:
+                - button "Resolver" [ref=e338] [cursor=pointer]
+                - button "Asignar" [ref=e339] [cursor=pointer]
+          - listitem [ref=e340]:
+            - generic [ref=e341]:
+              - generic [ref=e342]:
+                - generic [ref=e343]: mora
+                - generic [ref=e344]:
+                  - generic [ref=e345]: alta
+                  - generic [ref=e346]: "mora_60: 61"
+              - generic [ref=e347]:
+                - button "Resolver" [ref=e348] [cursor=pointer]
+                - button "Asignar" [ref=e349] [cursor=pointer]
+          - listitem [ref=e350]:
+            - generic [ref=e351]:
+              - generic [ref=e352]:
+                - generic [ref=e353]: mora
+                - generic [ref=e354]:
+                  - generic [ref=e355]: media
+                  - generic [ref=e356]: "mora_30: 31"
+              - generic [ref=e357]:
+                - button "Resolver" [ref=e358] [cursor=pointer]
+                - button "Asignar" [ref=e359] [cursor=pointer]
+          - listitem [ref=e360]:
+            - generic [ref=e361]:
+              - generic [ref=e362]:
+                - generic [ref=e363]: mora
+                - generic [ref=e364]:
+                  - generic [ref=e365]: critica
+                  - generic [ref=e366]: "mora_90: 90"
+              - generic [ref=e367]:
+                - button "Resolver" [ref=e368] [cursor=pointer]
+                - button "Asignar" [ref=e369] [cursor=pointer]
+          - listitem [ref=e370]:
+            - generic [ref=e371]:
+              - generic [ref=e372]:
+                - generic [ref=e373]: mora
+                - generic [ref=e374]:
+                  - generic [ref=e375]: critica
+                  - generic [ref=e376]: "mora_90: 90"
+              - generic [ref=e377]:
+                - button "Resolver" [ref=e378] [cursor=pointer]
+                - button "Asignar" [ref=e379] [cursor=pointer]
+          - listitem [ref=e380]:
+            - generic [ref=e381]:
+              - generic [ref=e382]:
+                - generic [ref=e383]: mora
+                - generic [ref=e384]:
+                  - generic [ref=e385]: media
+                  - generic [ref=e386]: "mora_30: 59"
+              - generic [ref=e387]:
+                - button "Resolver" [ref=e388] [cursor=pointer]
+                - button "Asignar" [ref=e389] [cursor=pointer]
+          - listitem [ref=e390]:
+            - generic [ref=e391]:
+              - generic [ref=e392]:
+                - generic [ref=e393]: mora
+                - generic [ref=e394]:
+                  - generic [ref=e395]: alta
+                  - generic [ref=e396]: "mora_60: 60"
+              - generic [ref=e397]:
+                - button "Resolver" [ref=e398] [cursor=pointer]
+                - button "Asignar" [ref=e399] [cursor=pointer]
+          - listitem [ref=e400]:
+            - generic [ref=e401]:
+              - generic [ref=e402]:
+                - generic [ref=e403]: mora
+                - generic [ref=e404]:
+                  - generic [ref=e405]: alta
+                  - generic [ref=e406]: "mora_60: 60"
+              - generic [ref=e407]:
+                - button "Resolver" [ref=e408] [cursor=pointer]
+                - button "Asignar" [ref=e409] [cursor=pointer]
+          - listitem [ref=e410]:
+            - generic [ref=e411]:
+              - generic [ref=e412]:
+                - generic [ref=e413]: mora
+                - generic [ref=e414]:
+                  - generic [ref=e415]: critica
+                  - generic [ref=e416]: "mora_90: 91"
+              - generic [ref=e417]:
+                - button "Resolver" [ref=e418] [cursor=pointer]
+                - button "Asignar" [ref=e419] [cursor=pointer]

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/mocks/server";
-import { renderWithProviders } from "@/test/utils";
+import { renderWithProviders, selectEntity } from "@/test/utils";
 import { RegistrarPagoPage } from "./RegistrarPagoPage";
 
 vi.mock("@tanstack/react-router", () => ({
@@ -42,6 +42,10 @@ describe("RegistrarPagoPage – rotación de idempotency key", () => {
     );
 
     renderWithProviders(<RegistrarPagoPage />);
+
+    // Préstamo + caja (requeridos para habilitar submit)
+    await selectEntity(/buscar préstamo/i, "Préstamo #prestamo-1");
+    await selectEntity(/buscar caja/i, "Caja Central");
 
     // First submit
     await userEvent.type(screen.getByLabelText(/monto/i), "100");
@@ -82,6 +86,9 @@ describe("RegistrarPagoPage – rotación de idempotency key", () => {
     );
 
     renderWithProviders(<RegistrarPagoPage />);
+
+    await selectEntity(/buscar préstamo/i, "Préstamo #prestamo-1");
+    await selectEntity(/buscar caja/i, "Caja Central");
 
     // First submit → error
     await userEvent.type(screen.getByLabelText(/monto/i), "100");

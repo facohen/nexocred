@@ -21,6 +21,11 @@ RESULTADOS_VALIDOS = {"pago", "parcial", "promesa", "ausente", "se_niega", "canc
 RESULTADOS_CON_PAGO = {"pago", "parcial"}
 
 
+async def _pago_existente(session: AsyncSession, pago_id: uuid.UUID) -> Pago | None:
+    res = await session.execute(select(Pago).where(Pago.id == pago_id))
+    return res.scalar_one_or_none()
+
+
 async def _cuotas(session: AsyncSession, prestamo_id: uuid.UUID) -> list[Cuota]:
     res = await session.execute(
         select(Cuota).where(Cuota.prestamo_id == prestamo_id).order_by(Cuota.numero)
@@ -149,6 +154,7 @@ async def visitar(
     caja_id: uuid.UUID | None,
     fecha_negocio: date | None,
     actor_id: uuid.UUID | None,
+    pago_id_device: uuid.UUID | None = None,
 ) -> tuple[ParadaRuta, uuid.UUID | None]:
     if resultado not in RESULTADOS_VALIDOS:
         raise ErrorAPI(
@@ -164,6 +170,32 @@ async def visitar(
             )
         # Lock del prestamo y registro de pago en la MISMA transaccion (un solo commit).
         await bloquear_prestamo(session, parada.prestamo_id)
+
+        # Idempotencia por PK del pago (UUIDv7 del dispositivo), igual que el sync
+        # offline: un retry tras timeout con el mismo pago_id NO recobra. Si ya existe
+        # un pago con ese id, es un replay: no se reaplica el cobro.
+        if pago_id_device is not None:
+            existente = await _pago_existente(session, pago_id_device)
+            if existente is not None:
+                if existente.monto != monto_cobrado:
+                    raise ErrorAPI(
+                        "pago_inmutable",
+                        "un pago es append-only: un reintento debe reusar el mismo "
+                        "pago_id con el mismo monto",
+                        status=409,
+                    )
+                # Replay verdadero: actualizar payload de la parada sin recobrar.
+                parada.resultado = resultado
+                parada.monto_cobrado = monto_cobrado
+                parada.foto_url = foto_url
+                parada.lat = Decimal(lat) if lat is not None else None
+                parada.lng = Decimal(lng) if lng is not None else None
+                parada.notas = notas
+                parada.visitada_en = datetime.now(UTC)
+                await session.flush()
+                await session.commit()
+                return parada, existente.id
+
         _out, pago = await registrar_pago_uow(
             session,
             prestamo_id=parada.prestamo_id,
@@ -173,6 +205,7 @@ async def visitar(
             fecha_negocio=fneg,
             idempotency_key=None,
             actor_id=actor_id,
+            pago_id=pago_id_device,
         )
         if pago is not None:
             pago.parada_id = parada.id
@@ -260,10 +293,15 @@ async def obtener_rendicion(
     return res.scalar_one_or_none()
 
 
-async def listar_rendiciones(session: AsyncSession) -> list[Rendicion]:
-    res = await session.execute(
-        select(Rendicion).order_by(Rendicion.created_at.desc())
-    )
+async def listar_rendiciones(
+    session: AsyncSession,
+    *,
+    cobrador_id: uuid.UUID | None = None,
+) -> list[Rendicion]:
+    stmt = select(Rendicion).order_by(Rendicion.created_at.desc())
+    if cobrador_id is not None:
+        stmt = stmt.where(Rendicion.cobrador_id == cobrador_id)
+    res = await session.execute(stmt)
     return list(res.scalars().all())
 
 

@@ -41,13 +41,27 @@ def test_cuota_pareja_cuando_divide_exacto():
         assert f.cuota == Decimal("2200.00")
 
 
-def test_residuo_de_redondeo_va_en_ultima_cuota():
-    # 10000 / 3 = 3333.333... -> primeras 3333.33, ultima absorbe
+def test_residuo_de_redondeo_se_reparte_en_primeras_cuotas():
+    # 10000 / 3 = 3333.333... -> largest-remainder: el centavo de residuo va en la
+    # PRIMERA cuota (no en la ultima, que con redondeo hacia arriba podia dar negativo).
+    # Invariante sagrada: todas las filas >= 0 y la suma == total exacto.
     c = calcular_cronograma(_terminos(cantidad_cuotas=3, tasa_interes_directo=Decimal("0")))
-    assert c.filas[0].capital == Decimal("3333.33")
+    assert c.filas[0].capital == Decimal("3333.34")
     assert c.filas[1].capital == Decimal("3333.33")
-    assert c.filas[2].capital == Decimal("3333.34")
+    assert c.filas[2].capital == Decimal("3333.33")
+    assert all(f.capital >= Decimal("0.00") for f in c.filas)
     assert c.total_capital == Decimal("10000.00")
+
+
+def test_residuo_chico_nunca_da_cuota_negativa():
+    # Regresion BUG 3: total=0.02 en 4 cuotas. Antes el ultimo monto salia -0.01
+    # (redondeo hacia arriba). Largest-remainder: [0.01, 0.01, 0.00, 0.00], suma 0.02.
+    from nexocred_core.cronograma import _reparto_parejo
+
+    montos = _reparto_parejo(Decimal("0.02"), 4)
+    assert montos == [Decimal("0.01"), Decimal("0.01"), Decimal("0.00"), Decimal("0.00")]
+    assert all(m >= Decimal("0.00") for m in montos)
+    assert sum(montos) == Decimal("0.02")
 
 
 def test_vencimientos_mensuales_consecutivos():

@@ -152,10 +152,12 @@ export function usePrestamo(id: string) {
   });
 }
 
+// El backend devuelve un array pelado de CuotaOut (sin wrapper {data}, sin campo
+// `saldo`). No lo envolvemos: el consumidor usa el array directo.
 export function useCuotas(id: string) {
   return useQuery({
     queryKey: ["cuotas", id],
-    queryFn: () => apiFetch<{ data: (Sch["CuotaOut"] & { saldo: string })[] }>(`/prestamos/${id}/cuotas`),
+    queryFn: () => apiFetch<Sch["CuotaOut"][]>(`/prestamos/${id}/cuotas`),
   });
 }
 
@@ -166,10 +168,14 @@ export function usePagosDePrestamo(id: string) {
   });
 }
 
-export function usePayoff(id: string) {
+// El backend EXIGE ?fecha_negocio=YYYY-MM-DD (sin él da 422). Por defecto usamos
+// la fecha de hoy; el caller puede pasar otra para proyectar el saldo.
+export function usePayoff(id: string, fechaNegocio?: string) {
+  const fecha = fechaNegocio ?? new Date().toISOString().slice(0, 10);
   return useQuery({
-    queryKey: ["payoff", id],
-    queryFn: () => apiFetch<Sch["PayoffOut"]>(`/prestamos/${id}/payoff`),
+    queryKey: ["payoff", id, fecha],
+    queryFn: () =>
+      apiFetch<Sch["PayoffOut"]>(`/prestamos/${id}/payoff`, { query: { fecha_negocio: fecha } }),
   });
 }
 
@@ -189,11 +195,15 @@ export function useRegistrarPago() {
 
 export function useCorregirPago() {
   return useMutation({
-    mutationFn: (vars: { pagoId: string; body?: unknown }) =>
+    // Acción que crea plata (contra-asiento + pago de reemplazo) → la
+    // Idempotency-Key DEBE ser estable por intento: el caller la genera una vez
+    // (useMemo) y la pasa, para que un retry tras timeout no genere una segunda
+    // corrección. Si no la pasa, caemos a una key fresca (peor, pero no rompe).
+    mutationFn: (vars: { pagoId: string; body?: unknown; idempotencyKey?: string }) =>
       apiFetch<Sch["CorreccionOut"]>(`/pagos/${vars.pagoId}/corregir`, {
         method: "POST",
         body: vars.body ?? {},
-        idempotencyKey: newIdempotencyKey(),
+        idempotencyKey: vars.idempotencyKey ?? newIdempotencyKey(),
       }),
   });
 }
@@ -224,11 +234,18 @@ export function useMovimientos(cajaId: string) {
 // ---- Novaciones ----
 export function useNovacion() {
   return useMutation({
-    mutationFn: (vars: { tipo: "refinanciar" | "consolidar" | "transferir" | "repactar-rapido"; body: unknown }) =>
+    // Acción que crea plata (cancela préstamos y emite uno nuevo) → Idempotency-Key
+    // estable por intento, provista por el caller (useMemo). Un retry tras timeout
+    // NO debe generar una segunda novación.
+    mutationFn: (vars: {
+      tipo: "refinanciar" | "consolidar" | "transferir" | "repactar-rapido";
+      body: unknown;
+      idempotencyKey?: string;
+    }) =>
       apiFetch<Sch["NovacionDetalleOut"]>(`/novaciones/${vars.tipo}`, {
         method: "POST",
         body: vars.body,
-        idempotencyKey: newIdempotencyKey(),
+        idempotencyKey: vars.idempotencyKey ?? newIdempotencyKey(),
       }),
   });
 }

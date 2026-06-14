@@ -24,6 +24,14 @@ describe("ComisionesPage", () => {
     expect((await screen.findAllByText(/Reversión de Comisión/i)).length).toBeGreaterThan(0);
   });
 
+  it("formatea el porcentaje (ratio del backend) como % es-AR, no el ratio crudo", async () => {
+    renderWithProviders(<ComisionesPage vendedorId="user-vendedor" />, { ...admin, roles: ["admin"] });
+    // porcentaje "0.0250" → "2,50 %" (NO "0.0250").
+    expect((await screen.findAllByText("2,50 %")).length).toBeGreaterThan(0);
+    expect(screen.getByText("3,00 %")).toBeInTheDocument();
+    expect(screen.queryByText("0.0250")).not.toBeInTheDocument();
+  });
+
   it("estado de error", async () => {
     server.use(
       http.get(`${BASE}/vendedores/:id/comisiones`, () =>
@@ -36,6 +44,25 @@ describe("ComisionesPage", () => {
 });
 
 describe("LiquidacionesPage", () => {
+  it("no crashea con la respuesta PAGINADA del backend {data,total,page,per_page}", async () => {
+    server.use(
+      http.get(`${BASE}/comisiones/liquidaciones`, () =>
+        HttpResponse.json({
+          data: [
+            { id: "liq-9", vendedor_id: "v1", periodo_desde: "2026-04-01",
+              periodo_hasta: "2026-04-30", monto_total: "12345.67", estado: "borrador",
+              egreso_id: null, aprobada_en: null },
+          ],
+          total: 1, page: 1, per_page: 50,
+        }),
+      ),
+    );
+    renderWithProviders(<LiquidacionesPage />, { ...admin, roles: ["admin"] });
+    // Si useLiquidaciones no desenvolviera .data, el .filter/.map crashearía
+    // (pantalla blanca) en vez de listar la fila.
+    expect(await screen.findByText(/12\.345,67/)).toBeInTheDocument();
+  });
+
   it("lista liquidaciones y aprueba (admin)", async () => {
     const user = userEvent.setup();
     renderWithProviders(<LiquidacionesPage />, { ...admin, roles: ["admin"] });

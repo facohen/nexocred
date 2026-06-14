@@ -121,15 +121,24 @@ async def _actualizar_estados_cuotas(
     prestamo: Prestamo,
     cuotas: list[Cuota],
     fecha_negocio: date,
+    pago: Pago | None = None,
 ) -> None:
     """Recalcula estado de cada cuota a partir del saldo exigible reconstruido del core
-    + tolerancia de cobro (§7.1 caso 8)."""
+    + tolerancia de cobro (§7.1 caso 8).
+
+    Al tolerar una cuota NO basta con cambiar el string de estado: hay que dar de baja
+    contablemente el remanente perdonado persistiendo una imputacion AJUSTE_TOLERANCIA
+    por la diferencia, asociada al `pago` y a la cuota. Asi `calcular_saldo_exigible` ve
+    la cuota en cero, no devenga punitorio sobre el capital perdonado y un payoff/
+    cancelacion/novacion posterior NO re-factura ese remanente.
+    """
     imps = imputaciones_core(await _imputaciones_previas(session, prestamo.id))
     crono = cronograma_desde_cuotas(cuotas)
     tasa_pun = prestamo.tasa_punitorio_diario or Decimal("0")
     saldo = calcular_saldo_exigible(crono, imps, fecha_negocio, tasa_pun)
     exigible_por_cuota = {c.numero: c.total_exigible for c in saldo.cuotas}
     tolerancia = _tolerancia_param()
+    por_numero = _cuota_id_por_numero(cuotas)
 
     for cuota in cuotas:
         # ¿se imputó algo a esta cuota?
@@ -145,7 +154,9 @@ async def _actualizar_estados_cuotas(
             continue
 
         if restante == Decimal("0"):
-            cuota.estado = "pagada"
+            # exigible en cero: si ya fue tolerada (su remanente esta dado de baja),
+            # se mantiene como tolerada; si se cobro entero, pagada.
+            cuota.estado = "tolerada" if cuota.estado == "tolerada" else "pagada"
         elif imputado > Decimal("0"):
             # tolerancia: si el faltante esta dentro de la tolerancia, cerrar como tolerada
             res_tol = aplicar_tolerancia(
@@ -155,6 +166,18 @@ async def _actualizar_estados_cuotas(
             )
             if res_tol.dentro_de_tolerancia and restante <= tolerancia:
                 cuota.estado = "tolerada"
+                # Baja contable del remanente perdonado (la diferencia == restante).
+                if pago is not None and restante > Decimal("0"):
+                    session.add(
+                        Imputacion(
+                            pago_id=pago.id,
+                            cuota_id=por_numero.get(cuota.numero),
+                            concepto=ConceptoImputacion.AJUSTE_TOLERANCIA.value,
+                            monto=restante,
+                            orden_waterfall=8,
+                            cuota_numero=cuota.numero,
+                        )
+                    )
             else:
                 cuota.estado = "parcial"
         else:
@@ -227,7 +250,7 @@ async def registrar_pago_uow(
         idempotency_key=idempotency_key, corrige_pago_id=None, cuotas=cuotas,
         pago_id=pago_id,
     )
-    await _actualizar_estados_cuotas(session, prestamo, cuotas, fecha_negocio)
+    await _actualizar_estados_cuotas(session, prestamo, cuotas, fecha_negocio, pago=pago)
 
     out = PagoOut.model_validate(pago)
     if reservar_idem and idempotency_key is not None:
@@ -395,7 +418,9 @@ async def corregir_uow(
         fecha_negocio=fecha_negocio, caja_id=caja_id,
         idempotency_key=None, corrige_pago_id=pago_original_id, cuotas=cuotas,
     )
-    await _actualizar_estados_cuotas(session, prestamo, cuotas, fecha_negocio)
+    await _actualizar_estados_cuotas(
+        session, prestamo, cuotas, fecha_negocio, pago=pago_nuevo
+    )
 
     out = CorreccionOut(
         pago_original_id=pago_original_id,

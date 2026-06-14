@@ -24,6 +24,22 @@ AdminUser = Annotated[Usuario, Depends(requiere_rol("admin"))]
 VendedorUser = Annotated[Usuario, Depends(requiere_rol("admin", "vendedor"))]
 
 
+def _es_admin(actor: Usuario) -> bool:
+    """Check if actor has admin role."""
+    return any(r.nombre == "admin" for r in actor.roles)
+
+
+def _exigir_vendedor_propio(actor: Usuario, vendedor_id: uuid.UUID) -> None:
+    """Ownership (spec §5.11): un vendedor solo accede a SUS comisiones.
+
+    Admin exento; cualquier otro rol debe coincidir con vendedor_id o 403.
+    """
+    if not _es_admin(actor) and actor.id != vendedor_id:
+        raise ErrorAPI(
+            "acceso_denegado", "no tenés acceso a estas comisiones", status=403
+        )
+
+
 def _exigir_idem(idempotency_key: str | None) -> str:
     if not idempotency_key:
         raise ErrorAPI(
@@ -41,9 +57,10 @@ def _exigir_idem(idempotency_key: str | None) -> str:
 async def comisiones_vendedor(
     vendedor_id: uuid.UUID,
     session: SessionDep,
-    _: VendedorUser,
+    actor: VendedorUser,
     estado: Annotated[str | None, Query()] = None,
 ) -> list[ComisionDevengoOut]:
+    _exigir_vendedor_propio(actor, vendedor_id)
     devengos = await servicio.comisiones_de_vendedor(
         session, vendedor_id, estado=estado
     )
@@ -54,8 +71,18 @@ async def comisiones_vendedor(
     "/comisiones/devengo/{prestamo_id}", response_model=list[ComisionDevengoOut]
 )
 async def comisiones_prestamo(
-    prestamo_id: uuid.UUID, session: SessionDep, _: VendedorUser
+    prestamo_id: uuid.UUID, session: SessionDep, actor: VendedorUser
 ) -> list[ComisionDevengoOut]:
+    # Ownership (spec §5.11): non-admin solo ve comisiones de préstamos que
+    # él mismo originó (prestamo.vendedor_id == actor.id). Admin exento.
+    if not _es_admin(actor):
+        from app.m03_prestamos.servicio import obtener_prestamo
+
+        prestamo = await obtener_prestamo(session, prestamo_id)
+        if prestamo is None or prestamo.vendedor_id != actor.id:
+            raise ErrorAPI(
+                "acceso_denegado", "no tenés acceso a estas comisiones", status=403
+            )
     devengos = await servicio.comisiones_de_prestamo(session, prestamo_id)
     return [ComisionDevengoOut.model_validate(d) for d in devengos]
 
@@ -72,8 +99,9 @@ async def crear_clawback(
 
 @router.get("/vendedores/{vendedor_id}/cartera")
 async def cartera_vendedor(
-    vendedor_id: uuid.UUID, session: SessionDep, _: VendedorUser
+    vendedor_id: uuid.UUID, session: SessionDep, actor: VendedorUser
 ) -> dict:
+    _exigir_vendedor_propio(actor, vendedor_id)
     devengos = await servicio.comisiones_de_vendedor(session, vendedor_id)
     return {
         "vendedor_id": str(vendedor_id),
@@ -85,8 +113,9 @@ async def cartera_vendedor(
 
 @router.get("/vendedores/{vendedor_id}/pipeline")
 async def pipeline_vendedor(
-    vendedor_id: uuid.UUID, session: SessionDep, _: VendedorUser
+    vendedor_id: uuid.UUID, session: SessionDep, actor: VendedorUser
 ) -> dict:
+    _exigir_vendedor_propio(actor, vendedor_id)
     devengos = await servicio.comisiones_de_vendedor(session, vendedor_id)
     por_estado: dict[str, int] = {}
     for d in devengos:
@@ -98,11 +127,14 @@ async def pipeline_vendedor(
 @router.get("/comisiones/liquidaciones", response_model=Pagina[LiquidacionOut])
 async def listar_liquidaciones(
     session: SessionDep,
-    _: VendedorUser,
+    actor: VendedorUser,
     vendedor_id: Annotated[uuid.UUID | None, Query()] = None,
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
 ) -> Pagina[LiquidacionOut]:
+    # Ownership (spec §5.11): non-admin solo ve sus propias liquidaciones.
+    if not _es_admin(actor):
+        vendedor_id = actor.id
     liqs = await servicio.listar_liquidaciones(session, vendedor_id=vendedor_id)
     return paginar([LiquidacionOut.model_validate(liq) for liq in liqs], page, per_page)
 
@@ -136,9 +168,10 @@ async def _get_liquidacion(session, liquidacion_id: uuid.UUID):
     response_model=LiquidacionDetalladaOut,
 )
 async def detalle_liquidacion(
-    liquidacion_id: uuid.UUID, session: SessionDep, _: VendedorUser
+    liquidacion_id: uuid.UUID, session: SessionDep, actor: VendedorUser
 ) -> LiquidacionDetalladaOut:
     liq = await _get_liquidacion(session, liquidacion_id)
+    _exigir_vendedor_propio(actor, liq.vendedor_id)
     detalle = await servicio.detalle_liquidacion(session, liq.id)
     return LiquidacionDetalladaOut(
         **LiquidacionOut.model_validate(liq).model_dump(mode="python"),

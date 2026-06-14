@@ -34,6 +34,35 @@ async def _vendedor_id(session) -> str:
     return str(res.scalar_one())
 
 
+async def _crear_vendedor(client, admin_token, email) -> dict:
+    """Crea un usuario vendedor y devuelve {'id': ..., 'token': ...}."""
+    r = await client.post(
+        "/api/v1/usuarios",
+        json={"email": email, "nombre": email, "password": "secreto123",
+              "roles": ["vendedor"]},
+        headers=_h(admin_token),
+    )
+    assert r.status_code == 201, r.text
+    uid = r.json()["id"]
+    login = await client.post(
+        "/api/v1/auth/login", json={"email": email, "password": "secreto123"}
+    )
+    return {"id": uid, "token": login.json()["access_token"]}
+
+
+async def _reasignar_comisiones_a(session, prestamo_id, vendedor_id):
+    """Reapunta el préstamo y sus devengos al vendedor dado (para tests de ownership)."""
+    await session.execute(
+        text("UPDATE prestamo SET vendedor_id=:v WHERE id=:p"),
+        {"v": vendedor_id, "p": prestamo_id},
+    )
+    await session.execute(
+        text("UPDATE comision_devengo SET vendedor_id=:v WHERE prestamo_id=:p"),
+        {"v": vendedor_id, "p": prestamo_id},
+    )
+    await session.commit()
+
+
 async def _prestamo_con_comision(
     client, token, session, dni, comision="0.05", fecha_negocio=None
 ):
@@ -281,3 +310,79 @@ async def test_liquidacion_selecciona_por_fecha_negocio(client, admin_token, ses
         {"p": prestamo},
     )
     assert res.scalar_one() == hace
+
+
+# ── C-4 / M-3: IDOR de comisiones (vendedor no ve lo ajeno) ──────────────────
+
+
+class TestComisionesIDOR:
+
+    async def test_vendedor_no_ve_comisiones_de_otro(
+        self, client, admin_token, session
+    ):
+        prestamo, _caja, _v = await _prestamo_con_comision(
+            client, admin_token, session, "72000001"
+        )
+        vendedor_a = await _crear_vendedor(client, admin_token, "vend_a@nexo.test")
+        vendedor_b = await _crear_vendedor(client, admin_token, "vend_b@nexo.test")
+        await _reasignar_comisiones_a(session, prestamo, vendedor_a["id"])
+
+        # A ve sus comisiones
+        ok = await client.get(
+            f"/api/v1/vendedores/{vendedor_a['id']}/comisiones",
+            headers=_h(vendedor_a["token"]),
+        )
+        assert ok.status_code == 200, ok.text
+
+        # B no puede leer las de A
+        r = await client.get(
+            f"/api/v1/vendedores/{vendedor_a['id']}/comisiones",
+            headers=_h(vendedor_b["token"]),
+        )
+        assert r.status_code == 403, r.text
+        assert r.json()["error"]["code"] == "acceso_denegado"
+
+    async def test_vendedor_no_ve_cartera_ni_pipeline_ajeno(
+        self, client, admin_token, session
+    ):
+        vendedor_a = await _crear_vendedor(client, admin_token, "vend_c@nexo.test")
+        vendedor_b = await _crear_vendedor(client, admin_token, "vend_d@nexo.test")
+
+        for path in ("cartera", "pipeline"):
+            r = await client.get(
+                f"/api/v1/vendedores/{vendedor_a['id']}/{path}",
+                headers=_h(vendedor_b["token"]),
+            )
+            assert r.status_code == 403, f"{path}: {r.text}"
+
+    async def test_vendedor_no_ve_devengo_de_prestamo_ajeno(
+        self, client, admin_token, session
+    ):
+        prestamo, _caja, _v = await _prestamo_con_comision(
+            client, admin_token, session, "72000002"
+        )
+        vendedor_a = await _crear_vendedor(client, admin_token, "vend_e@nexo.test")
+        vendedor_b = await _crear_vendedor(client, admin_token, "vend_f@nexo.test")
+        await _reasignar_comisiones_a(session, prestamo, vendedor_a["id"])
+
+        ok = await client.get(
+            f"/api/v1/comisiones/devengo/{prestamo}",
+            headers=_h(vendedor_a["token"]),
+        )
+        assert ok.status_code == 200, ok.text
+
+        r = await client.get(
+            f"/api/v1/comisiones/devengo/{prestamo}",
+            headers=_h(vendedor_b["token"]),
+        )
+        assert r.status_code == 403, r.text
+
+    async def test_admin_ve_comisiones_de_cualquier_vendedor(
+        self, client, admin_token, session
+    ):
+        vendedor_a = await _crear_vendedor(client, admin_token, "vend_g@nexo.test")
+        r = await client.get(
+            f"/api/v1/vendedores/{vendedor_a['id']}/comisiones",
+            headers=_h(admin_token),
+        )
+        assert r.status_code == 200, r.text

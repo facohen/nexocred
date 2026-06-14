@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MoneyText } from "@/components/MoneyText";
 import { addMoney } from "@/lib/money";
+import { formatRatioPercent } from "@/features/riesgo/format";
 import { useComisiones } from "./hooks";
 
 const ESTADOS = ["devengada", "confirmada", "clawback", "liquidada"] as const;
@@ -50,6 +51,7 @@ export function ComisionesPage({ vendedorId }: { vendedorId: string }) {
               <th className="py-1">Préstamo</th>
               <th className="py-1">Estado</th>
               <th className="py-1">Tipo</th>
+              <th className="py-1 text-right">%</th>
               <th className="py-1 text-right">Monto</th>
             </tr>
           </thead>
@@ -59,6 +61,7 @@ export function ComisionesPage({ vendedorId }: { vendedorId: string }) {
                 <td className="py-1">{c.prestamo_id}</td>
                 <td className="py-1"><Badge tone={c.estado === "clawback" ? "danger" : "default"}>{labelEstado(c.estado)}</Badge></td>
                 <td className="py-1">{c.tipo}</td>
+                <td className="py-1 text-right tabular-nums">{formatRatioPercent(c.porcentaje)}</td>
                 <td className="py-1 text-right"><MoneyText value={c.monto} intent={c.estado === "clawback" ? "expense" : "income"} /></td>
               </tr>
             ))}

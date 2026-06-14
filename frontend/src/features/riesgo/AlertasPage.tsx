@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/FormField";
+import { severidadTone } from "./format";
 import { useAlertas, useResolverAlerta, useAsignarAlerta } from "./hooks";
 
 /** Gestión de alertas: resolver (con justificación) y asignar (crea tarea). */
@@ -34,7 +35,7 @@ export function AlertasPage() {
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-medium">{a.tipo}</div>
                   <div className="flex gap-2">
-                    {a.severidad && <Badge tone={a.severidad === "alta" ? "danger" : "warning"}>{a.severidad}</Badge>}
+                    {a.severidad && <Badge tone={severidadTone(a.severidad)}>{a.severidad}</Badge>}
                     {a.metrica && (
                       <span className="text-xs text-text-muted tabular-nums">
                         {a.metrica}: {a.valor}

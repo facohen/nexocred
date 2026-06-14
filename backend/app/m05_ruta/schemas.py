@@ -51,6 +51,10 @@ class VisitarIn(BaseModel):
     notas: str | None = None
     caja_id: uuid.UUID | None = None
     fecha_negocio: date | None = None
+    # UUIDv7 del pago generado en el dispositivo. Es la PK del pago y la clave de
+    # deduplicacion: un retry tras timeout con el mismo pago_id NO recobra (idempotente
+    # por PK, igual que el sync offline).
+    pago_id: uuid.UUID | None = None
 
 
 class VisitarOut(BaseModel):

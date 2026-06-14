@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { useCorregirPago } from "@/lib/api/queries";
+import { newIdempotencyKey } from "@/lib/utils";
 import { Dialog } from "@/components/ui/dialog";
 import { TransactionButton } from "@/components/TransactionButton";
 
@@ -13,6 +15,9 @@ export function CorreccionDialog({
 }) {
   const corregir = useCorregirPago();
   const resultado = corregir.data;
+  // Key estable por intento: un retry tras timeout NO debe generar una segunda
+  // corrección. Se rota tras éxito.
+  const [idemKey, setIdemKey] = useState(() => newIdempotencyKey());
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange} title="Corregir pago">
@@ -21,7 +26,12 @@ export function CorreccionDialog({
         El asiento original nunca se borra (ledger append-only).
       </p>
       <TransactionButton
-        onClick={() => corregir.mutate({ pagoId })}
+        onClick={() =>
+          corregir.mutate(
+            { pagoId, idempotencyKey: idemKey },
+            { onSuccess: () => setIdemKey(newIdempotencyKey()) },
+          )
+        }
         pending={corregir.isPending}
       >
         {corregir.isPending ? "Corrigiendo…" : "Corregir pago"}

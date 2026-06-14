@@ -81,10 +81,18 @@ export function setToken(token: TokenSet): void {
 
 export function getToken(): TokenSet | null {
   if (memoryToken) return memoryToken;
-  const raw = safeLocalStorage()?.getItem(TOKEN_KEY);
+  const ls = safeLocalStorage();
+  const raw = ls?.getItem(TOKEN_KEY);
   if (raw) {
-    memoryToken = JSON.parse(raw) as TokenSet;
-    return memoryToken;
+    // localStorage corrupto (JSON inválido) NO debe crashear el beforeLoad de
+    // cada ruta: limpiamos la clave y tratamos al usuario como deslogueado.
+    try {
+      memoryToken = JSON.parse(raw) as TokenSet;
+      return memoryToken;
+    } catch {
+      ls?.removeItem(TOKEN_KEY);
+      return null;
+    }
   }
   return null;
 }
@@ -104,10 +112,16 @@ export function setSessionUser(user: SesionUsuario): void {
 
 export function getSessionUser(): SesionUsuario | null {
   if (memoryUser) return memoryUser;
-  const raw = safeLocalStorage()?.getItem(USER_KEY);
+  const ls = safeLocalStorage();
+  const raw = ls?.getItem(USER_KEY);
   if (raw) {
-    memoryUser = JSON.parse(raw) as SesionUsuario;
-    return memoryUser;
+    try {
+      memoryUser = JSON.parse(raw) as SesionUsuario;
+      return memoryUser;
+    } catch {
+      ls?.removeItem(USER_KEY);
+      return null;
+    }
   }
   return null;
 }

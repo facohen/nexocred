@@ -28,6 +28,10 @@ class ConceptoImputacion(StrEnum):
     INTERES_NO_VENCIDO = "interes_no_vencido"
     CAPITAL_NO_VENCIDO = "capital_no_vencido"
     EXCEDENTE = "excedente"
+    # Baja contable del remanente perdonado al tolerar una cuota (§7.1 caso 8).
+    # NO es plata cobrada: da de baja capital/interes exigible para que la cuota
+    # tolerada quede en cero y no devengue punitorio ni se re-facture en payoff.
+    AJUSTE_TOLERANCIA = "ajuste_tolerancia"
 
 
 @dataclass(frozen=True)
@@ -114,9 +118,13 @@ class ResultadoPago:
 
     @property
     def total_imputado(self) -> Decimal:
-        montos = [
-            i.monto for i in self.imputaciones if i.concepto is not ConceptoImputacion.EXCEDENTE
-        ]
+        # Solo plata realmente imputada por el waterfall: EXCEDENTE no se aplica y
+        # AJUSTE_TOLERANCIA es una baja contable (perdon), no efectivo cobrado.
+        _no_efectivo = (
+            ConceptoImputacion.EXCEDENTE,
+            ConceptoImputacion.AJUSTE_TOLERANCIA,
+        )
+        montos = [i.monto for i in self.imputaciones if i.concepto not in _no_efectivo]
         return sumar(*montos) if montos else CERO
 
 

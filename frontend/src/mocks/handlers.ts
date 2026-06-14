@@ -157,8 +157,9 @@ export const handlers = [
     if (!p) return err("no_encontrado", "Préstamo no encontrado", 404);
     return HttpResponse.json(p);
   }),
+  // Array pelado (sin wrapper {data}) — forma real del backend.
   http.get(`${BASE}/prestamos/:id/cuotas`, ({ params }) =>
-    HttpResponse.json({ data: fx.cuotas[params.id as string] ?? [] }),
+    HttpResponse.json(fx.cuotas[params.id as string] ?? []),
   ),
   http.get(`${BASE}/prestamos/:id/pagos`, ({ params }) =>
     HttpResponse.json({ data: fx.pagos.filter((p) => p.prestamo_id === params.id) }),
@@ -187,9 +188,9 @@ export const handlers = [
         corrige_pago_id: null,
         created_at: new Date().toISOString(),
         imputaciones: [
-          { id: "i-1", concepto: "punitorio", monto: "0.00", orden_waterfall: 1, cuota_numero: 3, cuota_id: "cuota-3" },
-          { id: "i-2", concepto: "interes", monto: "12500.00", orden_waterfall: 2, cuota_numero: 3, cuota_id: "cuota-3" },
-          { id: "i-3", concepto: "capital", monto: "41666.67", orden_waterfall: 3, cuota_numero: 3, cuota_id: "cuota-3" },
+          { id: "i-1", concepto: "punitorio_vencido", monto: "0.00", orden_waterfall: 1, cuota_numero: 3, cuota_id: "cuota-3" },
+          { id: "i-2", concepto: "interes_vencido", monto: "12500.00", orden_waterfall: 2, cuota_numero: 3, cuota_id: "cuota-3" },
+          { id: "i-3", concepto: "capital_vencido", monto: "41666.67", orden_waterfall: 3, cuota_numero: 3, cuota_id: "cuota-3" },
         ],
       },
       { status: 201 },
@@ -400,7 +401,10 @@ export const handlers = [
   http.post(`${BASE}/comisiones/clawback`, () =>
     HttpResponse.json({ ...fx.comisiones[2], id: `com-${Date.now()}` }, { status: 201 }),
   ),
-  http.get(`${BASE}/comisiones/liquidaciones`, () => HttpResponse.json(fx.liquidaciones)),
+  // Forma real del backend: paginado { data, total, page, per_page }.
+  http.get(`${BASE}/comisiones/liquidaciones`, () =>
+    HttpResponse.json({ data: fx.liquidaciones, total: fx.liquidaciones.length, page: 1, per_page: 50 }),
+  ),
   http.get(`${BASE}/comisiones/liquidaciones/:id`, ({ params }) => {
     const l = fx.liquidaciones.find((x) => x.id === params.id);
     if (!l) return err("no_encontrada", "Liquidación no encontrada", 404);

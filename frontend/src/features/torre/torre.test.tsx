@@ -70,6 +70,19 @@ describe("TorreDashboard", () => {
     expect(screen.getByText("Castigo")).toBeInTheDocument();
   });
 
+  it("el aging muestra los MONTOS reales (keys al_dia/1_30/... ), no $0", async () => {
+    // Regresión A4: con las keys viejas ("0","1-30",...) el lookup fallaba y
+    // todos los tramos mostraban $0,00. Con las keys reales deben verse los montos.
+    renderWithProviders(<TorreDashboard />, { ...admin, roles: ["admin"] });
+    await screen.findByText(/Salud de cartera/i);
+    // al_dia=1.000.000, 1_30=120.000, 31_60=60.000, 61_90=30.000, 90_mas=15.000
+    expect(screen.getByText("$ 1.000.000,00")).toBeInTheDocument();
+    expect(screen.getByText("$ 120.000,00")).toBeInTheDocument();
+    expect(screen.getByText("$ 15.000,00")).toBeInTheDocument();
+    // Ningún tramo debe quedar en $0,00 (lo que delataría el lookup roto).
+    expect(screen.queryByText("$ 0,00")).not.toBeInTheDocument();
+  });
+
   it("usa el nombre renombrado 'Alertas Activas' (no 'Alertas en vivo')", async () => {
     renderWithProviders(<TorreDashboard />, { ...admin, roles: ["admin"] });
     expect(await screen.findByText("Alertas Activas")).toBeInTheDocument();

@@ -12,10 +12,16 @@ import { formatMoney } from "@/lib/money";
 import { CorreccionDialog } from "./CorreccionDialog";
 import type { components } from "@/lib/api/schema";
 
+// Valores reales del enum ConceptoImputacion del backend (nexocred_core/modelos.py).
 const CONCEPTO_LABEL: Record<string, string> = {
-  punitorio: "Punitorio",
-  interes: "Interés",
-  capital: "Capital",
+  punitorio_vencido: "Punitorio vencido",
+  interes_vencido: "Interés vencido",
+  capital_vencido: "Capital vencido",
+  cargo_exigible: "Cargo exigible",
+  interes_no_vencido: "Interés no vencido",
+  capital_no_vencido: "Capital no vencido",
+  excedente: "Excedente",
+  ajuste_tolerancia: "Ajuste por tolerancia",
 };
 
 /**
@@ -113,6 +119,7 @@ export function PagoForm({ prestamoId: prestamoIdProp }: { prestamoId?: string }
           <TransactionButton
             type="submit"
             pending={registrar.isPending}
+            disabled={!prestamoId || !monto || !cajaId || registrar.isPending}
             className="col-span-4 w-fit"
           >
             {registrar.isPending ? "Registrando…" : "Registrar pago"}

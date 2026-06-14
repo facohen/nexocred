@@ -70,6 +70,26 @@ def test_imputacion_previa_reduce_lo_exigible():
     assert all(c.numero != 1 or c.total_exigible == Decimal("0.00") for c in saldo.cuotas)
 
 
+def test_ajuste_tolerancia_da_de_baja_remanente_y_mata_punitorio():
+    # BUG 1: cuota 1 pagada casi completa; el faltante de $50 se tolera. El ajuste
+    # de tolerancia da de baja interes+capital exigible -> cuota 1 en cero, y NO
+    # devenga punitorio aunque pasen dias (no hay capital vivo perdonado).
+    imps = (
+        # se cobro casi toda la cuota 1 (interes 200 + capital 1950 = 2150 de 2200)
+        Imputacion(ConceptoImputacion.INTERES_VENCIDO, Decimal("200.00"), 2, cuota_numero=1),
+        Imputacion(ConceptoImputacion.CAPITAL_VENCIDO, Decimal("1950.00"), 3, cuota_numero=1),
+        # baja contable del remanente perdonado ($50)
+        Imputacion(ConceptoImputacion.AJUSTE_TOLERANCIA, Decimal("50.00"), 8, cuota_numero=1),
+    )
+    # muchos dias de atraso: sin el ajuste habria punitorio sobre los $50 de capital
+    saldo = calcular_saldo_exigible(_cronograma(), imps, date(2026, 6, 10), Decimal("0.001"))
+    cuota1 = next(c for c in saldo.cuotas if c.numero == 1)
+    assert cuota1.capital == Decimal("0.00")
+    assert cuota1.interes == Decimal("0.00")
+    assert cuota1.punitorio == Decimal("0.00")
+    assert cuota1.total_exigible == Decimal("0.00")
+
+
 def test_rechaza_tasa_punitorio_negativa():
     with pytest.raises(ImporteNegativoError):
         calcular_saldo_exigible(_cronograma(), (), date(2026, 1, 20), Decimal("-0.001"))

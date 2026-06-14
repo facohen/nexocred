@@ -5,6 +5,13 @@ import type { components } from "@/lib/api/schema";
 
 type Sch = components["schemas"];
 
+interface Pagina<T> {
+  data: T[];
+  total: number;
+  page: number;
+  per_page: number;
+}
+
 export function useComisiones(vendedorId: string) {
   return useQuery({
     queryKey: ["comisiones", vendedorId],
@@ -12,10 +19,16 @@ export function useComisiones(vendedorId: string) {
   });
 }
 
+// El backend pagina liquidaciones: { data, total, page, per_page }. Desenvolvemos
+// a un array pelado para que los consumidores (TesoreriaHome, LiquidacionesPage)
+// hagan .filter/.map sin crashear, y el cache de aprobar/pagar siga siendo un array.
 export function useLiquidaciones() {
   return useQuery({
     queryKey: ["liquidaciones"],
-    queryFn: () => apiFetch<Sch["LiquidacionOut"][]>("/comisiones/liquidaciones"),
+    queryFn: async () => {
+      const res = await apiFetch<Pagina<Sch["LiquidacionOut"]>>("/comisiones/liquidaciones");
+      return res.data;
+    },
   });
 }
 

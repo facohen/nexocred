@@ -673,3 +673,134 @@ class TestC4bIDOR:
             headers=_h(admin_token),
         )
         assert r.status_code in (200, 201), r.text
+
+    async def test_cobrador_no_puede_leer_paradas_de_ruta_ajena(
+        self, client, cobrador_usuario: dict, admin_token: str, session
+    ):
+        """C-1: Cobrador B no puede listar las paradas de la ruta del cobrador A."""
+        datos = await _seed_ruta_con_parada(
+            client, cobrador_usuario, admin_token, session, "42000010"
+        )
+        ruta_id = datos["ruta_id"]
+
+        cobrador_b = await _crear_segundo_cobrador(client, admin_token)
+
+        r = await client.get(
+            f"/api/v1/rutas/{ruta_id}/paradas",
+            headers=_h(cobrador_b["token"]),
+        )
+        assert r.status_code == 403, r.text
+        assert r.json()["error"]["code"] == "acceso_denegado"
+
+    async def test_admin_puede_leer_paradas_de_cualquier_ruta(
+        self, client, cobrador_usuario: dict, admin_token: str, session
+    ):
+        datos = await _seed_ruta_con_parada(
+            client, cobrador_usuario, admin_token, session, "42000011"
+        )
+        r = await client.get(
+            f"/api/v1/rutas/{datos['ruta_id']}/paradas", headers=_h(admin_token)
+        )
+        assert r.status_code == 200, r.text
+
+    async def test_listar_rutas_no_admin_solo_ve_propias(
+        self, client, cobrador_usuario: dict, admin_token: str, session
+    ):
+        """A-1: el listado de rutas para un cobrador queda limitado a las suyas,
+        incluso si pasa cobrador_id de otro en el query param."""
+        cobrador_a_id = cobrador_usuario["id"]
+        # ruta vacía asignada al cobrador A (sin paradas: no necesitamos préstamo/BCRA)
+        cr = await client.post(
+            "/api/v1/rutas",
+            json={"cobrador_id": cobrador_a_id, "fecha": date.today().isoformat()},
+            headers=_h(admin_token),
+        )
+        assert cr.status_code == 201, cr.text
+        ruta_a = cr.json()["id"]
+        cobrador_b = await _crear_segundo_cobrador(client, admin_token)
+
+        # cobrador B intenta filtrar por cobrador_id de A -> no ve la ruta de A
+        r = await client.get(
+            f"/api/v1/rutas?cobrador_id={cobrador_a_id}",
+            headers=_h(cobrador_b["token"]),
+        )
+        assert r.status_code == 200, r.text
+        ids = {item["id"] for item in r.json()["data"]}
+        assert ruta_a not in ids
+
+
+# ── C4c: IDOR de rendiciones ────────────────────────────────────────────────
+
+
+class TestC4cRendicionIDOR:
+
+    async def test_cobrador_no_puede_leer_rendicion_ajena(
+        self, client, cobrador_usuario, admin_token, session
+    ):
+        """C-2: Cobrador B no puede ver el detalle de la rendición del cobrador A."""
+        rendicion = await _seed_rendicion_del_cobrador(
+            client, cobrador_usuario, admin_token, session, "43000001"
+        )
+        cobrador_b = await _crear_segundo_cobrador(client, admin_token)
+
+        r = await client.get(
+            f"/api/v1/rendiciones/{rendicion['id']}",
+            headers=_h(cobrador_b["token"]),
+        )
+        assert r.status_code == 403, r.text
+        assert r.json()["error"]["code"] == "acceso_denegado"
+
+    async def test_cobrador_no_puede_descargar_en_rendicion_ajena(
+        self, client, cobrador_usuario, admin_token, session
+    ):
+        rendicion = await _seed_rendicion_del_cobrador(
+            client, cobrador_usuario, admin_token, session, "43000002"
+        )
+        cobrador_b = await _crear_segundo_cobrador(client, admin_token)
+
+        r = await client.post(
+            f"/api/v1/rendiciones/{rendicion['id']}/descargos",
+            json={"concepto": "robo", "monto": "100.00"},
+            headers=_h(cobrador_b["token"]),
+        )
+        assert r.status_code == 403, r.text
+
+    async def test_cobrador_no_puede_cambiar_estado_rendicion_ajena(
+        self, client, cobrador_usuario, admin_token, session
+    ):
+        rendicion = await _seed_rendicion_del_cobrador(
+            client, cobrador_usuario, admin_token, session, "43000003"
+        )
+        cobrador_b = await _crear_segundo_cobrador(client, admin_token)
+
+        r = await client.patch(
+            f"/api/v1/rendiciones/{rendicion['id']}",
+            json={"estado": "presentada"},
+            headers=_h(cobrador_b["token"]),
+        )
+        assert r.status_code == 403, r.text
+
+    async def test_admin_puede_leer_rendicion_de_cualquier_cobrador(
+        self, client, cobrador_usuario, admin_token, session
+    ):
+        rendicion = await _seed_rendicion_del_cobrador(
+            client, cobrador_usuario, admin_token, session, "43000004"
+        )
+        r = await client.get(
+            f"/api/v1/rendiciones/{rendicion['id']}", headers=_h(admin_token)
+        )
+        assert r.status_code == 200, r.text
+
+    async def test_listar_rendiciones_no_admin_solo_propias(
+        self, client, cobrador_usuario, admin_token, session
+    ):
+        """A-2: el listado de rendiciones para un cobrador queda limitado a las suyas."""
+        rendicion = await _seed_rendicion_del_cobrador(
+            client, cobrador_usuario, admin_token, session, "43000005"
+        )
+        cobrador_b = await _crear_segundo_cobrador(client, admin_token)
+
+        r = await client.get("/api/v1/rendiciones", headers=_h(cobrador_b["token"]))
+        assert r.status_code == 200, r.text
+        ids = {item["id"] for item in r.json()["data"]}
+        assert rendicion["id"] not in ids

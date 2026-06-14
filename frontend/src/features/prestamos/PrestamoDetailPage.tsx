@@ -16,7 +16,7 @@ export function PrestamoDetailPage() {
   const { data: pagosData } = usePagosDePrestamo(prestamoId);
   const { data: payoff } = usePayoff(prestamoId);
 
-  const cuotas = cuotasData?.data ?? [];
+  const cuotas = cuotasData ?? [];
   const pagos = pagosData?.data ?? [];
 
   return (
@@ -50,7 +50,6 @@ export function PrestamoDetailPage() {
               <th className="py-1 text-right">Capital</th>
               <th className="py-1 text-right">Interés</th>
               <th className="py-1 text-right">Cuota</th>
-              <th className="py-1 text-right">Saldo</th>
               <th className="py-1">Estado</th>
             </tr>
           </thead>
@@ -67,9 +66,6 @@ export function PrestamoDetailPage() {
                 </td>
                 <td className="py-1 text-right">
                   <MoneyText value={c.cuota ?? null} intent="neutral" align="right" />
-                </td>
-                <td className="py-1 text-right">
-                  <MoneyText value={c.saldo ?? null} intent="neutral" align="right" />
                 </td>
                 <td className="py-1">
                   <Badge tone={c.estado === "pagada" ? "success" : "default"}>{c.estado}</Badge>

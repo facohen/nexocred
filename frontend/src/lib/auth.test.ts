@@ -1,5 +1,12 @@
-import { describe, it, expect } from "vitest";
-import { decodeRolesFromToken, hasRole, type SesionUsuario } from "./auth";
+import { describe, it, expect, beforeEach } from "vitest";
+import {
+  decodeRolesFromToken,
+  hasRole,
+  getToken,
+  getSessionUser,
+  clearToken,
+  type SesionUsuario,
+} from "./auth";
 
 /** Build a JWT-shaped token (header.payload.signature) with the given claims. */
 function makeJwt(payload: Record<string, unknown>): string {
@@ -39,5 +46,28 @@ describe("hasRole", () => {
 
   it("returns false for a null user", () => {
     expect(hasRole(null, "admin")).toBe(false);
+  });
+});
+
+describe("getToken / getSessionUser con localStorage corrupto (robustez B1)", () => {
+  beforeEach(() => {
+    // Limpia el cache en memoria + localStorage para que getToken lea del store.
+    clearToken();
+    localStorage.clear();
+  });
+
+  it("getToken NO crashea ante JSON corrupto: devuelve null y limpia la clave", () => {
+    localStorage.setItem("nexocred.token", "{esto no es json valido");
+    expect(() => getToken()).not.toThrow();
+    expect(getToken()).toBeNull();
+    // La clave corrupta debe quedar eliminada (no re-explota en la próxima ruta).
+    expect(localStorage.getItem("nexocred.token")).toBeNull();
+  });
+
+  it("getSessionUser NO crashea ante JSON corrupto: devuelve null y limpia la clave", () => {
+    localStorage.setItem("nexocred.user", "}{");
+    expect(() => getSessionUser()).not.toThrow();
+    expect(getSessionUser()).toBeNull();
+    expect(localStorage.getItem("nexocred.user")).toBeNull();
   });
 });

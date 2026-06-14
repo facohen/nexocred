@@ -1,0 +1,2 @@
+[      72ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://127.0.0.1:5181/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=27854979:21550
+[   22550ms] [ERROR] Failed to load resource: the server responded with a status of 422 (Unprocessable Entity) @ http://127.0.0.1:5181/api/v1/prestamos/d9d35122-ac12-4a17-83a7-de35ab6ddbfa/payoff:0

@@ -3,7 +3,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Header, Query
 
 from app.deps import SessionDep, requiere_rol
 from app.errors import ErrorAPI
@@ -70,8 +70,11 @@ def _parada_out(p) -> ParadaOut:
 async def crear_ruta(
     datos: GenerarRutaIn, session: SessionDep, actor: RutaUser
 ) -> RutaOut:
+    cobrador_id = datos.cobrador_id
+    if not _es_admin(actor):
+        cobrador_id = actor.id
     ruta = await servicio.generar_ruta(
-        session, cobrador_id=datos.cobrador_id, fecha=datos.fecha, actor_id=actor.id
+        session, cobrador_id=cobrador_id, fecha=datos.fecha, actor_id=actor.id
     )
     return RutaOut.model_validate(ruta)
 
@@ -79,13 +82,16 @@ async def crear_ruta(
 @router.get("/rutas", response_model=Pagina[RutaOut])
 async def listar_rutas(
     session: SessionDep,
-    _: RutaUser,
+    actor: RutaUser,
     fecha: Annotated[date | None, Query()] = None,
     estado: Annotated[str | None, Query()] = None,
     cobrador_id: Annotated[uuid.UUID | None, Query()] = None,
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
 ) -> Pagina[RutaOut]:
+    # Ownership (spec §5.11): non-admin solo ve sus propias rutas.
+    if not _es_admin(actor):
+        cobrador_id = actor.id
     rutas = await servicio.listar_rutas(
         session, fecha=fecha, estado=estado, cobrador_id=cobrador_id
     )
@@ -106,11 +112,11 @@ async def detalle_ruta(
 
 @router.get("/rutas/{ruta_id}/paradas", response_model=list[ParadaConSaldoOut])
 async def listar_paradas(
-    ruta_id: uuid.UUID, session: SessionDep, _: RutaUser
+    ruta_id: uuid.UUID, session: SessionDep, actor: RutaUser
 ) -> list[ParadaConSaldoOut]:
     from app.m03_prestamos.servicio import obtener_prestamo
 
-    ruta = await _get_ruta(session, ruta_id)
+    ruta = await _get_ruta_propia(session, ruta_id, actor)
     paradas = await servicio.paradas_de_ruta(session, ruta_id)
     salida: list[ParadaConSaldoOut] = []
     for p in paradas:
@@ -140,16 +146,30 @@ async def visitar_parada(
     datos: VisitarIn,
     session: SessionDep,
     actor: RutaUser,
+    idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
 ) -> VisitarOut:
     ruta = await _get_ruta_propia(session, ruta_id, actor)
     parada = await servicio.obtener_parada(session, parada_id)
     if parada is None or parada.ruta_id != ruta_id:
         raise ErrorAPI("parada_no_encontrada", "parada inexistente", status=404)
+    # pago_id del dispositivo (UUIDv7) como clave de dedup; acepta el del body o,
+    # en su defecto, el header Idempotency-Key. Un retry tras timeout no recobra.
+    pago_id_device = datos.pago_id
+    if pago_id_device is None and idempotency_key is not None:
+        try:
+            pago_id_device = uuid.UUID(idempotency_key)
+        except ValueError as exc:
+            raise ErrorAPI(
+                "idempotency_key_invalida",
+                "Idempotency-Key debe ser un UUID (el pago_id del dispositivo)",
+                status=422,
+            ) from exc
     parada, pago_id = await servicio.visitar(
         session, ruta=ruta, parada=parada, resultado=datos.resultado,
         monto_cobrado=datos.monto_cobrado, foto_url=datos.foto_url, lat=datos.lat,
         lng=datos.lng, notas=datos.notas, caja_id=datos.caja_id,
         fecha_negocio=datos.fecha_negocio, actor_id=actor.id,
+        pago_id_device=pago_id_device,
     )
     return VisitarOut(parada_id=parada.id, resultado=datos.resultado, pago_id=pago_id)
 
@@ -170,6 +190,8 @@ async def sync_ruta(
 async def crear_rendicion(
     datos: GenerarRendicionIn, session: SessionDep, actor: RutaUser
 ) -> RendicionOut:
+    # Ownership (spec §5.11): solo el cobrador de la ruta (o admin) genera su rendicion.
+    await _get_ruta_propia(session, datos.ruta_id, actor)
     rendicion = await servicio.generar_rendicion(
         session, ruta_id=datos.ruta_id, fecha_negocio=datos.fecha_negocio,
         actor_id=actor.id,
@@ -180,11 +202,13 @@ async def crear_rendicion(
 @router.get("/rendiciones", response_model=Pagina[RendicionOut])
 async def listar_rendiciones(
     session: SessionDep,
-    _: RutaUser,
+    actor: RutaUser,
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
 ) -> Pagina[RendicionOut]:
-    rends = await servicio.listar_rendiciones(session)
+    # Ownership (spec §5.11): non-admin solo ve sus propias rendiciones.
+    cobrador_id = None if _es_admin(actor) else actor.id
+    rends = await servicio.listar_rendiciones(session, cobrador_id=cobrador_id)
     return paginar([RendicionOut.model_validate(r) for r in rends], page, per_page)
 
 
@@ -195,11 +219,21 @@ async def _get_rendicion(session, rendicion_id: uuid.UUID):
     return rend
 
 
+async def _get_rendicion_propia(session, rendicion_id: uuid.UUID, actor: Usuario):
+    """Load rendicion y tira 403 si el actor no es admin ni el cobrador asignado."""
+    rend = await _get_rendicion(session, rendicion_id)
+    if not _es_admin(actor) and rend.cobrador_id != actor.id:
+        raise ErrorAPI(
+            "acceso_denegado", "no tenés acceso a esta rendicion", status=403
+        )
+    return rend
+
+
 @router.get("/rendiciones/{rendicion_id}", response_model=RendicionDetalleOut)
 async def detalle_rendicion(
-    rendicion_id: uuid.UUID, session: SessionDep, _: RutaUser
+    rendicion_id: uuid.UUID, session: SessionDep, actor: RutaUser
 ) -> RendicionDetalleOut:
-    rend = await _get_rendicion(session, rendicion_id)
+    rend = await _get_rendicion_propia(session, rendicion_id, actor)
     descargos = await servicio.descargos_de(session, rendicion_id)
     return RendicionDetalleOut(
         id=rend.id, ruta_id=rend.ruta_id, cobrador_id=rend.cobrador_id,
@@ -214,7 +248,7 @@ async def detalle_rendicion(
 async def agregar_descargo(
     rendicion_id: uuid.UUID, datos: DescargoIn, session: SessionDep, actor: RutaUser
 ) -> DescargoOut:
-    rend = await _get_rendicion(session, rendicion_id)
+    rend = await _get_rendicion_propia(session, rendicion_id, actor)
     descargo = await servicio.agregar_descargo(
         session, rendicion=rend, concepto=datos.concepto, monto=datos.monto,
         actor_id=actor.id,
@@ -247,7 +281,7 @@ async def cambiar_estado_rendicion(
     session: SessionDep,
     actor: RutaUser,
 ) -> RendicionOut:
-    rend = await _get_rendicion(session, rendicion_id)
+    rend = await _get_rendicion_propia(session, rendicion_id, actor)
     rend = await servicio.cambiar_estado_rendicion(
         session, rendicion=rend, estado=datos.estado, actor_id=actor.id
     )

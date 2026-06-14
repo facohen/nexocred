@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
 import { SessionProvider } from "@/lib/session";
 import { ThemeProvider } from "@/lib/theme";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { router } from "@/routes/router";
 
 const queryClient = new QueryClient({
@@ -13,7 +14,9 @@ export default function App() {
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <SessionProvider>
-          <RouterProvider router={router} />
+          <ErrorBoundary>
+            <RouterProvider router={router} />
+          </ErrorBoundary>
         </SessionProvider>
       </QueryClientProvider>
     </ThemeProvider>

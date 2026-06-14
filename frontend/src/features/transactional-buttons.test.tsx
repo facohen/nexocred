@@ -115,10 +115,13 @@ describe("Botones transaccionales: disable durante la mutacion en vuelo", () => 
   it("liquidacion pagar se deshabilita mientras postea", async () => {
     server.use(
       http.get(`${BASE}/comisiones/liquidaciones`, () =>
-        HttpResponse.json([
-          { id: "liq-1", vendedor_id: "user-vendedor", periodo_desde: "2026-05-01",
-            periodo_hasta: "2026-06-01", monto_total: "2000.00", estado: "aprobada" },
-        ]),
+        HttpResponse.json({
+          data: [
+            { id: "liq-1", vendedor_id: "user-vendedor", periodo_desde: "2026-05-01",
+              periodo_hasta: "2026-06-01", monto_total: "2000.00", estado: "aprobada" },
+          ],
+          total: 1, page: 1, per_page: 50,
+        }),
       ),
       http.post(`${BASE}/comisiones/liquidaciones/:id/pagar`, async () => {
         await delay(200);
@@ -137,7 +140,9 @@ describe("Botones transaccionales: disable durante la mutacion en vuelo", () => 
 
   it("generar liquidacion se deshabilita mientras postea", async () => {
     server.use(
-      http.get(`${BASE}/comisiones/liquidaciones`, () => HttpResponse.json([])),
+      http.get(`${BASE}/comisiones/liquidaciones`, () =>
+        HttpResponse.json({ data: [], total: 0, page: 1, per_page: 50 }),
+      ),
       http.post(`${BASE}/comisiones/liquidaciones`, async () => {
         await delay(200);
         return HttpResponse.json(

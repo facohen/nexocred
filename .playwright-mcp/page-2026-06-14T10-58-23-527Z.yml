@@ -1,0 +1,38 @@
+- generic [ref=e4]:
+  - generic [ref=e5]:
+    - heading "NexoCred" [level=1] [ref=e6]
+    - paragraph [ref=e7]: Ingresá tus credenciales
+    - generic [ref=e8]:
+      - text: Email
+      - textbox "Email" [ref=e9]: admin.full@nexocred.test
+    - generic [ref=e10]:
+      - text: Contraseña
+      - textbox "Contraseña" [ref=e11]: demo12345
+    - button "Ingresar" [ref=e12] [cursor=pointer]
+  - generic [ref=e13]:
+    - paragraph [ref=e14]: "Usuarios de demo — contraseña: demo12345"
+    - generic [ref=e15]:
+      - button "▶ admin admin.full@nexocred.test" [ref=e16] [cursor=pointer]:
+        - generic [ref=e17]: ▶
+        - generic [ref=e18]: admin
+        - generic [ref=e19]: admin.full@nexocred.test
+      - button "· analista analista.full@nexocred.test" [ref=e20] [cursor=pointer]:
+        - generic [ref=e21]: ·
+        - generic [ref=e22]: analista
+        - generic [ref=e23]: analista.full@nexocred.test
+      - button "· vendedor vendedor.full@nexocred.test" [ref=e24] [cursor=pointer]:
+        - generic [ref=e25]: ·
+        - generic [ref=e26]: vendedor
+        - generic [ref=e27]: vendedor.full@nexocred.test
+      - button "· cobrador cobrador_a.full@nexocred.test" [ref=e28] [cursor=pointer]:
+        - generic [ref=e29]: ·
+        - generic [ref=e30]: cobrador
+        - generic [ref=e31]: cobrador_a.full@nexocred.test
+      - button "· operador operador.full@nexocred.test" [ref=e32] [cursor=pointer]:
+        - generic [ref=e33]: ·
+        - generic [ref=e34]: operador
+        - generic [ref=e35]: operador.full@nexocred.test
+      - button "· tesoreria tesoreria.full@nexocred.test" [ref=e36] [cursor=pointer]:
+        - generic [ref=e37]: ·
+        - generic [ref=e38]: tesoreria
+        - generic [ref=e39]: tesoreria.full@nexocred.test

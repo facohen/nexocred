@@ -46,6 +46,20 @@ def calcular_saldo_exigible(
             capital_pend = max(capital_pend, CERO)
             interes_pend = max(interes_pend, CERO)
 
+            # Ajuste de tolerancia: baja contable del remanente perdonado. Da de baja
+            # primero interes y luego capital de la cuota, para que la cuota tolerada
+            # quede en cero exigible y NO devengue punitorio sobre el capital perdonado.
+            ajuste = _imputado(
+                imputaciones, fila.numero, ConceptoImputacion.AJUSTE_TOLERANCIA
+            )
+            if ajuste > CERO:
+                baja_interes = min(interes_pend, ajuste)
+                interes_pend = restar(interes_pend, baja_interes)
+                baja_capital = min(capital_pend, restar(ajuste, baja_interes))
+                capital_pend = restar(capital_pend, baja_capital)
+                capital_pend = max(capital_pend, CERO)
+                interes_pend = max(interes_pend, CERO)
+
             dias_atraso = (fecha_negocio - fila.vencimiento).days
             punitorio_bruto = redondear(
                 capital_pend * tasa_punitorio_diario * Decimal(dias_atraso)

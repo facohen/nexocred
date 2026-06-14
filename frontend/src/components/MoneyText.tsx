@@ -28,8 +28,21 @@ export function MoneyText({
   align?: "left" | "right";
   className?: string;
 }) {
-  const formatted = value == null ? "—" : formatMoney(value);
-  const text = value != null && withSymbol ? `$ ${formatted}` : formatted;
+  // formatMoney TIRA ante un string no canónico ("", "1.234,56", coma decimal).
+  // Sin guard, eso es una pantalla blanca. Caemos a "—" en vez de propagar.
+  let formatted: string;
+  let valid = false;
+  if (value == null) {
+    formatted = "—";
+  } else {
+    try {
+      formatted = formatMoney(value);
+      valid = true;
+    } catch {
+      formatted = "—";
+    }
+  }
+  const text = valid && withSymbol ? `$ ${formatted}` : formatted;
   return (
     <span
       className={cn(

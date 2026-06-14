@@ -1,7 +1,7 @@
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MoneyText } from "@/components/MoneyText";
-import { formatPercent } from "@/features/riesgo/format";
+import { formatPercent, severidadTone } from "@/features/riesgo/format";
 import {
   useResumen,
   usePulso,
@@ -16,11 +16,11 @@ const CLAVES_PORCENTAJE = new Set(["par30", "par60", "par90"]);
 
 /** Tramos de aging mapeados a la escala de mora ordinal (color con propósito). */
 const AGING_TRAMOS: { key: string; label: string; bar: string; text: string }[] = [
-  { key: "0", label: "Al día", bar: "bg-risk-0", text: "text-risk-0" },
-  { key: "1-30", label: "PAR30", bar: "bg-risk-30", text: "text-risk-30" },
-  { key: "31-60", label: "PAR60", bar: "bg-risk-60", text: "text-risk-60" },
-  { key: "61-90", label: "PAR90", bar: "bg-risk-90", text: "text-risk-90" },
-  { key: "90+", label: "Castigo", bar: "bg-risk-castigo", text: "text-risk-castigo" },
+  { key: "al_dia", label: "Al día", bar: "bg-risk-0", text: "text-risk-0" },
+  { key: "1_30", label: "PAR30", bar: "bg-risk-30", text: "text-risk-30" },
+  { key: "31_60", label: "PAR60", bar: "bg-risk-60", text: "text-risk-60" },
+  { key: "61_90", label: "PAR90", bar: "bg-risk-90", text: "text-risk-90" },
+  { key: "90_mas", label: "Castigo", bar: "bg-risk-castigo", text: "text-risk-castigo" },
 ];
 
 function KpiValor({ clave, valor }: { clave: string; valor: string }) {
@@ -218,7 +218,7 @@ export function TorreDashboard() {
                 </a>
                 <span className="flex items-center gap-2">
                   {a.severidad && (
-                    <Badge tone={a.severidad === "alta" ? "danger" : "warning"}>{a.severidad}</Badge>
+                    <Badge tone={severidadTone(a.severidad)}>{a.severidad}</Badge>
                   )}
                   <span className="font-num text-text-muted">
                     {a.metrica}: {a.valor}

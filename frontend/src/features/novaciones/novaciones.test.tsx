@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
 import { http, HttpResponse } from "msw";
@@ -42,5 +42,47 @@ describe("Novaciones", () => {
     expect(
       await screen.findByText(/El préstamo origen no está vigente/i),
     ).toBeInTheDocument();
+  });
+
+  it("usa una Idempotency-Key ESTABLE: el retry tras error reusa la misma; rota tras éxito", async () => {
+    const keys: string[] = [];
+    let callCount = 0;
+    server.use(
+      http.post(`${BASE}/novaciones/refinanciar`, ({ request }) => {
+        const k = request.headers.get("Idempotency-Key");
+        if (k) keys.push(k);
+        callCount++;
+        if (callCount === 1) {
+          // Primer intento: timeout/error simulado.
+          return HttpResponse.json(
+            { error: { code: "timeout", message: "Error de red simulado" } },
+            { status: 500 },
+          );
+        }
+        return HttpResponse.json(
+          { id: "nov-1", tipo: "refinanciar", estado: "ejecutada",
+            nuevo_prestamo_id: "pr-nuevo", origenes: ["prestamo-1"] },
+          { status: 201 },
+        );
+      }),
+    );
+    renderWithProviders(<NovacionesPage />);
+    const ejecutar = () => userEvent.click(screen.getByRole("button", { name: /ejecutar/i }));
+
+    // Intento 1 → error
+    await ejecutar();
+    await waitFor(() => expect(keys).toHaveLength(1));
+    await screen.findByRole("alert");
+
+    // Retry (mismo intento) → MISMA key: no debe generar una segunda novación.
+    await ejecutar();
+    await waitFor(() => expect(keys).toHaveLength(2));
+    expect(keys[0]).toBe(keys[1]);
+
+    // Éxito mostrado → la key se rota para la SIGUIENTE novación.
+    await screen.findByText(/pr-nuevo/);
+    await ejecutar();
+    await waitFor(() => expect(keys).toHaveLength(3));
+    expect(keys[2]).not.toBe(keys[1]);
   });
 });

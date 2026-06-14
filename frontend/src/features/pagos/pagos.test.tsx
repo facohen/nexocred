@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/mocks/server";
-import { renderWithProviders } from "@/test/utils";
+import { renderWithProviders, selectEntity } from "@/test/utils";
 import { RegistrarPagoPage } from "./RegistrarPagoPage";
 import { CorreccionDialog } from "./CorreccionDialog";
 
@@ -18,6 +18,9 @@ const BASE = "/api/v1";
 describe("RegistrarPago", () => {
   it("postea el pago y muestra el waterfall de imputaciones con money strings", async () => {
     renderWithProviders(<RegistrarPagoPage />);
+    // PagoForm exige préstamo + caja seleccionados (y monto) para habilitar submit.
+    await selectEntity(/buscar préstamo/i, "Préstamo #prestamo-1");
+    await selectEntity(/buscar caja/i, "Caja Central");
     await userEvent.type(screen.getByLabelText(/monto/i), "54166.67");
     await userEvent.click(screen.getByRole("button", { name: /registrar pago/i }));
 
@@ -38,6 +41,8 @@ describe("RegistrarPago", () => {
       }),
     );
     renderWithProviders(<RegistrarPagoPage />);
+    await selectEntity(/buscar préstamo/i, "Préstamo #prestamo-1");
+    await selectEntity(/buscar caja/i, "Caja Central");
     await userEvent.type(screen.getByLabelText(/monto/i), "100");
     await userEvent.click(screen.getByRole("button", { name: /registrar pago/i }));
     await waitFor(() => expect(seenKey).toBeTruthy());
