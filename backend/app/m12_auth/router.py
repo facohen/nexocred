@@ -24,7 +24,7 @@ from app.m12_auth.seguridad import (
     crear_refresh_token,
     decodificar_token,
 )
-from app.paginacion import Pagina, paginar
+from app.paginacion import Pagina, paginar, paginar_query
 
 router = APIRouter()
 
@@ -192,10 +192,8 @@ async def listar_auditoria(
     q = select(AuditoriaEvento).order_by(AuditoriaEvento.created_at.desc())
     if accion:
         q = q.where(AuditoriaEvento.accion == accion)
-    res = await session.execute(q)
-    return paginar(
-        [AuditoriaOut.model_validate(e) for e in res.scalars().all()], page, per_page
-    )
+    # Pagina en SQL (COUNT + LIMIT/OFFSET): no materializa toda la auditoría.
+    return await paginar_query(session, q, AuditoriaOut.model_validate, page, per_page)
 
 
 # ---------- PARAMETROS ----------
