@@ -4,12 +4,28 @@ import { MoneyText } from "@/components/MoneyText";
 import { useTablero, useCosechas, useConcentracion } from "./hooks";
 import { formatPercent } from "./format";
 
-function Kpi({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
+function Kpi({
+  label,
+  value,
+  href,
+}: {
+  label: string;
+  value: React.ReactNode;
+  href?: string;
+}) {
+  const inner = (
     <Card className="p-3">
       <div className="text-xs text-text-muted">{label}</div>
       <div className="text-lg font-semibold tabular-nums">{value}</div>
     </Card>
+  );
+  // Deep-link: cada métrica lleva a la cola que la origina (regla inbox-driven).
+  return href ? (
+    <a href={href} className="block transition-opacity hover:opacity-80">
+      {inner}
+    </a>
+  ) : (
+    inner
   );
 }
 
@@ -48,10 +64,10 @@ export function RiesgoBoard() {
       <h1 className="text-xl font-bold">Riesgo</h1>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Kpi label="PAR30" value={formatPercent(t.par30)} />
-        <Kpi label="PAR60" value={formatPercent(t.par60)} />
-        <Kpi label="PAR90" value={formatPercent(t.par90)} />
-        <Kpi label="Cartera total" value={<MoneyText value={t.cartera_total} />} />
+        <Kpi label="PAR30" value={formatPercent(t.par30)} href="/prestamos?estado=en_mora" />
+        <Kpi label="PAR60" value={formatPercent(t.par60)} href="/prestamos?estado=en_mora" />
+        <Kpi label="PAR90" value={formatPercent(t.par90)} href="/prestamos?estado=en_mora" />
+        <Kpi label="Cartera total" value={<MoneyText value={t.cartera_total} />} href="/prestamos" />
         <Kpi label="% Refinanciado" value={formatPercent(t.porcentaje_refinanciado)} />
         <Kpi label="Pérdida esperada" value={<MoneyText value={t.perdida_esperada} />} />
       </div>
@@ -103,12 +119,13 @@ export function RiesgoBoard() {
         ) : (
           <ul className="space-y-1 text-sm">
             {concentracion.map((c) => (
-              <li key={c.clave} className="flex items-center justify-between">
-                <span>{c.clave}</span>
-                <span className="flex gap-3">
-                  <MoneyText value={c.valor} />
-                  <span className="tabular-nums text-text-muted">{formatPercent(c.share)}</span>
+              <li key={`${c.clave}-${c.valor}`} className="flex items-center justify-between">
+                {/* `valor` es el identificador del grupo (producto/zona/vendedor),
+                    NO un monto. El dato de concentración es el `share` (%). */}
+                <span className="truncate text-text-muted">
+                  {c.clave}: <span className="font-num text-text">{c.valor}</span>
                 </span>
+                <span className="font-num tabular-nums text-text">{formatPercent(c.share)}</span>
               </li>
             ))}
           </ul>

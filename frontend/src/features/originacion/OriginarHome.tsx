@@ -1,8 +1,11 @@
 import { useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useSolicitudes, usePersonas, useProductos } from "@/lib/api/queries";
+import { useLiquidaciones } from "@/features/vendedores/hooks";
+import { addMoney } from "@/lib/money";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { MoneyText } from "@/components/MoneyText";
 import {
   WorkInbox,
@@ -33,6 +36,7 @@ export function OriginarHome() {
   const solicitudesQ = useSolicitudes();
   const personasQ = usePersonas();
   const productosQ = useProductos();
+  const liquidacionesQ = useLiquidaciones();
 
   const nombrePorPersona = useMemo(() => {
     const map = new Map<string, string>();
@@ -71,9 +75,17 @@ export function OriginarHome() {
     },
   ];
 
-  // TODO: Card "Comisiones del mes" — el hook useComisiones(vendedorId) requiere
-  // el id del vendedor, que la sesión actual no expone (solo email/nombre/roles).
-  // Se omite hasta tener un endpoint /me o resolver el vendedor del usuario.
+  // Comisiones: useComisiones(vendedorId) requiere el id del vendedor, que la
+  // sesión (useSession) no expone (solo email/nombre/roles). Como proxy honesto
+  // usamos las liquidaciones ya pagadas (suma de monto_total) y dejamos el
+  // detalle a un clic en /vendedores/comisiones.
+  const liquidacionesPagadas = (liquidacionesQ.data ?? []).filter(
+    (l) => l.estado === "pagada",
+  );
+  const totalComisionesPagadas = liquidacionesPagadas.reduce(
+    (acc, l) => addMoney(acc, l.monto_total),
+    "0",
+  );
 
   return (
     <div className="space-y-6">
@@ -110,6 +122,38 @@ export function OriginarHome() {
           );
         }}
       />
+
+      <Card>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-medium text-text">Comisiones</div>
+            <div className="text-xs text-text-muted">
+              {liquidacionesPagadas.length > 0
+                ? `${liquidacionesPagadas.length} liquidacion${
+                    liquidacionesPagadas.length === 1 ? "" : "es"
+                  } pagada${liquidacionesPagadas.length === 1 ? "" : "s"}`
+                : "Aún sin liquidaciones pagadas."}
+            </div>
+            {liquidacionesPagadas.length > 0 && (
+              <MoneyText
+                value={totalComisionesPagadas}
+                intent="income"
+                className="mt-1 block text-lg font-semibold"
+              />
+            )}
+          </div>
+          <a
+            href="/vendedores/comisiones"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate({ to: "/vendedores/comisiones" as string });
+            }}
+            className="shrink-0 text-sm text-brand hover:underline"
+          >
+            Ver detalle
+          </a>
+        </div>
+      </Card>
     </div>
   );
 }

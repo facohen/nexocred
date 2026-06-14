@@ -519,9 +519,12 @@ export const cosechas = [
   { mes: "2026-03", capital: "710000.00", mora: "35500.00", ratio_mora: "5.00" },
 ];
 
+// Forma real del backend: `valor` es el IDENTIFICADOR del grupo (producto/zona/
+// vendedor), no un monto; `share` es la participación (%). El mock anterior tenía
+// un monto en `valor`, lo que ocultaba un bug de render (MoneyText sobre un id).
 export const concentracion = [
-  { clave: "Producto A", valor: "700000.00", share: "57.10" },
-  { clave: "Producto B", valor: "525000.00", share: "42.90" },
+  { clave: "producto_id", valor: "Producto A", share: "0.5710" },
+  { clave: "producto_id", valor: "Producto B", share: "0.4290" },
 ];
 
 export const alertas = [

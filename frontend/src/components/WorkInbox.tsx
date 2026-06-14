@@ -89,16 +89,18 @@ export function InboxRow({
   signals,
   action,
   onClick,
+  className,
 }: {
   title: ReactNode;
   context?: ReactNode;
   signals?: ReactNode;
   action?: ReactNode;
   onClick?: () => void;
+  className?: string;
 }) {
   return (
     <Card
-      className={`flex items-center justify-between gap-3 ${onClick ? "cursor-pointer hover:bg-surface-sunken" : ""}`}
+      className={`flex items-center justify-between gap-3 ${onClick ? "cursor-pointer hover:bg-surface-sunken" : ""} ${className ?? ""}`}
     >
       <div className="min-w-0 flex-1" onClick={onClick}>
         <div className="truncate text-sm font-medium text-text">{title}</div>
