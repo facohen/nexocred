@@ -18,7 +18,7 @@ async def test_crud_usuario_completo(client, admin_token):
     # lista
     r = await client.get("/api/v1/usuarios", headers=_h(admin_token))
     assert r.status_code == 200
-    emails = {u["email"] for u in r.json()}
+    emails = {u["email"] for u in r.json()["data"]}
     assert "user1@nexo.test" in emails
 
     # patch cambia roles
@@ -35,7 +35,7 @@ async def test_crud_usuario_completo(client, admin_token):
     assert r.status_code == 200
 
     r = await client.get("/api/v1/usuarios", headers=_h(admin_token))
-    target = next(u for u in r.json() if u["id"] == uid)
+    target = next(u for u in r.json()["data"] if u["id"] == uid)
     assert target["activo"] is False
 
 

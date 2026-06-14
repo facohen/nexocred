@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Header
+from fastapi import APIRouter, Header, Query
 
 from app.deps import AdminOAnalista, CurrentUser, SessionDep
 from app.errors import ErrorAPI
@@ -13,6 +13,7 @@ from app.m04_pagos.schemas import (
     PagoDetalleOut,
     PagoOut,
 )
+from app.paginacion import Pagina, paginar
 
 router = APIRouter(tags=["pagos"])
 
@@ -47,9 +48,15 @@ async def registrar_pago(
     )
 
 
-@router.get("/pagos/a-aplicar", response_model=list[PagoOut])
-async def pagos_a_aplicar(session: SessionDep, _: AdminOAnalista) -> list[PagoOut]:
-    return [PagoOut.model_validate(p) for p in await servicio.pagos_a_aplicar(session)]
+@router.get("/pagos/a-aplicar", response_model=Pagina[PagoOut])
+async def pagos_a_aplicar(
+    session: SessionDep,
+    _: AdminOAnalista,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+) -> Pagina[PagoOut]:
+    pagos_list = [PagoOut.model_validate(p) for p in await servicio.pagos_a_aplicar(session)]
+    return paginar(pagos_list, page, per_page)
 
 
 @router.post("/pagos/{pago_id}/corregir", response_model=CorreccionOut, status_code=201)

@@ -18,13 +18,20 @@ from app.m04_caja.schemas import (
     PosicionConsolidadaOut,
     TransferenciaIn,
 )
+from app.paginacion import Pagina, paginar
 
 router = APIRouter(tags=["caja"])
 
 
-@router.get("/cajas", response_model=list[CajaOut])
-async def listar_cajas(session: SessionDep, _: CurrentUser) -> list[CajaOut]:
-    return [CajaOut.model_validate(c) for c in await servicio.listar_cajas(session)]
+@router.get("/cajas", response_model=Pagina[CajaOut])
+async def listar_cajas(
+    session: SessionDep,
+    _: CurrentUser,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+) -> Pagina[CajaOut]:
+    cajas = [CajaOut.model_validate(c) for c in await servicio.listar_cajas(session)]
+    return paginar(cajas, page, per_page)
 
 
 @router.post("/cajas", response_model=CajaOut, status_code=201)

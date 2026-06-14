@@ -25,6 +25,7 @@ from app.m08_crm.schemas import (
     TimelineEvento,
 )
 from app.m12_auth.modelos import Usuario
+from app.paginacion import Pagina, paginar
 
 router = APIRouter(tags=["crm"])
 
@@ -37,17 +38,19 @@ def _es_admin(usuario: Usuario) -> bool:
 
 
 # ---------- Tareas ----------
-@router.get("/tareas", response_model=list[TareaOut])
+@router.get("/tareas", response_model=Pagina[TareaOut])
 async def listar_tareas(
     session: SessionDep,
     actor: CrmUser,
     estado: Annotated[str | None, Query()] = None,
-) -> list[TareaOut]:
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+) -> Pagina[TareaOut]:
     operador = None if _es_admin(actor) else actor.id
     tareas = await servicio.listar_tareas(
         session, operador_id=operador, estado=estado
     )
-    return [TareaOut.model_validate(t) for t in tareas]
+    return paginar([TareaOut.model_validate(t) for t in tareas], page, per_page)
 
 
 @router.post("/tareas", response_model=TareaOut, status_code=201)
@@ -134,17 +137,19 @@ async def timeline_persona(
 
 
 # ---------- Incidentes ----------
-@router.get("/incidentes", response_model=list[IncidenteOut])
+@router.get("/incidentes", response_model=Pagina[IncidenteOut])
 async def listar_incidentes(
     session: SessionDep,
     _: CrmUser,
     estado: Annotated[str | None, Query()] = None,
     persona_id: Annotated[uuid.UUID | None, Query()] = None,
-) -> list[IncidenteOut]:
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+) -> Pagina[IncidenteOut]:
     incs = await servicio.listar_incidentes(
         session, estado=estado, persona_id=persona_id
     )
-    return [IncidenteOut.model_validate(i) for i in incs]
+    return paginar([IncidenteOut.model_validate(i) for i in incs], page, per_page)
 
 
 @router.post("/incidentes", response_model=IncidenteOut, status_code=201)
@@ -210,14 +215,16 @@ async def crear_asignacion_masiva(
 
 
 # ---------- Prospectos ----------
-@router.get("/prospectos", response_model=list[ProspectoOut])
+@router.get("/prospectos", response_model=Pagina[ProspectoOut])
 async def listar_prospectos(
     session: SessionDep,
     _: CrmUser,
     estado: Annotated[str | None, Query()] = None,
-) -> list[ProspectoOut]:
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+) -> Pagina[ProspectoOut]:
     prospectos = await servicio.listar_prospectos(session, estado=estado)
-    return [ProspectoOut.model_validate(p) for p in prospectos]
+    return paginar([ProspectoOut.model_validate(p) for p in prospectos], page, per_page)
 
 
 @router.post("/prospectos", response_model=ProspectoOut, status_code=201)

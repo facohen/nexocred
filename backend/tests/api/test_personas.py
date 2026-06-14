@@ -80,7 +80,7 @@ async def test_alta_persona_cuil_duplicado_409(client, admin_token):
 async def test_alta_persona_audita(client, admin_token):
     await client.post("/api/v1/personas", json=_persona_payload(), headers=_h(admin_token))
     r = await client.get("/api/v1/auditoria?accion=persona_alta", headers=_h(admin_token))
-    assert any(e["accion"] == "persona_alta" for e in r.json())
+    assert any(e["accion"] == "persona_alta" for e in r.json()["data"])
 
 
 async def test_lista_y_filtro_por_cuil(client, admin_token):
@@ -136,4 +136,4 @@ async def test_patch_audita(client, admin_token):
     r = await client.get(
         "/api/v1/auditoria?accion=persona_modificacion", headers=_h(admin_token)
     )
-    assert any(e["entidad_id"] == pid for e in r.json())
+    assert any(e["entidad_id"] == pid for e in r.json()["data"])

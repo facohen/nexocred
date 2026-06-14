@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from app.deps import AdminUser, CurrentUser, SessionDep
 from app.errors import ErrorAPI
@@ -24,6 +24,7 @@ from app.m15_catalogo.schemas import (
     SimuladorLibreIn,
     SimuladorOut,
 )
+from app.paginacion import Pagina, paginar
 
 router = APIRouter(tags=["catalogo"])
 
@@ -54,10 +55,16 @@ async def crear_producto(
     return await _producto_out(session, producto)
 
 
-@router.get("/productos", response_model=list[ProductoOut])
-async def listar_productos(session: SessionDep, _: CurrentUser) -> list[ProductoOut]:
+@router.get("/productos", response_model=Pagina[ProductoOut])
+async def listar_productos(
+    session: SessionDep,
+    _: CurrentUser,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+) -> Pagina[ProductoOut]:
     productos = await servicio.listar_productos(session)
-    return [await _producto_out(session, p) for p in productos]
+    items = [await _producto_out(session, p) for p in productos]
+    return paginar(items, page, per_page)
 
 
 # ---------- repricing ----------
@@ -134,10 +141,15 @@ async def crear_perfil(
     return PerfilOut.model_validate(perfil)
 
 
-@router.get("/perfiles-pricing", response_model=list[PerfilOut])
-async def listar_perfiles(session: SessionDep, _: CurrentUser) -> list[PerfilOut]:
+@router.get("/perfiles-pricing", response_model=Pagina[PerfilOut])
+async def listar_perfiles(
+    session: SessionDep,
+    _: CurrentUser,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+) -> Pagina[PerfilOut]:
     perfiles = await servicio.listar_perfiles(session)
-    return [PerfilOut.model_validate(p) for p in perfiles]
+    return paginar([PerfilOut.model_validate(p) for p in perfiles], page, per_page)
 
 
 # ---------- matrices ----------
@@ -152,12 +164,15 @@ async def actualizar_matriz_tasas(
     return [CeldaTasaOut.model_validate(c) for c in celdas]
 
 
-@router.get("/matrices/tasas", response_model=list[CeldaTasaOut])
+@router.get("/matrices/tasas", response_model=Pagina[CeldaTasaOut])
 async def listar_matriz_tasas(
-    session: SessionDep, _: CurrentUser
-) -> list[CeldaTasaOut]:
+    session: SessionDep,
+    _: CurrentUser,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+) -> Pagina[CeldaTasaOut]:
     celdas = await servicio.listar_matriz_tasas(session)
-    return [CeldaTasaOut.model_validate(c) for c in celdas]
+    return paginar([CeldaTasaOut.model_validate(c) for c in celdas], page, per_page)
 
 
 @router.put("/matrices/comisiones", response_model=list[CeldaComisionOut])
@@ -171,12 +186,17 @@ async def actualizar_matriz_comisiones(
     return [CeldaComisionOut.model_validate(c) for c in celdas]
 
 
-@router.get("/matrices/comisiones", response_model=list[CeldaComisionOut])
+@router.get("/matrices/comisiones", response_model=Pagina[CeldaComisionOut])
 async def listar_matriz_comisiones(
-    session: SessionDep, _: CurrentUser
-) -> list[CeldaComisionOut]:
+    session: SessionDep,
+    _: CurrentUser,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+) -> Pagina[CeldaComisionOut]:
     celdas = await servicio.listar_matriz_comisiones(session)
-    return [CeldaComisionOut.model_validate(c) for c in celdas]
+    return paginar(
+        [CeldaComisionOut.model_validate(c) for c in celdas], page, per_page
+    )
 
 
 # ---------- simuladores ----------

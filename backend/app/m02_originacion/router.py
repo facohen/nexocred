@@ -17,6 +17,7 @@ from app.m02_originacion.schemas import (
 )
 from app.m02_originacion.servicio_desembolso import desembolsar
 from app.m15_catalogo.schemas import SimuladorOut
+from app.paginacion import Pagina, paginar
 
 
 def _exigir_idem(idempotency_key: str | None) -> str:
@@ -55,14 +56,16 @@ async def crear_solicitud(
     return SolicitudOut.model_validate(sol)
 
 
-@router.get("/solicitudes", response_model=list[SolicitudOut])
+@router.get("/solicitudes", response_model=Pagina[SolicitudOut])
 async def listar_solicitudes(
     session: SessionDep,
     _: CurrentUser,
     estado: Annotated[str | None, Query()] = None,
-) -> list[SolicitudOut]:
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+) -> Pagina[SolicitudOut]:
     sols = await servicio.listar_solicitudes(session, estado=estado)
-    return [SolicitudOut.model_validate(s) for s in sols]
+    return paginar([SolicitudOut.model_validate(s) for s in sols], page, per_page)
 
 
 @router.get("/solicitudes/{solicitud_id}", response_model=SolicitudOut)

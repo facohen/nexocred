@@ -82,7 +82,7 @@ async def test_e2e_alerta_asignacion_crea_tarea(client, admin_token, session):
     )
     await client.post("/api/v1/alertas/procesar", headers=_h(admin_token))
     lst = await client.get("/api/v1/alertas?estado=activa", headers=_h(admin_token))
-    alerta_id = lst.json()[0]["id"]
+    alerta_id = lst.json()["data"][0]["id"]
 
     op = await client.post(
         "/api/v1/usuarios",

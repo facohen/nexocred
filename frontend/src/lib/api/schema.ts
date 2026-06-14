@@ -3353,6 +3353,248 @@ export interface components {
             /** Fecha Negocio */
             fecha_negocio?: string | null;
         };
+        /** Pagina[AlertaOut] */
+        Pagina_AlertaOut_: {
+            /** Data */
+            data: components["schemas"]["AlertaOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Per Page */
+            per_page: number;
+        };
+        /** Pagina[AporteRetiroOut] */
+        Pagina_AporteRetiroOut_: {
+            /** Data */
+            data: components["schemas"]["AporteRetiroOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Per Page */
+            per_page: number;
+        };
+        /** Pagina[AuditoriaOut] */
+        Pagina_AuditoriaOut_: {
+            /** Data */
+            data: components["schemas"]["AuditoriaOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Per Page */
+            per_page: number;
+        };
+        /** Pagina[CajaOut] */
+        Pagina_CajaOut_: {
+            /** Data */
+            data: components["schemas"]["CajaOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Per Page */
+            per_page: number;
+        };
+        /** Pagina[CeldaComisionOut] */
+        Pagina_CeldaComisionOut_: {
+            /** Data */
+            data: components["schemas"]["CeldaComisionOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Per Page */
+            per_page: number;
+        };
+        /** Pagina[CeldaTasaOut] */
+        Pagina_CeldaTasaOut_: {
+            /** Data */
+            data: components["schemas"]["CeldaTasaOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Per Page */
+            per_page: number;
+        };
+        /** Pagina[ConcentracionItem] */
+        Pagina_ConcentracionItem_: {
+            /** Data */
+            data: components["schemas"]["ConcentracionItem"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Per Page */
+            per_page: number;
+        };
+        /** Pagina[CosechaOut] */
+        Pagina_CosechaOut_: {
+            /** Data */
+            data: components["schemas"]["CosechaOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Per Page */
+            per_page: number;
+        };
+        /** Pagina[EjecucionOut] */
+        Pagina_EjecucionOut_: {
+            /** Data */
+            data: components["schemas"]["EjecucionOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Per Page */
+            per_page: number;
+        };
+        /** Pagina[IncidenteOut] */
+        Pagina_IncidenteOut_: {
+            /** Data */
+            data: components["schemas"]["IncidenteOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Per Page */
+            per_page: number;
+        };
+        /** Pagina[LiquidacionOut] */
+        Pagina_LiquidacionOut_: {
+            /** Data */
+            data: components["schemas"]["LiquidacionOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Per Page */
+            per_page: number;
+        };
+        /** Pagina[PagoOut] */
+        Pagina_PagoOut_: {
+            /** Data */
+            data: components["schemas"]["PagoOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Per Page */
+            per_page: number;
+        };
+        /** Pagina[PerfilOut] */
+        Pagina_PerfilOut_: {
+            /** Data */
+            data: components["schemas"]["PerfilOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Per Page */
+            per_page: number;
+        };
+        /** Pagina[PrestamoOut] */
+        Pagina_PrestamoOut_: {
+            /** Data */
+            data: components["schemas"]["PrestamoOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Per Page */
+            per_page: number;
+        };
+        /** Pagina[ProductoOut] */
+        Pagina_ProductoOut_: {
+            /** Data */
+            data: components["schemas"]["ProductoOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Per Page */
+            per_page: number;
+        };
+        /** Pagina[ProspectoOut] */
+        Pagina_ProspectoOut_: {
+            /** Data */
+            data: components["schemas"]["ProspectoOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Per Page */
+            per_page: number;
+        };
+        /** Pagina[ReglaOut] */
+        Pagina_ReglaOut_: {
+            /** Data */
+            data: components["schemas"]["ReglaOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Per Page */
+            per_page: number;
+        };
+        /** Pagina[RendicionOut] */
+        Pagina_RendicionOut_: {
+            /** Data */
+            data: components["schemas"]["RendicionOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Per Page */
+            per_page: number;
+        };
+        /** Pagina[RutaOut] */
+        Pagina_RutaOut_: {
+            /** Data */
+            data: components["schemas"]["RutaOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Per Page */
+            per_page: number;
+        };
+        /** Pagina[SolicitudOut] */
+        Pagina_SolicitudOut_: {
+            /** Data */
+            data: components["schemas"]["SolicitudOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Per Page */
+            per_page: number;
+        };
+        /** Pagina[TareaOut] */
+        Pagina_TareaOut_: {
+            /** Data */
+            data: components["schemas"]["TareaOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Per Page */
+            per_page: number;
+        };
+        /** Pagina[UsuarioOut] */
+        Pagina_UsuarioOut_: {
+            /** Data */
+            data: components["schemas"]["UsuarioOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Per Page */
+            per_page: number;
+        };
         /** PagoCreate */
         PagoCreate: {
             /**
@@ -4854,7 +5096,10 @@ export interface operations {
     };
     listar_usuarios_api_v1_usuarios_get: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+                per_page?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4867,7 +5112,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UsuarioOut"][];
+                    "application/json": components["schemas"]["Pagina_UsuarioOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -4977,6 +5231,8 @@ export interface operations {
         parameters: {
             query?: {
                 accion?: string | null;
+                page?: number;
+                per_page?: number;
             };
             header?: never;
             path?: never;
@@ -4990,7 +5246,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AuditoriaOut"][];
+                    "application/json": components["schemas"]["Pagina_AuditoriaOut_"];
                 };
             };
             /** @description Validation Error */
@@ -5520,7 +5776,10 @@ export interface operations {
     };
     listar_productos_api_v1_productos_get: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+                per_page?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5533,7 +5792,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProductoOut"][];
+                    "application/json": components["schemas"]["Pagina_ProductoOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -5736,7 +6004,10 @@ export interface operations {
     };
     listar_perfiles_api_v1_perfiles_pricing_get: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+                per_page?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5749,7 +6020,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PerfilOut"][];
+                    "application/json": components["schemas"]["Pagina_PerfilOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -5789,7 +6069,10 @@ export interface operations {
     };
     listar_matriz_tasas_api_v1_matrices_tasas_get: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+                per_page?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5802,7 +6085,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CeldaTasaOut"][];
+                    "application/json": components["schemas"]["Pagina_CeldaTasaOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -5842,7 +6134,10 @@ export interface operations {
     };
     listar_matriz_comisiones_api_v1_matrices_comisiones_get: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+                per_page?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5855,7 +6150,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CeldaComisionOut"][];
+                    "application/json": components["schemas"]["Pagina_CeldaComisionOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -5996,6 +6300,8 @@ export interface operations {
         parameters: {
             query?: {
                 estado?: string | null;
+                page?: number;
+                per_page?: number;
             };
             header?: never;
             path?: never;
@@ -6009,7 +6315,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SolicitudOut"][];
+                    "application/json": components["schemas"]["Pagina_SolicitudOut_"];
                 };
             };
             /** @description Validation Error */
@@ -6262,6 +6568,8 @@ export interface operations {
                 estado?: string | null;
                 persona_id?: string | null;
                 producto_id?: string | null;
+                page?: number;
+                per_page?: number;
             };
             header?: never;
             path?: never;
@@ -6275,7 +6583,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PrestamoOut"][];
+                    "application/json": components["schemas"]["Pagina_PrestamoOut_"];
                 };
             };
             /** @description Validation Error */
@@ -6485,7 +6793,10 @@ export interface operations {
     };
     listar_cajas_api_v1_cajas_get: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+                per_page?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6498,7 +6809,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CajaOut"][];
+                    "application/json": components["schemas"]["Pagina_CajaOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -6767,7 +7087,10 @@ export interface operations {
     };
     pagos_a_aplicar_api_v1_pagos_a_aplicar_get: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+                per_page?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6780,7 +7103,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PagoOut"][];
+                    "application/json": components["schemas"]["Pagina_PagoOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -6859,6 +7191,8 @@ export interface operations {
                 fecha?: string | null;
                 estado?: string | null;
                 cobrador_id?: string | null;
+                page?: number;
+                per_page?: number;
             };
             header?: never;
             path?: never;
@@ -6872,7 +7206,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RutaOut"][];
+                    "application/json": components["schemas"]["Pagina_RutaOut_"];
                 };
             };
             /** @description Validation Error */
@@ -7054,7 +7388,10 @@ export interface operations {
     };
     listar_rendiciones_api_v1_rendiciones_get: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+                per_page?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -7067,7 +7404,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RendicionOut"][];
+                    "application/json": components["schemas"]["Pagina_RendicionOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -7435,7 +7781,10 @@ export interface operations {
     };
     cosechas_endpoint_api_v1_riesgo_cosechas_get: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+                per_page?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -7448,7 +7797,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CosechaOut"][];
+                    "application/json": components["schemas"]["Pagina_CosechaOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -7457,6 +7815,8 @@ export interface operations {
         parameters: {
             query?: {
                 clave?: string;
+                page?: number;
+                per_page?: number;
             };
             header?: never;
             path?: never;
@@ -7470,7 +7830,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ConcentracionItem"][];
+                    "application/json": components["schemas"]["Pagina_ConcentracionItem_"];
                 };
             };
             /** @description Validation Error */
@@ -7489,6 +7849,8 @@ export interface operations {
             query?: {
                 estado?: string | null;
                 severidad?: string | null;
+                page?: number;
+                per_page?: number;
             };
             header?: never;
             path?: never;
@@ -7502,7 +7864,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AlertaOut"][];
+                    "application/json": components["schemas"]["Pagina_AlertaOut_"];
                 };
             };
             /** @description Validation Error */
@@ -7641,6 +8003,8 @@ export interface operations {
         parameters: {
             query?: {
                 estado?: string | null;
+                page?: number;
+                per_page?: number;
             };
             header?: never;
             path?: never;
@@ -7654,7 +8018,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TareaOut"][];
+                    "application/json": components["schemas"]["Pagina_TareaOut_"];
                 };
             };
             /** @description Validation Error */
@@ -7902,6 +8266,8 @@ export interface operations {
             query?: {
                 estado?: string | null;
                 persona_id?: string | null;
+                page?: number;
+                per_page?: number;
             };
             header?: never;
             path?: never;
@@ -7915,7 +8281,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IncidenteOut"][];
+                    "application/json": components["schemas"]["Pagina_IncidenteOut_"];
                 };
             };
             /** @description Validation Error */
@@ -8098,6 +8464,8 @@ export interface operations {
         parameters: {
             query?: {
                 estado?: string | null;
+                page?: number;
+                per_page?: number;
             };
             header?: never;
             path?: never;
@@ -8111,7 +8479,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProspectoOut"][];
+                    "application/json": components["schemas"]["Pagina_ProspectoOut_"];
                 };
             };
             /** @description Validation Error */
@@ -8360,6 +8728,8 @@ export interface operations {
         parameters: {
             query?: {
                 vendedor_id?: string | null;
+                page?: number;
+                per_page?: number;
             };
             header?: never;
             path?: never;
@@ -8373,7 +8743,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LiquidacionOut"][];
+                    "application/json": components["schemas"]["Pagina_LiquidacionOut_"];
                 };
             };
             /** @description Validation Error */
@@ -8716,7 +9086,10 @@ export interface operations {
     };
     get_aportes_retiros_api_v1_tesoreria_aportes_retiros_get: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+                per_page?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -8729,7 +9102,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AporteRetiroOut"][];
+                    "application/json": components["schemas"]["Pagina_AporteRetiroOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -8889,7 +9271,10 @@ export interface operations {
     };
     listar_reglas_api_v1_workflow_reglas_get: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+                per_page?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -8902,7 +9287,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ReglaOut"][];
+                    "application/json": components["schemas"]["Pagina_ReglaOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -9012,6 +9406,8 @@ export interface operations {
         parameters: {
             query?: {
                 regla_id?: string | null;
+                page?: number;
+                per_page?: number;
             };
             header?: never;
             path?: never;
@@ -9025,7 +9421,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EjecucionOut"][];
+                    "application/json": components["schemas"]["Pagina_EjecucionOut_"];
                 };
             };
             /** @description Validation Error */

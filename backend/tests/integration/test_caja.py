@@ -20,7 +20,7 @@ async def test_crear_y_listar_cajas(client, admin_token):
     cid = await _caja(client, admin_token, "Central")
     r = await client.get("/api/v1/cajas", headers=_h(admin_token))
     assert r.status_code == 200
-    assert cid in [c["id"] for c in r.json()]
+    assert cid in [c["id"] for c in r.json()["data"]]
 
 
 async def test_movimiento_manual_actualiza_saldo(client, admin_token, session):
@@ -39,7 +39,7 @@ async def test_movimiento_manual_actualiza_saldo(client, admin_token, session):
         headers=_h(admin_token),
     )
     r = await client.get("/api/v1/cajas", headers=_h(admin_token))
-    caja = next(c for c in r.json() if c["id"] == cid)
+    caja = next(c for c in r.json()["data"] if c["id"] == cid)
     assert caja["saldo_teorico"] == "700.00"
 
     # ledger sum == saldo_teorico
@@ -96,7 +96,7 @@ async def test_transferencia_interna_suma_cero(client, admin_token, session):
     assert signo == Decimal("0")
 
     r = await client.get("/api/v1/cajas", headers=_h(admin_token))
-    saldos = {c["id"]: c["saldo_teorico"] for c in r.json()}
+    saldos = {c["id"]: c["saldo_teorico"] for c in r.json()["data"]}
     assert saldos[origen] == "600.00"
     assert saldos[destino] == "400.00"
 
@@ -121,7 +121,7 @@ async def test_movimiento_manual_idempotente(client, admin_token, session):
     )
     assert res.scalar_one() == 1
     r = await client.get("/api/v1/cajas", headers=_h(admin_token))
-    caja = next(c for c in r.json() if c["id"] == cid)
+    caja = next(c for c in r.json()["data"] if c["id"] == cid)
     assert caja["saldo_teorico"] == "1000.00"
 
 
@@ -156,7 +156,7 @@ async def test_transferencia_interna_idempotente(client, admin_token, session):
     )
     assert res.scalar_one() == 2
     r = await client.get("/api/v1/cajas", headers=_h(admin_token))
-    saldos = {c["id"]: c["saldo_teorico"] for c in r.json()}
+    saldos = {c["id"]: c["saldo_teorico"] for c in r.json()["data"]}
     assert saldos[origen] == "600.00"
     assert saldos[destino] == "400.00"
 

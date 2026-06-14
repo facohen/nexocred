@@ -1,7 +1,7 @@
 import uuid
 
 import jwt
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Query, Request
 from sqlalchemy import select
 
 from app.auditoria import AuditoriaEvento, escribir_evento
@@ -24,6 +24,7 @@ from app.m12_auth.seguridad import (
     crear_refresh_token,
     decodificar_token,
 )
+from app.paginacion import Pagina, paginar
 
 router = APIRouter()
 
@@ -116,12 +117,15 @@ async def logout(
 
 
 # ---------- USUARIOS ----------
-@router.get("/usuarios", response_model=list[UsuarioOut], tags=["usuarios"])
+@router.get("/usuarios", response_model=Pagina[UsuarioOut], tags=["usuarios"])
 async def listar_usuarios(
-    session: SessionDep, _: AdminUser
-) -> list[UsuarioOut]:
+    session: SessionDep,
+    _: AdminUser,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+) -> Pagina[UsuarioOut]:
     res = await session.execute(select(Usuario))
-    return [_usuario_out(u) for u in res.scalars().all()]
+    return paginar([_usuario_out(u) for u in res.scalars().all()], page, per_page)
 
 
 @router.post(
@@ -177,17 +181,21 @@ async def desactivar_usuario(
 
 
 # ---------- AUDITORIA ----------
-@router.get("/auditoria", response_model=list[AuditoriaOut], tags=["auditoria"])
+@router.get("/auditoria", response_model=Pagina[AuditoriaOut], tags=["auditoria"])
 async def listar_auditoria(
     session: SessionDep,
     _: AdminUser,
     accion: str | None = None,
-) -> list[AuditoriaOut]:
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+) -> Pagina[AuditoriaOut]:
     q = select(AuditoriaEvento).order_by(AuditoriaEvento.created_at.desc())
     if accion:
         q = q.where(AuditoriaEvento.accion == accion)
     res = await session.execute(q)
-    return [AuditoriaOut.model_validate(e) for e in res.scalars().all()]
+    return paginar(
+        [AuditoriaOut.model_validate(e) for e in res.scalars().all()], page, per_page
+    )
 
 
 # ---------- PARAMETROS ----------

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from app.deps import SessionDep, requiere_rol
 from app.errors import ErrorAPI
 from app.m12_auth.modelos import Usuario
+from app.paginacion import Pagina, paginar
 from app.workflows import motor, servicio
 from app.workflows.schemas import (
     ContextoIn,
@@ -23,10 +24,15 @@ AdminUser = Annotated[Usuario, Depends(requiere_rol("admin"))]
 WorkflowUser = Annotated[Usuario, Depends(requiere_rol("admin", "operador"))]
 
 
-@router.get("/workflow-reglas", response_model=list[ReglaOut])
-async def listar_reglas(session: SessionDep, _: WorkflowUser) -> list[ReglaOut]:
+@router.get("/workflow-reglas", response_model=Pagina[ReglaOut])
+async def listar_reglas(
+    session: SessionDep,
+    _: WorkflowUser,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+) -> Pagina[ReglaOut]:
     reglas = await servicio.listar_reglas(session)
-    return [ReglaOut.model_validate(r) for r in reglas]
+    return paginar([ReglaOut.model_validate(r) for r in reglas], page, per_page)
 
 
 @router.post("/workflow-reglas", response_model=ReglaOut, status_code=201)
@@ -64,11 +70,13 @@ async def procesar(
     return ProcesarOut(disparados=disparados, omitidos=omitidos, efectos=salida)
 
 
-@router.get("/workflows/ejecuciones", response_model=list[EjecucionOut])
+@router.get("/workflows/ejecuciones", response_model=Pagina[EjecucionOut])
 async def listar_ejecuciones(
     session: SessionDep,
     _: WorkflowUser,
     regla_id: Annotated[uuid.UUID | None, Query()] = None,
-) -> list[EjecucionOut]:
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+) -> Pagina[EjecucionOut]:
     ejecs = await servicio.listar_ejecuciones(session, regla_id)
-    return [EjecucionOut.model_validate(e) for e in ejecs]
+    return paginar([EjecucionOut.model_validate(e) for e in ejecs], page, per_page)

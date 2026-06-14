@@ -48,4 +48,4 @@ async def test_listar_prospectos_por_estado(client, admin_token):
     )
     r = await client.get("/api/v1/prospectos?estado=nuevo", headers=_h(admin_token))
     assert r.status_code == 200
-    assert all(p["estado"] == "nuevo" for p in r.json())
+    assert all(p["estado"] == "nuevo" for p in r.json()["data"])

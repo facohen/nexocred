@@ -64,12 +64,12 @@ async def test_inbox_operador_solo_ve_propias(client, admin_token):
     )
 
     inbox1 = await client.get("/api/v1/tareas", headers=_h(op1_token))
-    titulos1 = {t["titulo"] for t in inbox1.json()}
+    titulos1 = {t["titulo"] for t in inbox1.json()["data"]}
     assert titulos1 == {"T1"}
 
     # admin ve todas
     todas = await client.get("/api/v1/tareas", headers=_h(admin_token))
-    assert len({t["titulo"] for t in todas.json()}) == 2
+    assert len({t["titulo"] for t in todas.json()["data"]}) == 2
 
 
 async def test_crear_interaccion_directa(client, admin_token):
@@ -117,7 +117,7 @@ async def test_incidente_crud(client, admin_token):
     assert pa.json()["estado"] == "resuelto"
 
     lst = await client.get("/api/v1/incidentes?estado=resuelto", headers=_h(admin_token))
-    assert any(i["id"] == iid for i in lst.json())
+    assert any(i["id"] == iid for i in lst.json()["data"])
 
 
 async def test_asignacion_individual_y_masiva(client, admin_token):

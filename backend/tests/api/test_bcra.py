@@ -41,7 +41,7 @@ async def test_sync_persiste_deuda_y_audita(client, admin_token):
 
     # audita
     r = await client.get("/api/v1/auditoria?accion=bcra_sync", headers=_h(admin_token))
-    assert any(e["entidad_id"] == pid for e in r.json())
+    assert any(e["entidad_id"] == pid for e in r.json()["data"])
 
 
 async def test_endpoint_bcra_consultar_alternativo(client, admin_token):

@@ -42,7 +42,7 @@ async def _crear_regla(client, token, **kw) -> str:
 async def test_crud_regla(client, admin_token):
     regla_id = await _crear_regla(client, admin_token)
     r = await client.get("/api/v1/workflow-reglas", headers=_h(admin_token))
-    assert regla_id in [x["id"] for x in r.json()]
+    assert regla_id in [x["id"] for x in r.json()["data"]]
     r = await client.patch(
         f"/api/v1/workflow-reglas/{regla_id}", json={"activo": False},
         headers=_h(admin_token),
@@ -76,7 +76,7 @@ async def test_procesar_dispara_y_es_idempotente(client, admin_token):
 
     # ejecuciones: exactamente una
     r = await client.get("/api/v1/workflows/ejecuciones", headers=_h(admin_token))
-    assert len(r.json()) == 1
+    assert len(r.json()["data"]) == 1
 
 
 async def test_procesar_solo_admin(client, tesoreria_token):

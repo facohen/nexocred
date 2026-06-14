@@ -64,7 +64,7 @@ async def test_listar_y_detalle_ruta(client, admin_token, session):
         f"/api/v1/rutas?fecha={date.today().isoformat()}", headers=_h(admin_token)
     )
     assert rl.status_code == 200
-    assert any(rr["id"] == ruta_id for rr in rl.json())
+    assert any(rr["id"] == ruta_id for rr in rl.json()["data"])
 
     rd = await client.get(f"/api/v1/rutas/{ruta_id}", headers=_h(admin_token))
     assert rd.status_code == 200

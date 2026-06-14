@@ -13,7 +13,7 @@ async def test_alta_usuario_genera_auditoria(client, admin_token):
     )
     r = await client.get("/api/v1/auditoria?accion=usuario_alta", headers=_h(admin_token))
     assert r.status_code == 200
-    eventos = r.json()
+    eventos = r.json()["data"]
     assert any(e["accion"] == "usuario_alta" for e in eventos)
     assert all(e["resultado"] == "ok" for e in eventos)
 
@@ -34,7 +34,7 @@ async def test_cambio_roles_genera_auditoria(client, admin_token):
     r = await client.get(
         "/api/v1/auditoria?accion=usuario_cambio_roles", headers=_h(admin_token)
     )
-    assert any(e["entidad_id"] == uid for e in r.json())
+    assert any(e["entidad_id"] == uid for e in r.json()["data"])
 
 
 async def test_auditoria_solo_admin(client, analista_token):
@@ -53,7 +53,7 @@ async def test_refresh_exitoso_genera_auditoria(client, usuario_seed):
     access = r.json()["access_token"]
     r = await client.get("/api/v1/auditoria?accion=refresh", headers=_h(access))
     assert r.status_code == 200
-    eventos = r.json()
+    eventos = r.json()["data"]
     assert any(e["accion"] == "refresh" and e["resultado"] == "ok" for e in eventos)
 
 
@@ -66,4 +66,4 @@ async def test_parametros_patch_audita(client, admin_token):
     r = await client.get(
         "/api/v1/auditoria?accion=parametros_modificacion", headers=_h(admin_token)
     )
-    assert any(e["accion"] == "parametros_modificacion" for e in r.json())
+    assert any(e["accion"] == "parametros_modificacion" for e in r.json()["data"])

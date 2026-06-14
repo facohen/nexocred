@@ -50,7 +50,7 @@ async def test_asignar_alerta_crea_una_tarea(client, admin_token, session):
     )
     await client.post("/api/v1/alertas/procesar", headers=_h(admin_token))
     lst = await client.get("/api/v1/alertas?estado=activa", headers=_h(admin_token))
-    alerta_id = lst.json()[0]["id"]
+    alerta_id = lst.json()["data"][0]["id"]
 
     op_id = await _crear_operador(client, admin_token)
     r = await client.patch(
@@ -85,7 +85,7 @@ async def test_resolver_alerta(client, admin_token, session):
     )
     await client.post("/api/v1/alertas/procesar", headers=_h(admin_token))
     lst = await client.get("/api/v1/alertas?estado=activa", headers=_h(admin_token))
-    alerta_id = lst.json()[0]["id"]
+    alerta_id = lst.json()["data"][0]["id"]
 
     r = await client.patch(
         f"/api/v1/alertas/{alerta_id}/resolver",
@@ -105,7 +105,7 @@ async def test_reasignar_alerta_no_duplica_tarea(client, admin_token, session):
     )
     await client.post("/api/v1/alertas/procesar", headers=_h(admin_token))
     lst = await client.get("/api/v1/alertas?estado=activa", headers=_h(admin_token))
-    alerta_id = lst.json()[0]["id"]
+    alerta_id = lst.json()["data"][0]["id"]
 
     op1 = await _crear_operador(client, admin_token, email="op_re1@nexo.test")
     op2 = await _crear_operador(client, admin_token, email="op_re2@nexo.test")

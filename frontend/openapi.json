@@ -119,17 +119,48 @@
         ],
         "summary": "Listar Usuarios",
         "operationId": "listar_usuarios_api_v1_usuarios_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Per Page"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/UsuarioOut"
-                  },
-                  "type": "array",
-                  "title": "Response Listar Usuarios Api V1 Usuarios Get"
+                  "$ref": "#/components/schemas/Pagina_UsuarioOut_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -143,14 +174,14 @@
         "summary": "Crear Usuario",
         "operationId": "crear_usuario_api_v1_usuarios_post",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/UsuarioCreate"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "201": {
@@ -297,6 +328,29 @@
               ],
               "title": "Accion"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Per Page"
+            }
           }
         ],
         "responses": {
@@ -305,11 +359,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AuditoriaOut"
-                  },
-                  "title": "Response Listar Auditoria Api V1 Auditoria Get"
+                  "$ref": "#/components/schemas/Pagina_AuditoriaOut_"
                 }
               }
             }
@@ -1119,29 +1169,6 @@
       }
     },
     "/api/v1/productos": {
-      "get": {
-        "tags": [
-          "catalogo"
-        ],
-        "summary": "Listar Productos",
-        "operationId": "listar_productos_api_v1_productos_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/ProductoOut"
-                  },
-                  "type": "array",
-                  "title": "Response Listar Productos Api V1 Productos Get"
-                }
-              }
-            }
-          }
-        }
-      },
       "post": {
         "tags": [
           "catalogo"
@@ -1149,14 +1176,14 @@
         "summary": "Crear Producto",
         "operationId": "crear_producto_api_v1_productos_post",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ProductoCreate"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "201": {
@@ -1165,6 +1192,60 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProductoOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "catalogo"
+        ],
+        "summary": "Listar Productos",
+        "operationId": "listar_productos_api_v1_productos_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Per Page"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Pagina_ProductoOut_"
                 }
               }
             }
@@ -1402,29 +1483,6 @@
       }
     },
     "/api/v1/perfiles-pricing": {
-      "get": {
-        "tags": [
-          "catalogo"
-        ],
-        "summary": "Listar Perfiles",
-        "operationId": "listar_perfiles_api_v1_perfiles_pricing_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/PerfilOut"
-                  },
-                  "type": "array",
-                  "title": "Response Listar Perfiles Api V1 Perfiles Pricing Get"
-                }
-              }
-            }
-          }
-        }
-      },
       "post": {
         "tags": [
           "catalogo"
@@ -1432,14 +1490,14 @@
         "summary": "Crear Perfil",
         "operationId": "crear_perfil_api_v1_perfiles_pricing_post",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PerfilCreate"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "201": {
@@ -1463,32 +1521,63 @@
             }
           }
         }
-      }
-    },
-    "/api/v1/matrices/tasas": {
+      },
       "get": {
         "tags": [
           "catalogo"
         ],
-        "summary": "Listar Matriz Tasas",
-        "operationId": "listar_matriz_tasas_api_v1_matrices_tasas_get",
+        "summary": "Listar Perfiles",
+        "operationId": "listar_perfiles_api_v1_perfiles_pricing_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Per Page"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/CeldaTasaOut"
-                  },
-                  "type": "array",
-                  "title": "Response Listar Matriz Tasas Api V1 Matrices Tasas Get"
+                  "$ref": "#/components/schemas/Pagina_PerfilOut_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
           }
         }
-      },
+      }
+    },
+    "/api/v1/matrices/tasas": {
       "put": {
         "tags": [
           "catalogo"
@@ -1496,14 +1585,14 @@
         "summary": "Actualizar Matriz Tasas",
         "operationId": "actualizar_matriz_tasas_api_v1_matrices_tasas_put",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/MatrizTasaIn"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -1511,11 +1600,65 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/CeldaTasaOut"
                   },
-                  "type": "array",
                   "title": "Response Actualizar Matriz Tasas Api V1 Matrices Tasas Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "catalogo"
+        ],
+        "summary": "Listar Matriz Tasas",
+        "operationId": "listar_matriz_tasas_api_v1_matrices_tasas_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Per Page"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Pagina_CeldaTasaOut_"
                 }
               }
             }
@@ -1534,29 +1677,6 @@
       }
     },
     "/api/v1/matrices/comisiones": {
-      "get": {
-        "tags": [
-          "catalogo"
-        ],
-        "summary": "Listar Matriz Comisiones",
-        "operationId": "listar_matriz_comisiones_api_v1_matrices_comisiones_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/CeldaComisionOut"
-                  },
-                  "type": "array",
-                  "title": "Response Listar Matriz Comisiones Api V1 Matrices Comisiones Get"
-                }
-              }
-            }
-          }
-        }
-      },
       "put": {
         "tags": [
           "catalogo"
@@ -1564,14 +1684,14 @@
         "summary": "Actualizar Matriz Comisiones",
         "operationId": "actualizar_matriz_comisiones_api_v1_matrices_comisiones_put",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/MatrizComisionIn"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -1579,11 +1699,65 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/CeldaComisionOut"
                   },
-                  "type": "array",
                   "title": "Response Actualizar Matriz Comisiones Api V1 Matrices Comisiones Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "catalogo"
+        ],
+        "summary": "Listar Matriz Comisiones",
+        "operationId": "listar_matriz_comisiones_api_v1_matrices_comisiones_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Per Page"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Pagina_CeldaComisionOut_"
                 }
               }
             }
@@ -1786,6 +1960,29 @@
               ],
               "title": "Estado"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Per Page"
+            }
           }
         ],
         "responses": {
@@ -1794,11 +1991,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/SolicitudOut"
-                  },
-                  "title": "Response Listar Solicitudes Api V1 Solicitudes Get"
+                  "$ref": "#/components/schemas/Pagina_SolicitudOut_"
                 }
               }
             }
@@ -2177,6 +2370,29 @@
               ],
               "title": "Producto Id"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Per Page"
+            }
           }
         ],
         "responses": {
@@ -2185,11 +2401,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/PrestamoOut"
-                  },
-                  "title": "Response Listar Prestamos Api V1 Prestamos Get"
+                  "$ref": "#/components/schemas/Pagina_PrestamoOut_"
                 }
               }
             }
@@ -2520,17 +2732,48 @@
         ],
         "summary": "Listar Cajas",
         "operationId": "listar_cajas_api_v1_cajas_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Per Page"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/CajaOut"
-                  },
-                  "type": "array",
-                  "title": "Response Listar Cajas Api V1 Cajas Get"
+                  "$ref": "#/components/schemas/Pagina_CajaOut_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -2544,14 +2787,14 @@
         "summary": "Crear Caja",
         "operationId": "crear_caja_api_v1_cajas_post",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CajaCreate"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "201": {
@@ -2981,17 +3224,48 @@
         ],
         "summary": "Pagos A Aplicar",
         "operationId": "pagos_a_aplicar_api_v1_pagos_a_aplicar_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Per Page"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/PagoOut"
-                  },
-                  "type": "array",
-                  "title": "Response Pagos A Aplicar Api V1 Pagos A Aplicar Get"
+                  "$ref": "#/components/schemas/Pagina_PagoOut_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -3207,6 +3481,29 @@
               ],
               "title": "Cobrador Id"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Per Page"
+            }
           }
         ],
         "responses": {
@@ -3215,11 +3512,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/RutaOut"
-                  },
-                  "title": "Response Listar Rutas Api V1 Rutas Get"
+                  "$ref": "#/components/schemas/Pagina_RutaOut_"
                 }
               }
             }
@@ -3444,29 +3737,6 @@
       }
     },
     "/api/v1/rendiciones": {
-      "get": {
-        "tags": [
-          "ruta"
-        ],
-        "summary": "Listar Rendiciones",
-        "operationId": "listar_rendiciones_api_v1_rendiciones_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/RendicionOut"
-                  },
-                  "type": "array",
-                  "title": "Response Listar Rendiciones Api V1 Rendiciones Get"
-                }
-              }
-            }
-          }
-        }
-      },
       "post": {
         "tags": [
           "ruta"
@@ -3474,14 +3744,14 @@
         "summary": "Crear Rendicion",
         "operationId": "crear_rendicion_api_v1_rendiciones_post",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/GenerarRendicionIn"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "201": {
@@ -3490,6 +3760,60 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RendicionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "ruta"
+        ],
+        "summary": "Listar Rendiciones",
+        "operationId": "listar_rendiciones_api_v1_rendiciones_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Per Page"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Pagina_RendicionOut_"
                 }
               }
             }
@@ -4024,17 +4348,48 @@
         ],
         "summary": "Cosechas Endpoint",
         "operationId": "cosechas_endpoint_api_v1_riesgo_cosechas_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Per Page"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/CosechaOut"
-                  },
-                  "type": "array",
-                  "title": "Response Cosechas Endpoint Api V1 Riesgo Cosechas Get"
+                  "$ref": "#/components/schemas/Pagina_CosechaOut_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -4059,6 +4414,29 @@
               "default": "producto_id",
               "title": "Clave"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Per Page"
+            }
           }
         ],
         "responses": {
@@ -4067,11 +4445,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ConcentracionItem"
-                  },
-                  "title": "Response Concentracion Endpoint Api V1 Riesgo Concentracion Get"
+                  "$ref": "#/components/schemas/Pagina_ConcentracionItem_"
                 }
               }
             }
@@ -4128,6 +4502,29 @@
               ],
               "title": "Severidad"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Per Page"
+            }
           }
         ],
         "responses": {
@@ -4136,11 +4533,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AlertaOut"
-                  },
-                  "title": "Response Listar Alertas Api V1 Alertas Get"
+                  "$ref": "#/components/schemas/Pagina_AlertaOut_"
                 }
               }
             }
@@ -4351,6 +4744,29 @@
               ],
               "title": "Estado"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Per Page"
+            }
           }
         ],
         "responses": {
@@ -4359,11 +4775,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TareaOut"
-                  },
-                  "title": "Response Listar Tareas Api V1 Tareas Get"
+                  "$ref": "#/components/schemas/Pagina_TareaOut_"
                 }
               }
             }
@@ -4742,6 +5154,29 @@
               ],
               "title": "Persona Id"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Per Page"
+            }
           }
         ],
         "responses": {
@@ -4750,11 +5185,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/IncidenteOut"
-                  },
-                  "title": "Response Listar Incidentes Api V1 Incidentes Get"
+                  "$ref": "#/components/schemas/Pagina_IncidenteOut_"
                 }
               }
             }
@@ -5014,6 +5445,29 @@
               ],
               "title": "Estado"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Per Page"
+            }
           }
         ],
         "responses": {
@@ -5022,11 +5476,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ProspectoOut"
-                  },
-                  "title": "Response Listar Prospectos Api V1 Prospectos Get"
+                  "$ref": "#/components/schemas/Pagina_ProspectoOut_"
                 }
               }
             }
@@ -5401,6 +5851,29 @@
               ],
               "title": "Vendedor Id"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Per Page"
+            }
           }
         ],
         "responses": {
@@ -5409,11 +5882,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/LiquidacionOut"
-                  },
-                  "title": "Response Listar Liquidaciones Api V1 Comisiones Liquidaciones Get"
+                  "$ref": "#/components/schemas/Pagina_LiquidacionOut_"
                 }
               }
             }
@@ -5960,17 +6429,48 @@
         ],
         "summary": "Get Aportes Retiros",
         "operationId": "get_aportes_retiros_api_v1_tesoreria_aportes_retiros_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Per Page"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/AporteRetiroOut"
-                  },
-                  "type": "array",
-                  "title": "Response Get Aportes Retiros Api V1 Tesoreria Aportes Retiros Get"
+                  "$ref": "#/components/schemas/Pagina_AporteRetiroOut_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -6198,17 +6698,48 @@
         ],
         "summary": "Listar Reglas",
         "operationId": "listar_reglas_api_v1_workflow_reglas_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Per Page"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/ReglaOut"
-                  },
-                  "type": "array",
-                  "title": "Response Listar Reglas Api V1 Workflow Reglas Get"
+                  "$ref": "#/components/schemas/Pagina_ReglaOut_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -6222,14 +6753,14 @@
         "summary": "Crear Regla",
         "operationId": "crear_regla_api_v1_workflow_reglas_post",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ReglaIn"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "201": {
@@ -6373,6 +6904,29 @@
               ],
               "title": "Regla Id"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Per Page"
+            }
           }
         ],
         "responses": {
@@ -6381,11 +6935,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/EjecucionOut"
-                  },
-                  "title": "Response Listar Ejecuciones Api V1 Workflows Ejecuciones Get"
+                  "$ref": "#/components/schemas/Pagina_EjecucionOut_"
                 }
               }
             }
@@ -10171,6 +10721,688 @@
           "caja_id"
         ],
         "title": "PagarLiquidacionIn"
+      },
+      "Pagina_AlertaOut_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/AlertaOut"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "per_page": {
+            "type": "integer",
+            "title": "Per Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page"
+        ],
+        "title": "Pagina[AlertaOut]"
+      },
+      "Pagina_AporteRetiroOut_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/AporteRetiroOut"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "per_page": {
+            "type": "integer",
+            "title": "Per Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page"
+        ],
+        "title": "Pagina[AporteRetiroOut]"
+      },
+      "Pagina_AuditoriaOut_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/AuditoriaOut"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "per_page": {
+            "type": "integer",
+            "title": "Per Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page"
+        ],
+        "title": "Pagina[AuditoriaOut]"
+      },
+      "Pagina_CajaOut_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/CajaOut"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "per_page": {
+            "type": "integer",
+            "title": "Per Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page"
+        ],
+        "title": "Pagina[CajaOut]"
+      },
+      "Pagina_CeldaComisionOut_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/CeldaComisionOut"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "per_page": {
+            "type": "integer",
+            "title": "Per Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page"
+        ],
+        "title": "Pagina[CeldaComisionOut]"
+      },
+      "Pagina_CeldaTasaOut_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/CeldaTasaOut"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "per_page": {
+            "type": "integer",
+            "title": "Per Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page"
+        ],
+        "title": "Pagina[CeldaTasaOut]"
+      },
+      "Pagina_ConcentracionItem_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ConcentracionItem"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "per_page": {
+            "type": "integer",
+            "title": "Per Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page"
+        ],
+        "title": "Pagina[ConcentracionItem]"
+      },
+      "Pagina_CosechaOut_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/CosechaOut"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "per_page": {
+            "type": "integer",
+            "title": "Per Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page"
+        ],
+        "title": "Pagina[CosechaOut]"
+      },
+      "Pagina_EjecucionOut_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/EjecucionOut"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "per_page": {
+            "type": "integer",
+            "title": "Per Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page"
+        ],
+        "title": "Pagina[EjecucionOut]"
+      },
+      "Pagina_IncidenteOut_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/IncidenteOut"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "per_page": {
+            "type": "integer",
+            "title": "Per Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page"
+        ],
+        "title": "Pagina[IncidenteOut]"
+      },
+      "Pagina_LiquidacionOut_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/LiquidacionOut"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "per_page": {
+            "type": "integer",
+            "title": "Per Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page"
+        ],
+        "title": "Pagina[LiquidacionOut]"
+      },
+      "Pagina_PagoOut_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PagoOut"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "per_page": {
+            "type": "integer",
+            "title": "Per Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page"
+        ],
+        "title": "Pagina[PagoOut]"
+      },
+      "Pagina_PerfilOut_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PerfilOut"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "per_page": {
+            "type": "integer",
+            "title": "Per Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page"
+        ],
+        "title": "Pagina[PerfilOut]"
+      },
+      "Pagina_PrestamoOut_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PrestamoOut"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "per_page": {
+            "type": "integer",
+            "title": "Per Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page"
+        ],
+        "title": "Pagina[PrestamoOut]"
+      },
+      "Pagina_ProductoOut_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ProductoOut"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "per_page": {
+            "type": "integer",
+            "title": "Per Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page"
+        ],
+        "title": "Pagina[ProductoOut]"
+      },
+      "Pagina_ProspectoOut_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ProspectoOut"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "per_page": {
+            "type": "integer",
+            "title": "Per Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page"
+        ],
+        "title": "Pagina[ProspectoOut]"
+      },
+      "Pagina_ReglaOut_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ReglaOut"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "per_page": {
+            "type": "integer",
+            "title": "Per Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page"
+        ],
+        "title": "Pagina[ReglaOut]"
+      },
+      "Pagina_RendicionOut_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/RendicionOut"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "per_page": {
+            "type": "integer",
+            "title": "Per Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page"
+        ],
+        "title": "Pagina[RendicionOut]"
+      },
+      "Pagina_RutaOut_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/RutaOut"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "per_page": {
+            "type": "integer",
+            "title": "Per Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page"
+        ],
+        "title": "Pagina[RutaOut]"
+      },
+      "Pagina_SolicitudOut_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SolicitudOut"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "per_page": {
+            "type": "integer",
+            "title": "Per Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page"
+        ],
+        "title": "Pagina[SolicitudOut]"
+      },
+      "Pagina_TareaOut_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TareaOut"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "per_page": {
+            "type": "integer",
+            "title": "Per Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page"
+        ],
+        "title": "Pagina[TareaOut]"
+      },
+      "Pagina_UsuarioOut_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/UsuarioOut"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "per_page": {
+            "type": "integer",
+            "title": "Per Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page"
+        ],
+        "title": "Pagina[UsuarioOut]"
       },
       "PagoCreate": {
         "properties": {

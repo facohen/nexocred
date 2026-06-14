@@ -132,7 +132,7 @@ async def test_aporte_asienta_ingreso_en_caja(client, admin_token):
 
     # reconcilia: saldo de caja == aporte
     r = await client.get("/api/v1/cajas", headers=_h(admin_token))
-    caja = next(c for c in r.json() if c["id"] == caja_id)
+    caja = next(c for c in r.json()["data"] if c["id"] == caja_id)
     assert caja["saldo_teorico"] == "250000.00"
 
     # posicion refleja capital disponible
@@ -160,7 +160,7 @@ async def test_retiro_asienta_egreso(client, admin_token):
     assert r.status_code == 201, r.text
     assert r.json()["tipo"] == "retiro"
     r = await client.get("/api/v1/cajas", headers=_h(admin_token))
-    caja = next(c for c in r.json() if c["id"] == caja_id)
+    caja = next(c for c in r.json()["data"] if c["id"] == caja_id)
     assert caja["saldo_teorico"] == "200000.00"
 
 
@@ -184,7 +184,7 @@ async def test_retiro_mayor_a_saldo_rechazado(client, admin_token):
     assert r.json()["error"]["code"] == "saldo_insuficiente"
     # saldo intacto
     r = await client.get("/api/v1/cajas", headers=_h(admin_token))
-    caja = next(c for c in r.json() if c["id"] == caja_id)
+    caja = next(c for c in r.json()["data"] if c["id"] == caja_id)
     assert caja["saldo_teorico"] == "100000.00"
 
 
@@ -199,7 +199,7 @@ async def test_aporte_idempotente(client, admin_token):
     assert r1.json()["id"] == r2.json()["id"]
     # saldo no se duplica
     r = await client.get("/api/v1/cajas", headers=_h(admin_token))
-    caja = next(c for c in r.json() if c["id"] == caja_id)
+    caja = next(c for c in r.json()["data"] if c["id"] == caja_id)
     assert caja["saldo_teorico"] == "150000.00"
 
 
@@ -213,5 +213,5 @@ async def test_listar_aportes_retiros(client, admin_token):
     )
     r = await client.get("/api/v1/tesoreria/aportes-retiros", headers=_h(admin_token))
     assert r.status_code == 200
-    assert len(r.json()) == 1
-    assert r.json()[0]["monto"] == "100000.00"
+    assert len(r.json()["data"]) == 1
+    assert r.json()["data"][0]["monto"] == "100000.00"

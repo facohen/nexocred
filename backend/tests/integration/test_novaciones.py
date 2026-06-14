@@ -8,7 +8,7 @@ from tests.integration.test_pagos_waterfall import _h, _prestamo_desembolsado
 
 async def _saldo_caja(client, token, caja_id) -> Decimal:
     r = await client.get("/api/v1/cajas", headers=_h(token))
-    caja = next(c for c in r.json() if c["id"] == caja_id)
+    caja = next(c for c in r.json()["data"] if c["id"] == caja_id)
     return Decimal(caja["saldo_teorico"])
 
 

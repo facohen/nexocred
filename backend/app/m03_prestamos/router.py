@@ -12,6 +12,7 @@ from app.m04_pagos import servicio as pagos
 from app.m04_pagos.schemas import ImputacionOut, PagoDetalleOut, PagoOut
 from app.m06_novaciones import servicio as novaciones
 from app.m06_novaciones.schemas import NovacionOut
+from app.paginacion import Pagina, paginar
 
 router = APIRouter(tags=["prestamos"])
 
@@ -33,18 +34,20 @@ async def _get_prestamo(session, prestamo_id: uuid.UUID):
     return p
 
 
-@router.get("/prestamos", response_model=list[PrestamoOut])
+@router.get("/prestamos", response_model=Pagina[PrestamoOut])
 async def listar_prestamos(
     session: SessionDep,
     _: CurrentUser,
     estado: Annotated[str | None, Query()] = None,
     persona_id: Annotated[uuid.UUID | None, Query()] = None,
     producto_id: Annotated[uuid.UUID | None, Query()] = None,
-) -> list[PrestamoOut]:
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+) -> Pagina[PrestamoOut]:
     prestamos = await servicio.listar_prestamos(
         session, estado=estado, persona_id=persona_id, producto_id=producto_id
     )
-    return [PrestamoOut.model_validate(p) for p in prestamos]
+    return paginar([PrestamoOut.model_validate(p) for p in prestamos], page, per_page)
 
 
 @router.get("/prestamos/{prestamo_id}", response_model=PrestamoOut)

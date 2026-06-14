@@ -68,7 +68,7 @@ async def test_workflow_trigger_doble_no_duplica(client, admin_token):
     await client.post("/api/v1/workflows/procesar", json=ctx, headers=_h(admin_token))
     await client.post("/api/v1/workflows/procesar", json=ctx, headers=_h(admin_token))
     r = await client.get("/api/v1/workflows/ejecuciones", headers=_h(admin_token))
-    assert len(r.json()) == 1
+    assert len(r.json()["data"]) == 1
 
 
 async def test_documento_hash_numero_estable(client, admin_token):

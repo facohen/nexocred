@@ -14,6 +14,7 @@ from app.m10_tesoreria.schemas import (
     RotacionOut,
 )
 from app.m12_auth.modelos import Usuario
+from app.paginacion import Pagina, paginar
 
 router = APIRouter(tags=["tesoreria"])
 
@@ -87,9 +88,12 @@ async def post_retiro(
     return AporteRetiroOut.model_validate(fila)
 
 
-@router.get("/tesoreria/aportes-retiros", response_model=list[AporteRetiroOut])
+@router.get("/tesoreria/aportes-retiros", response_model=Pagina[AporteRetiroOut])
 async def get_aportes_retiros(
-    session: SessionDep, _: TesoreriaUser
-) -> list[AporteRetiroOut]:
+    session: SessionDep,
+    _: TesoreriaUser,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+) -> Pagina[AporteRetiroOut]:
     filas = await servicio.listar_aportes_retiros(session)
-    return [AporteRetiroOut.model_validate(f) for f in filas]
+    return paginar([AporteRetiroOut.model_validate(f) for f in filas], page, per_page)

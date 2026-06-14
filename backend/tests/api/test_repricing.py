@@ -58,7 +58,7 @@ async def test_repricing_preview_no_muta(client, admin_token):
     assert isinstance(c["tasa_nueva"], str)
     # No muto la matriz real.
     r = await client.get("/api/v1/matrices/tasas", headers=_h(admin_token))
-    actual = {x["plazo"]: x["tasa"] for x in r.json()}
+    actual = {x["plazo"]: x["tasa"] for x in r.json()["data"]}
     assert actual[3] == "0.1000"
 
 
@@ -78,7 +78,7 @@ async def test_repricing_confirmar_aplica_y_genera_vigencias(client, admin_token
     assert r.status_code == 200, r.text
     # Matriz aplicada.
     r = await client.get("/api/v1/matrices/tasas", headers=_h(admin_token))
-    actual = {x["plazo"]: x["tasa"] for x in r.json()}
+    actual = {x["plazo"]: x["tasa"] for x in r.json()["data"]}
     assert actual[3] == "0.1500"
     # Genero nueva vigencia (bump de version del producto).
     r = await client.get(f"/api/v1/productos/{prod}", headers=_h(admin_token))
@@ -98,7 +98,7 @@ async def test_repricing_confirmar_audita(client, admin_token):
     r = await client.get(
         "/api/v1/auditoria?accion=repricing_confirmacion", headers=_h(admin_token)
     )
-    assert any(e["accion"] == "repricing_confirmacion" for e in r.json())
+    assert any(e["accion"] == "repricing_confirmacion" for e in r.json()["data"])
 
 
 async def test_repricing_confirmar_solo_admin(client, analista_token):

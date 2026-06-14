@@ -7,14 +7,14 @@ async def test_listar_prestamos_filtro_estado(client, admin_token, session):
         "/api/v1/prestamos", params={"estado": "vigente"}, headers=_h(admin_token)
     )
     assert r.status_code == 200, r.text
-    ids = [p["id"] for p in r.json()]
+    ids = [p["id"] for p in r.json()["data"]]
     assert prestamo_id in ids
 
     r = await client.get(
         "/api/v1/prestamos", params={"estado": "cancelado"}, headers=_h(admin_token)
     )
     assert r.status_code == 200, r.text
-    assert prestamo_id not in [p["id"] for p in r.json()]
+    assert prestamo_id not in [p["id"] for p in r.json()["data"]]
 
 
 async def test_prestamo_inexistente_404(client, admin_token):

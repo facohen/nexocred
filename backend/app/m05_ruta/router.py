@@ -28,6 +28,7 @@ from app.m05_ruta.schemas import (
 )
 from app.m05_ruta.sync import sincronizar
 from app.m12_auth.modelos import Usuario
+from app.paginacion import Pagina, paginar
 
 router = APIRouter(tags=["ruta"])
 
@@ -75,18 +76,20 @@ async def crear_ruta(
     return RutaOut.model_validate(ruta)
 
 
-@router.get("/rutas", response_model=list[RutaOut])
+@router.get("/rutas", response_model=Pagina[RutaOut])
 async def listar_rutas(
     session: SessionDep,
     _: RutaUser,
     fecha: Annotated[date | None, Query()] = None,
     estado: Annotated[str | None, Query()] = None,
     cobrador_id: Annotated[uuid.UUID | None, Query()] = None,
-) -> list[RutaOut]:
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+) -> Pagina[RutaOut]:
     rutas = await servicio.listar_rutas(
         session, fecha=fecha, estado=estado, cobrador_id=cobrador_id
     )
-    return [RutaOut.model_validate(r) for r in rutas]
+    return paginar([RutaOut.model_validate(r) for r in rutas], page, per_page)
 
 
 @router.get("/rutas/{ruta_id}", response_model=RutaDetalleOut)
@@ -174,10 +177,15 @@ async def crear_rendicion(
     return RendicionOut.model_validate(rendicion)
 
 
-@router.get("/rendiciones", response_model=list[RendicionOut])
-async def listar_rendiciones(session: SessionDep, _: RutaUser) -> list[RendicionOut]:
+@router.get("/rendiciones", response_model=Pagina[RendicionOut])
+async def listar_rendiciones(
+    session: SessionDep,
+    _: RutaUser,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+) -> Pagina[RendicionOut]:
     rends = await servicio.listar_rendiciones(session)
-    return [RendicionOut.model_validate(r) for r in rends]
+    return paginar([RendicionOut.model_validate(r) for r in rends], page, per_page)
 
 
 async def _get_rendicion(session, rendicion_id: uuid.UUID):

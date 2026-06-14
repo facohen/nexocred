@@ -16,6 +16,7 @@ from app.m09_comisiones.schemas import (
     PagarLiquidacionIn,
 )
 from app.m12_auth.modelos import Usuario
+from app.paginacion import Pagina, paginar
 
 router = APIRouter(tags=["comisiones"])
 
@@ -94,14 +95,16 @@ async def pipeline_vendedor(
 
 
 # ---------- Liquidaciones ----------
-@router.get("/comisiones/liquidaciones", response_model=list[LiquidacionOut])
+@router.get("/comisiones/liquidaciones", response_model=Pagina[LiquidacionOut])
 async def listar_liquidaciones(
     session: SessionDep,
     _: VendedorUser,
     vendedor_id: Annotated[uuid.UUID | None, Query()] = None,
-) -> list[LiquidacionOut]:
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+) -> Pagina[LiquidacionOut]:
     liqs = await servicio.listar_liquidaciones(session, vendedor_id=vendedor_id)
-    return [LiquidacionOut.model_validate(liq) for liq in liqs]
+    return paginar([LiquidacionOut.model_validate(liq) for liq in liqs], page, per_page)
 
 
 @router.post(

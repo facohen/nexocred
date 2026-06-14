@@ -38,13 +38,13 @@ async def test_concentracion_y_cosechas(client, admin_token, session):
         "/api/v1/riesgo/concentracion?clave=producto_id", headers=_h(admin_token)
     )
     assert c.status_code == 200, c.text
-    shares = c.json()
+    shares = c.json()["data"]
     total_share = sum(Decimal(s["share"]) for s in shares)
     assert total_share <= Decimal("1.0001")
 
     cos = await client.get("/api/v1/riesgo/cosechas", headers=_h(admin_token))
     assert cos.status_code == 200, cos.text
-    assert len(cos.json()) >= 1
+    assert len(cos.json()["data"]) >= 1
 
 
 async def test_concentracion_clave_invalida(client, admin_token):

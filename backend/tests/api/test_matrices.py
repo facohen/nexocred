@@ -31,7 +31,7 @@ async def test_crear_perfil(client, admin_token):
     assert r.status_code == 201
     assert r.json()["nombre"] == "Premium"
     r = await client.get("/api/v1/perfiles-pricing", headers=_h(admin_token))
-    assert any(p["nombre"] == "Premium" for p in r.json())
+    assert any(p["nombre"] == "Premium" for p in r.json()["data"])
 
 
 async def test_perfil_duplicado_409(client, admin_token):
@@ -61,7 +61,7 @@ async def test_put_matriz_tasas_bulk_y_get(client, admin_token):
     assert tasas[6] == "0.3000"
 
     r = await client.get("/api/v1/matrices/tasas", headers=_h(admin_token))
-    assert len(r.json()) == 2
+    assert len(r.json()["data"]) == 2
 
 
 async def test_put_matriz_tasas_upsert(client, admin_token):
@@ -93,7 +93,7 @@ async def test_put_matriz_comisiones(client, admin_token):
     assert r.status_code == 200
     assert r.json()[0]["comision"] == "0.0500"
     r = await client.get("/api/v1/matrices/comisiones", headers=_h(admin_token))
-    assert len(r.json()) == 1
+    assert len(r.json()["data"]) == 1
 
 
 async def test_matriz_requiere_admin(client, analista_token):

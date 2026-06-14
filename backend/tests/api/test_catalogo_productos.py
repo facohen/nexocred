@@ -42,7 +42,7 @@ async def test_listar_productos(client, admin_token):
     await client.post("/api/v1/productos", json=_producto_payload(), headers=_h(admin_token))
     r = await client.get("/api/v1/productos", headers=_h(admin_token))
     assert r.status_code == 200
-    assert any(p["nombre"] == "Credito Personal" for p in r.json())
+    assert any(p["nombre"] == "Credito Personal" for p in r.json()["data"])
 
 
 async def test_detalle_producto_con_gastos(client, admin_token):
@@ -85,4 +85,4 @@ async def test_publicar_producto(client, admin_token):
 async def test_alta_producto_audita(client, admin_token):
     await client.post("/api/v1/productos", json=_producto_payload(), headers=_h(admin_token))
     r = await client.get("/api/v1/auditoria?accion=producto_alta", headers=_h(admin_token))
-    assert any(e["accion"] == "producto_alta" for e in r.json())
+    assert any(e["accion"] == "producto_alta" for e in r.json()["data"])

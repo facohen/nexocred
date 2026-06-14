@@ -25,6 +25,7 @@ from app.m07_riesgo.schemas import (
 )
 from app.m07_riesgo.servicio import cartera_riesgo
 from app.m12_auth.modelos import Usuario
+from app.paginacion import Pagina, paginar
 from nexocred_core import CERO, sumar
 
 router = APIRouter(tags=["riesgo"])
@@ -48,42 +49,53 @@ async def tablero(session: SessionDep, _: RiesgoUser) -> TableroOut:
     )
 
 
-@router.get("/riesgo/cosechas", response_model=list[CosechaOut])
-async def cosechas_endpoint(session: SessionDep, _: RiesgoUser) -> list[CosechaOut]:
+@router.get("/riesgo/cosechas", response_model=Pagina[CosechaOut])
+async def cosechas_endpoint(
+    session: SessionDep,
+    _: RiesgoUser,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+) -> Pagina[CosechaOut]:
     cartera = await cartera_riesgo(session)
     cos = cosechas(cartera)
-    return [
+    items = [
         CosechaOut(mes=mes, capital=v["capital"], mora=v["mora"],
                    ratio_mora=v["ratio_mora"])
         for mes, v in cos.items()
     ]
+    return paginar(items, page, per_page)
 
 
-@router.get("/riesgo/concentracion", response_model=list[ConcentracionItem])
+@router.get("/riesgo/concentracion", response_model=Pagina[ConcentracionItem])
 async def concentracion_endpoint(
     session: SessionDep,
     _: RiesgoUser,
     clave: Annotated[str, Query()] = "producto_id",
-) -> list[ConcentracionItem]:
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+) -> Pagina[ConcentracionItem]:
     if clave not in ("cliente_id", "zona", "vendedor_id", "producto_id"):
         raise ErrorAPI("clave_invalida", f"clave invalida: {clave}", status=422)
     cartera = await cartera_riesgo(session)
     shares = concentracion(cartera, clave)
-    return [
+    items = [
         ConcentracionItem(clave=clave, valor=k, share=v) for k, v in shares.items()
     ]
+    return paginar(items, page, per_page)
 
 
 # ---------- Alertas ----------
-@router.get("/alertas", response_model=list[AlertaOut])
+@router.get("/alertas", response_model=Pagina[AlertaOut])
 async def listar_alertas(
     session: SessionDep,
     _: RiesgoUser,
     estado: Annotated[str | None, Query()] = None,
     severidad: Annotated[str | None, Query()] = None,
-) -> list[AlertaOut]:
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+) -> Pagina[AlertaOut]:
     items = await alarmas.listar_alertas(session, estado=estado, severidad=severidad)
-    return [AlertaOut.model_validate(a) for a in items]
+    return paginar([AlertaOut.model_validate(a) for a in items], page, per_page)
 
 
 async def _get_alerta(session, alerta_id: uuid.UUID):
