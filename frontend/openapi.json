@@ -3647,6 +3647,22 @@
               "format": "uuid",
               "title": "Parada Id"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "requestBody": {
@@ -6077,6 +6093,118 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LiquidacionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/vendedores/{vendedor_id}/metas/{periodo}": {
+      "get": {
+        "tags": [
+          "metas"
+        ],
+        "summary": "Obtener Meta Periodo",
+        "operationId": "obtener_meta_periodo_api_v1_vendedores__vendedor_id__metas__periodo__get",
+        "parameters": [
+          {
+            "name": "vendedor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Vendedor Id"
+            }
+          },
+          {
+            "name": "periodo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Periodo"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetaVendedorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "metas"
+        ],
+        "summary": "Fijar Meta Periodo",
+        "operationId": "fijar_meta_periodo_api_v1_vendedores__vendedor_id__metas__periodo__put",
+        "parameters": [
+          {
+            "name": "vendedor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Vendedor Id"
+            }
+          },
+          {
+            "name": "periodo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Periodo"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MetaVendedorIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetaVendedorOut"
                 }
               }
             }
@@ -10326,6 +10454,105 @@
           "celdas"
         ],
         "title": "MatrizTasaIn"
+      },
+      "MetaVendedorIn": {
+        "properties": {
+          "monto_meta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Monto Meta"
+          },
+          "cantidad_meta": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cantidad Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "monto_meta"
+        ],
+        "title": "MetaVendedorIn",
+        "description": "Payload para crear/actualizar la meta de un período (PUT idempotente)."
+      },
+      "MetaVendedorOut": {
+        "properties": {
+          "vendedor_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Vendedor Id"
+          },
+          "periodo": {
+            "type": "string",
+            "title": "Periodo"
+          },
+          "monto_meta": {
+            "type": "string",
+            "title": "Monto Meta"
+          },
+          "cantidad_meta": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cantidad Meta"
+          },
+          "monto_colocado": {
+            "type": "string",
+            "title": "Monto Colocado"
+          },
+          "cantidad_colocada": {
+            "type": "integer",
+            "title": "Cantidad Colocada"
+          },
+          "porcentaje_avance": {
+            "type": "string",
+            "title": "Porcentaje Avance"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "vendedor_id",
+          "periodo",
+          "monto_meta",
+          "cantidad_meta",
+          "monto_colocado",
+          "cantidad_colocada",
+          "porcentaje_avance",
+          "updated_at"
+        ],
+        "title": "MetaVendedorOut",
+        "description": "Meta del período + avance real calculado desde los desembolsos.\n\n`monto_colocado` / `cantidad_colocada` son derivados (no persistidos);\n`porcentaje_avance` se entrega como métrica string para no exponer floats."
       },
       "MovimientoIn": {
         "properties": {
@@ -15456,6 +15683,18 @@
               }
             ],
             "title": "Fecha Negocio"
+          },
+          "pago_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pago Id"
           }
         },
         "type": "object",

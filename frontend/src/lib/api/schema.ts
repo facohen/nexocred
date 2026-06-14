@@ -1643,6 +1643,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/vendedores/{vendedor_id}/metas/{periodo}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Obtener Meta Periodo */
+        get: operations["obtener_meta_periodo_api_v1_vendedores__vendedor_id__metas__periodo__get"];
+        /** Fijar Meta Periodo */
+        put: operations["fijar_meta_periodo_api_v1_vendedores__vendedor_id__metas__periodo__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tesoreria/posicion": {
         parameters: {
             query?: never;
@@ -3222,6 +3240,44 @@ export interface components {
         MatrizTasaIn: {
             /** Celdas */
             celdas: components["schemas"]["CeldaTasaIn"][];
+        };
+        /**
+         * MetaVendedorIn
+         * @description Payload para crear/actualizar la meta de un período (PUT idempotente).
+         */
+        MetaVendedorIn: {
+            /** Monto Meta */
+            monto_meta: number | string;
+            /** Cantidad Meta */
+            cantidad_meta?: number | null;
+        };
+        /**
+         * MetaVendedorOut
+         * @description Meta del período + avance real calculado desde los desembolsos.
+         *
+         *     `monto_colocado` / `cantidad_colocada` son derivados (no persistidos);
+         *     `porcentaje_avance` se entrega como métrica string para no exponer floats.
+         */
+        MetaVendedorOut: {
+            /**
+             * Vendedor Id
+             * Format: uuid
+             */
+            vendedor_id: string;
+            /** Periodo */
+            periodo: string;
+            /** Monto Meta */
+            monto_meta: string;
+            /** Cantidad Meta */
+            cantidad_meta: number | null;
+            /** Monto Colocado */
+            monto_colocado: string;
+            /** Cantidad Colocada */
+            cantidad_colocada: number;
+            /** Porcentaje Avance */
+            porcentaje_avance: string;
+            /** Updated At */
+            updated_at: string | null;
         };
         /** MovimientoIn */
         MovimientoIn: {
@@ -4959,6 +5015,8 @@ export interface components {
             caja_id?: string | null;
             /** Fecha Negocio */
             fecha_negocio?: string | null;
+            /** Pago Id */
+            pago_id?: string | null;
         };
         /** VisitarOut */
         VisitarOut: {
@@ -7318,7 +7376,9 @@ export interface operations {
     visitar_parada_api_v1_rutas__ruta_id__paradas__parada_id__visitar_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
             path: {
                 ruta_id: string;
                 parada_id: string;
@@ -8876,6 +8936,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LiquidacionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    obtener_meta_periodo_api_v1_vendedores__vendedor_id__metas__periodo__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vendedor_id: string;
+                periodo: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetaVendedorOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fijar_meta_periodo_api_v1_vendedores__vendedor_id__metas__periodo__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vendedor_id: string;
+                periodo: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MetaVendedorIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetaVendedorOut"];
                 };
             };
             /** @description Validation Error */

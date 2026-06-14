@@ -12,6 +12,7 @@ from app.m05_ruta.router import router as m05_router
 from app.m06_novaciones.router import router as m06_router
 from app.m07_riesgo.router import router as m07_router
 from app.m08_crm.router import router as m08_router
+from app.m09_comisiones.metas_router import router as m09_metas_router
 from app.m09_comisiones.router import router as m09_router
 from app.m10_tesoreria.router import router as m10_router
 from app.m11_torre.router import router as m11_router
@@ -35,6 +36,7 @@ api_v1.include_router(m06_router)
 api_v1.include_router(m07_router)
 api_v1.include_router(m08_router)
 api_v1.include_router(m09_router)
+api_v1.include_router(m09_metas_router)
 api_v1.include_router(m10_router)
 api_v1.include_router(m11_router)
 api_v1.include_router(workflows_router)

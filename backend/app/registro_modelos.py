@@ -6,6 +6,7 @@ def cargar_todos_los_modelos() -> None:
     from app.m05_ruta import modelos as _m05  # noqa: F401
     from app.m06_novaciones import modelos as _m06  # noqa: F401
     from app.m08_crm import modelos as _m08  # noqa: F401
+    from app.m09_comisiones import metas_modelos as _m09_metas  # noqa: F401
     from app.m09_comisiones import modelos as _m09  # noqa: F401
     from app.m10_tesoreria import modelos as _m10  # noqa: F401
     from app.m12_auth import modelos as _m12  # noqa: F401
