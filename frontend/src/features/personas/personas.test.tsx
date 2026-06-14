@@ -118,11 +118,26 @@ describe("PersonaForm validacion", () => {
   });
 });
 
-describe("PersonaDetail + BCRA", () => {
-  it("muestra la ficha y consulta BCRA renderizando la deuda", async () => {
+describe("PersonaDetail 360", () => {
+  it("muestra, en la pestaña de actividad, los préstamos del cliente (la 'ficha 360')", async () => {
     renderWithProviders(<PersonaDetailPage />);
     expect(await screen.findByRole("heading", { name: /Pérez/ })).toBeInTheDocument();
 
+    // El préstamo de persona-2 (fixture) aparece con su monto desembolsado y estado.
+    const seccion = await screen.findByText(/Préstamos del cliente/i);
+    expect(seccion).toBeInTheDocument();
+    expect(await screen.findByText("$ 292.500,00")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /ver estado de cuenta/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("muestra la ficha y consulta BCRA renderizando la deuda (pestaña Ficha)", async () => {
+    renderWithProviders(<PersonaDetailPage />);
+    expect(await screen.findByRole("heading", { name: /Pérez/ })).toBeInTheDocument();
+
+    // BCRA y referencias viven en la pestaña "Ficha y referencias".
+    await userEvent.click(screen.getByRole("button", { name: /ficha y referencias/i }));
     await userEvent.click(screen.getByRole("button", { name: /consultar bcra/i }));
     const panel = await screen.findByLabelText(/deuda bcra/i);
     expect(within(panel).getByText(/Banco Provincia/)).toBeInTheDocument();

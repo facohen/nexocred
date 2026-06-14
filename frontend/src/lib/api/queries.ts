@@ -74,9 +74,9 @@ export function useMatrizTasas() {
   return useQuery({
     queryKey: ["matriz-tasas"],
     queryFn: () =>
-      apiFetch<{ data: { producto_id: string; perfil_pricing_id: string; plazo: number; tasa: string }[] }>(
-        "/matrices/tasas",
-      ),
+      apiFetch<{
+        data: { producto_id: string; perfil_pricing_id: string; plazo: number; tasa: string }[];
+      }>("/matrices/tasas"),
   });
 }
 
@@ -141,19 +141,25 @@ export function useAccionSolicitud(id: string) {
         // and must NOT carry one. The caller may pass a stable key to reuse it
         // across retries of the same intent.
         idempotencyKey:
-          vars.accion === "desembolsar"
-            ? vars.idempotencyKey ?? newIdempotencyKey()
-            : undefined,
+          vars.accion === "desembolsar" ? (vars.idempotencyKey ?? newIdempotencyKey()) : undefined,
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["solicitud", id] }),
   });
 }
 
 // ---- Préstamos ----
-export function usePrestamos() {
+// El backend acepta ?persona_id / ?estado / ?producto_id (filtros en SQL). La
+// ficha 360 del cliente usa `personaId` para traer SOLO sus préstamos; sin él se
+// listan todos (página de préstamos).
+export function usePrestamos(filtros?: { personaId?: string; estado?: string }) {
+  const personaId = filtros?.personaId;
+  const estado = filtros?.estado;
   return useQuery({
-    queryKey: ["prestamos"],
-    queryFn: () => apiFetch<Pagina<Sch["PrestamoOut"]>>("/prestamos"),
+    queryKey: ["prestamos", personaId ?? "", estado ?? ""],
+    queryFn: () =>
+      apiFetch<Pagina<Sch["PrestamoOut"]>>("/prestamos", {
+        query: { persona_id: personaId, estado },
+      }),
   });
 }
 

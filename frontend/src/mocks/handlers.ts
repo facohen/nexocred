@@ -170,9 +170,18 @@ export const handlers = [
   }),
 
   // ---- Préstamos ----
-  http.get(`${BASE}/prestamos`, () =>
-    HttpResponse.json({ data: fx.prestamos, total: fx.prestamos.length, page: 1, per_page: 50 }),
-  ),
+  http.get(`${BASE}/prestamos`, ({ request }) => {
+    // El backend filtra por ?persona_id / ?estado en SQL; el mock lo replica para
+    // cubrir la ficha 360 del cliente (trae solo SUS préstamos).
+    const url = new URL(request.url);
+    const personaId = url.searchParams.get("persona_id");
+    const estado = url.searchParams.get("estado");
+    const data = fx.prestamos.filter(
+      (p) =>
+        (!personaId || p.persona_id === personaId) && (!estado || p.estado === estado),
+    );
+    return HttpResponse.json({ data, total: data.length, page: 1, per_page: 50 });
+  }),
   http.get(`${BASE}/prestamos/:id`, ({ params }) => {
     const p = fx.prestamos.find((x) => x.id === params.id);
     if (!p) return err("no_encontrado", "Préstamo no encontrado", 404);

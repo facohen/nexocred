@@ -270,6 +270,24 @@ export const prestamos: Prestamo[] = [
     },
     created_at: "2026-01-10T12:00:00Z",
   },
+  {
+    id: "prestamo-2",
+    persona_id: "persona-2",
+    producto_id: "producto-1",
+    solicitud_id: "solicitud-2",
+    capital: "300000.00",
+    estado: "vigente",
+    fecha_desembolso: "2026-02-15",
+    tasa_punitorio_diario: "0.10",
+    monto_desembolsado: "292500.00",
+    snapshot_terminos: {
+      tasa_interes_directo: "30.00",
+      cantidad_cuotas: 6,
+      periodicidad: "mensual",
+      gastos: [{ concepto: "Gasto de otorgamiento", valor: "7500.00" }],
+    },
+    created_at: "2026-02-15T12:00:00Z",
+  },
 ];
 
 // El backend devuelve un ARRAY PELADO de CuotaOut (sin wrapper {data}, sin campo
