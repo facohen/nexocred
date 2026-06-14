@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { server } from "@/mocks/server";
@@ -39,6 +39,39 @@ describe("RutaPage (La Ruta offline)", () => {
     expect((await screen.findAllByText(/Préstamo/i)).length).toBeGreaterThan(0);
     // saldo exigible formateado es-AR (12500.00 -> 12.500,00)
     expect(await screen.findByText(/12\.500,00/)).toBeInTheDocument();
+  });
+
+  it("muestra la cabecera-dashboard del día (cobrado, paradas hechas/total)", async () => {
+    server.use(
+      http.get(`${BASE}/rutas/:id/paradas`, () =>
+        HttpResponse.json({
+          data: [
+            {
+              id: "parada-1", ruta_id: "ruta-1", prestamo_id: "prestamo-1", orden: 1,
+              resultado: "pago", monto_cobrado: "5000.00", foto_url: null, lat: null,
+              lng: null, notas: null, visitada_en: "2026-06-14T09:00:00Z",
+              saldo_exigible: "12500.00",
+            },
+            {
+              id: "parada-2", ruta_id: "ruta-1", prestamo_id: "prestamo-2", orden: 2,
+              resultado: null, monto_cobrado: null, foto_url: null, lat: null,
+              lng: null, notas: null, visitada_en: null, saldo_exigible: "8300.50",
+            },
+          ],
+          total: 2, page: 1, per_page: 50,
+        }),
+      ),
+    );
+    renderWithProviders(<RutaPage rutaId="ruta-1" />, {
+      email: "cobrador@nexocred.test",
+      nombre: "Cobra",
+      roles: ["cobrador"],
+    });
+    const resumen = await screen.findByLabelText(/resumen del día/i);
+    // cobrado del día = 5.000,00
+    expect(within(resumen).getByText(/5\.000,00/)).toBeInTheDocument();
+    // 1 de 2 paradas hechas
+    expect(within(resumen).getByText("1/2")).toBeInTheDocument();
   });
 
   it("muestra el contador de pendientes en el badge de sync", async () => {

@@ -1,11 +1,15 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TransactionButton } from "@/components/TransactionButton";
 import { MoneyText } from "@/components/MoneyText";
+import { addMoney } from "@/lib/money";
 import { useCajas } from "@/lib/api/queries";
 import { useParadas } from "./hooks";
+import type { components } from "@/lib/api/schema";
+
+type Parada = components["schemas"]["ParadaConSaldoOut"];
 import { useRutaSync } from "./useOnline";
 import { encolarVisita, contarPendientes, type VisitaEncolada } from "./queue";
 import { VisitaCaptureForm } from "./VisitaCaptureForm";
@@ -124,6 +128,8 @@ export function RutaPage({ rutaId }: { rutaId: string }) {
         </div>
       )}
 
+      {!paradasQ.isLoading && !paradasQ.isError && <RutaResumen paradas={paradas} />}
+
       {paradasQ.isLoading ? (
         <Skeleton />
       ) : paradasQ.isError ? (
@@ -170,6 +176,43 @@ export function RutaPage({ rutaId }: { rutaId: string }) {
           ))}
         </ol>
       )}
+    </div>
+  );
+}
+
+// Cabecera-dashboard del día del cobrador: se deriva de las paradas ya cargadas
+// (sin query ni backend nuevos) y NO toca la lógica offline/IndexedDB.
+function RutaResumen({ paradas }: { paradas: Parada[] }) {
+  const r = useMemo(() => {
+    const total = paradas.length;
+    const hechas = paradas.filter((p) => p.resultado != null).length;
+    const promesas = paradas.filter((p) => p.resultado === "promesa").length;
+    const objetivo = paradas.reduce((acc, p) => addMoney(acc, p.saldo_exigible ?? "0"), "0");
+    const cobrado = paradas.reduce((acc, p) => addMoney(acc, p.monto_cobrado ?? "0"), "0");
+    return { total, hechas, promesas, objetivo, cobrado };
+  }, [paradas]);
+
+  if (r.total === 0) return null;
+
+  return (
+    <div className="grid grid-cols-2 gap-2" aria-label="Resumen del día">
+      <Card className="p-3">
+        <div className="text-xs text-text-muted">Cobrado del día</div>
+        <MoneyText value={r.cobrado} intent="income" className="text-base font-semibold" />
+        <div className="text-xs text-text-subtle">
+          objetivo <MoneyText value={r.objetivo} withSymbol={false} />
+        </div>
+      </Card>
+      <Card className="p-3">
+        <div className="text-xs text-text-muted">Paradas</div>
+        <div className="text-base font-semibold tabular-nums text-text">
+          {r.hechas}/{r.total}
+        </div>
+        <div className="text-xs text-text-subtle">
+          {r.total - r.hechas} pendiente{r.total - r.hechas === 1 ? "" : "s"}
+          {r.promesas > 0 ? ` · ${r.promesas} promesa${r.promesas === 1 ? "" : "s"}` : ""}
+        </div>
+      </Card>
     </div>
   );
 }
