@@ -28,9 +28,9 @@ Una financiera de microcrédito vive de tres tensiones permanentes:
 
 | Tensión | Cómo se vive sin sistema | Cómo lo resuelve NexoCred |
 |---|---|---|
-| **Cobrar a tiempo** | El cobrador en la calle no tiene visibilidad de la deuda exacta; los pagos se anotan en papel y se cargan tarde o con errores. | "La Ruta": app móvil que funciona **sin conexión**, con la deuda exacta de cada cliente y registro del cobro en el momento. |
+| **Cobrar a tiempo** | El cobrador en la calle no tiene visibilidad de la deuda exacta; los pagos se anotan en papel y se cargan tarde o con errores. | "Ruta de Cobranza": app móvil que funciona **sin conexión**, con la deuda exacta de cada cliente y registro del cobro en el momento. |
 | **No prestar de más ni de menos** | La evaluación depende del criterio de cada analista; no hay control consistente de políticas. | Originación con scoring interno, validación automática de políticas (edad, relación cuota/ingreso, BCRA, mora previa) y simulación de oferta en vivo. |
-| **Saber dónde está la plata** | La posición de caja y de capital se arma "a mano" a fin de mes; el riesgo se descubre tarde. | Tesorería y riesgo en tiempo real, con tablero de dirección ("La Torre") que consolida todo el negocio. |
+| **Saber dónde está la plata** | La posición de caja y de capital se arma "a mano" a fin de mes; el riesgo se descubre tarde. | Tesorería y riesgo en tiempo real, con tablero de dirección ("Tablero Ejecutivo") que consolida todo el negocio. |
 
 El resultado buscado: **menos pérdida por mora, decisiones de crédito más consistentes, y visibilidad total del capital y la cartera.**
 
@@ -62,7 +62,7 @@ A continuación, qué puede hacer el sistema, agrupado por el área de la empres
 - **Corrección en 1 clic:** un cobro mal registrado se revierte con contra-asiento (sin borrar el original, preservando la trazabilidad) y se vuelve a aplicar desde cero.
 - **Tolerancia de cobro configurable:** diferencias menores de centavos cierran la cuota automáticamente registrando el ajuste, sin dejar saldos "fantasma".
 
-### 3.4 Cobranza de campo ("La Ruta")
+### 3.4 Cobranza de campo ("Ruta de Cobranza")
 
 - **App móvil offline-first:** el cobrador recibe su ruta del día con la deuda exacta de cada parada y **opera sin conexión** en zonas sin señal.
 - **Cola idempotente:** cada cobro se estampa con un identificador único de dispositivo y se sincroniza después sin riesgo de duplicar cobros, incluso si el celular pierde conexión a mitad de la operación.
@@ -92,7 +92,7 @@ A continuación, qué puede hacer el sistema, agrupado por el área de la empres
 - **Comisiones** devengadas por desembolso, con **clawback** (reversión si el crédito se cae), liquidaciones por período (generar → aprobar → pagar con egreso de caja).
 - **Portal del vendedor:** su cartera originada con estado y mora, su pipeline de solicitudes y sus comisiones.
 
-### 3.9 Tablero de dirección ("La Torre")
+### 3.9 Tablero de dirección ("Tablero Ejecutivo")
 
 El centro de comando del dueño/CEO, con:
 
@@ -114,10 +114,10 @@ El centro de comando del dueño/CEO, con:
 
 | Rol | Qué hace en NexoCred | Dónde empieza su día |
 |---|---|---|
-| **Administrador** | Configura productos, parámetros, usuarios; supervisa todo. | Personas / La Torre |
+| **Administrador** | Configura productos, parámetros, usuarios; supervisa todo. | Personas / Tablero Ejecutivo |
 | **Analista** | Evalúa y aprueba solicitudes; gestiona fichas de cliente. | Personas |
 | **Vendedor** | Origina solicitudes; sigue su cartera y comisiones. | Solicitudes |
-| **Cobrador** | Recorre su ruta, cobra en la calle, rinde el día. | La Ruta |
+| **Cobrador** | Recorre su ruta, cobra en la calle, rinde el día. | Ruta de Cobranza |
 | **Operador (CRM)** | Atiende tareas, incidentes e interacciones con clientes. | Inbox de CRM |
 | **Tesorería** | Controla capital, flujo de caja y posición. | Tesorería |
 
@@ -128,10 +128,10 @@ La **separación de funciones** está garantizada por diseño: un cobrador no pu
 ## 5. Diferenciadores clave (por qué este sistema y no una planilla)
 
 1. **Motor financiero auditado.** Toda la lógica de dinero vive en un único componente probado con cientos de escenarios automáticos. No hay fórmulas dispersas en planillas distintas que se contradicen.
-2. **Cobranza que no se detiene sin señal.** "La Ruta" es offline-first de verdad: el cobrador trabaja, el sistema reconcilia después sin duplicar nada.
+2. **Cobranza que no se detiene sin señal.** "Ruta de Cobranza" es offline-first de verdad: el cobrador trabaja, el sistema reconcilia después sin duplicar nada.
 3. **Imposible cobrar o desembolsar dos veces por error.** Las operaciones financieras críticas están protegidas contra duplicados, incluso bajo reintentos de red o doble-tap en el celular.
 4. **Trazabilidad total.** El ledger de pagos no se borra; se corrige. Cada movimiento tiene autor y motivo.
-5. **Visibilidad de dirección en tiempo real.** "La Torre" reúne el pulso de cobranza, riesgo, tesorería y comercial en una sola pantalla.
+5. **Visibilidad de dirección en tiempo real.** "Tablero Ejecutivo" reúne el pulso de cobranza, riesgo, tesorería y comercial en una sola pantalla.
 
 ---
 

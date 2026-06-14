@@ -4,12 +4,13 @@
 
 **Plataforma operativa integral para financieras de microcrédito y crédito al consumo.**
 
-Originación · Cobranza de campo offline · Caja · Riesgo · Tesorería · Tablero de dirección
+Originación · Cobranza de campo offline · Caja · Riesgo · Tesorería · Tablero Ejecutivo
 
 [![Estado](https://img.shields.io/badge/estado-Release%20Candidate-success)]()
 [![Backend](https://img.shields.io/badge/backend-Python%203.12%20·%20FastAPI-3776AB)]()
 [![Frontend](https://img.shields.io/badge/frontend-React%2018%20·%20Vite%20·%20TS-61DAFB)]()
-[![Tests](https://img.shields.io/badge/tests-392%20backend%20·%20173%20frontend-success)]()
+[![Tests](https://img.shields.io/badge/tests-413%20backend%20·%20227%20frontend%20·%207%20e2e-success)]()
+[![UI](https://img.shields.io/badge/UI-inbox--driven%20·%20dark%2Flight-5E6AD2)]()
 
 </div>
 
@@ -32,14 +33,18 @@ Originación · Cobranza de campo offline · Caja · Riesgo · Tesorería · Tab
 ## ¿Qué es NexoCred?
 
 NexoCred reúne en un solo sistema el ciclo completo de una financiera: alta de clientes (CRM 360),
-evaluación y otorgamiento de crédito, cobranza puerta a puerta **offline-first** ("La Ruta"), caja,
-novaciones, riesgo, comisiones, tesorería y un tablero de comando para la dirección ("La Torre").
+evaluación y otorgamiento de crédito, cobranza puerta a puerta **offline-first** (Ruta de Cobranza),
+caja, novaciones, riesgo, comisiones, tesorería y el **Tablero Ejecutivo** para la dirección.
 
 Tres principios guían el diseño:
 
 - 💰 **El dinero nunca se distorsiona** — todo importe es `Decimal`, redondeo `ROUND_HALF_UP`, motor financiero puro y testeado con property-based testing.
 - 🔍 **Todo queda auditado** — cada pago, corrección, aprobación y cambio de parámetro deja rastro de quién, cuándo y qué cambió.
 - 📴 **Se opera donde sucede** — el cobrador trabaja sin señal y sincroniza después, sin duplicar cobros.
+
+El frontend está organizado **por trabajo, no por tabla** (*inbox-driven*): cada rol entra y ve
+su bandeja de pendientes de hoy, no una grilla de entidades. UI con **dark/light mode** y estética
+moderna; type-safety end-to-end contra el OpenAPI del backend.
 
 > Para una visión de negocio orientada a dirección, ver
 > [`docs/ESPECIFICACIONES_FUNCIONALES_CEO.md`](docs/ESPECIFICACIONES_FUNCIONALES_CEO.md).
@@ -195,6 +200,9 @@ curl http://localhost:8001/healthcheck
 
 ## Tests y calidad
 
+Cobertura actual: **413 tests de backend** (pytest + Hypothesis), **227 de frontend**
+(Vitest + MSW) y **7 E2E** (Playwright, flujos financieros y offline contra el backend real).
+
 ```bash
 make check          # lint + typecheck + tests (backend y frontend)
 ```
@@ -202,10 +210,18 @@ make check          # lint + typecheck + tests (backend y frontend)
 O por separado:
 
 ```bash
-pytest              # backend
-ruff check backend  # lint
-pyright             # typecheck backend
-cd frontend && npm run test && npm run typecheck   # frontend
+# Backend
+pytest                          # tests
+ruff check backend              # lint
+pyright                         # typecheck
+
+# Frontend (cd frontend)
+npm run test                    # unit + component (Vitest + MSW)
+npm run typecheck               # tsc
+npm run lint                    # ESLint
+npm run e2e                     # Playwright (levanta el front con MSW)
+npm run gen:api                 # regenera tipos desde openapi.json
+npm run gen:api:check           # drift gate: falla si schema.ts difiere del spec
 ```
 
 ---
@@ -221,10 +237,13 @@ cd frontend && npm run test && npm run typecheck   # frontend
 
 ### Frontend
 
-- **React 18** · Vite · TypeScript
-- **Datos**: TanStack Query / Table / Router · **Formularios**: React Hook Form + Zod
-- **UI**: Tailwind + shadcn/ui · **Gráficos**: Tremor · **⌘K**: cmdk
-- **La Ruta (PWA)**: Workbox + IndexedDB para cola offline, UUIDv7 en dispositivo
+- **React 18** · Vite · TypeScript (strict)
+- **Arquitectura inbox-driven**: navegación por áreas de trabajo (verbos), no por entidad. Cada rol aterriza en su bandeja de pendientes; las entidades se alcanzan por búsqueda (⌘K) y drill-down.
+- **Datos**: TanStack Query / Table / Router (lazy + code-splitting) · **Formularios**: React Hook Form + Zod
+- **Contrato type-safe**: `openapi-typescript` + `openapi-fetch` generan el cliente desde `openapi.json`; drift gate en CI
+- **UI**: Tailwind + shadcn/ui con **tokens duales light/dark** (estética Stripe) · **Gráficos**: Tremor · **⌘K**: cmdk · ErrorBoundary
+- **Ruta de Cobranza (PWA)**: Workbox + IndexedDB para cola offline, UUIDv7 en dispositivo, sync idempotente
+- **Tests**: Vitest + MSW (unit/component) + Playwright (E2E)
 
 ### Infraestructura
 
@@ -239,7 +258,9 @@ cd frontend && npm run test && npm run typecheck   # frontend
 |-----------|-----------|
 | [`docs/ESPECIFICACIONES_FUNCIONALES_CEO.md`](docs/ESPECIFICACIONES_FUNCIONALES_CEO.md) | Especificaciones funcionales orientadas a dirección |
 | [`docs/superpowers/specs/2026-06-11-nexocred-poc-design.md`](docs/superpowers/specs/2026-06-11-nexocred-poc-design.md) | Spec de diseño técnico (DDL, contratos API, dominio) |
-| [`docs/RELEASE_NOTES.md`](docs/RELEASE_NOTES.md) | Estado de entrega y módulos |
+| [`docs/RELEASE_NOTES.md`](docs/RELEASE_NOTES.md) | Estado de entrega, módulos y rebuild del frontend |
 | [`docs/DECISIONES_NEGOCIO.md`](docs/DECISIONES_NEGOCIO.md) | Decisiones de negocio (waterfall, excedente, offline) |
+| [`docs/DEUDA_TECNICA.md`](docs/DEUDA_TECNICA.md) | Deuda conocida (performance, infra, alcance) |
 | [`docs/RUNBOOK.md`](docs/RUNBOOK.md) | Operación y troubleshooting |
 | [`docs/AUDITORIA_CODIGO_2026-06-12.md`](docs/AUDITORIA_CODIGO_2026-06-12.md) | Auditoría de código (críticos C1–C8) |
+| [`docs/AUDITORIA_2026-06-14.md`](docs/AUDITORIA_2026-06-14.md) | Auditoría adversarial full-stack (IDOR, dinero, contrato) |

@@ -1,6 +1,15 @@
 # NexoCred POC — Spec de Diseño
 
 > Basado en PRD v1.0. Decisiones tomadas en sesión de brainstorming 2026-06-11.
+>
+> **NOTA (2026-06-14):** este documento registra el diseño ORIGINAL del POC. El
+> backend sigue esta spec. El **frontend se reconstruyó** con arquitectura
+> *inbox-driven* (navegación por trabajo, no por entidad), dark/light mode,
+> cliente type-safe (openapi-fetch) y renombres de cara al usuario (La Torre →
+> Tablero Ejecutivo, La Ruta → Ruta de Cobranza). Ver `RELEASE_NOTES.md` §Rebuild
+> y `AUDITORIA_2026-06-14.md` para el estado actual. Los nombres "La Torre"/"La
+> Ruta" de abajo refieren a los módulos M11/M05 (nombres técnicos internos, que
+> se conservan).
 
 ---
 

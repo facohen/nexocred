@@ -1,9 +1,14 @@
 # NexoCred — RUNBOOK (puesta en marcha local + demo)
 
 POC de gestion de creditos (originacion, prestamos, pagos/waterfall, ruta de
-cobranza offline, riesgo, comisiones, tesoreria, La Torre). Backend FastAPI +
-SQLAlchemy async + Celery; frontend React + Vite + TanStack; Postgres 18 +
-Redis 7; orquestado con Docker Compose.
+cobranza offline, riesgo, comisiones, tesoreria, Tablero Ejecutivo). Backend
+FastAPI + SQLAlchemy async + Celery; frontend React + Vite + TanStack; Postgres
+18 + Redis 7; orquestado con Docker Compose.
+
+> **Nombres**: en la UI, el dashboard de direccion es el **Tablero Ejecutivo** y
+> la cobranza de campo es la **Ruta de Cobranza**. Los nombres tecnicos internos
+> (modulos `m11_torre`/`m05_ruta`, endpoints `/torre/*`, `/rutas/*`) se conservan
+> y aparecen asi mas abajo.
 
 ## 1. Requisitos
 

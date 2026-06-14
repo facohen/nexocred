@@ -119,3 +119,40 @@ Los ~28 majors y ~14 minors quedan trackeados en el informe de auditoría para l
 - **Siembra -> Torre:** 20 personas / 12 prestamos / 4 en mora; pulso ->
   vigentes=12, en_mora=4, colocacion=800000.00, intereses=15000.00,
   capital_disponible no-cero.
+
+## Rebuild del frontend (2026-06-14)
+
+El frontend se reconstruyó world-class manteniendo la lógica de negocio probada
+(money string/BigInt, idempotencia, cola offline de la Ruta) **preservada verbatim**.
+
+- **Arquitectura inbox-driven**: navegación por áreas de trabajo (verbos), no por
+  entidad. Cada rol aterriza en su bandeja de pendientes; la persona deja de ser la
+  pantalla 1 → se alcanza por búsqueda (⌘K) y drill-down.
+- **Design system** estética Stripe con **dark/light mode** nativo (tokens duales),
+  fuente mono tabular para importes, escala de mora ordinal.
+- **Tooling de contrato**: `openapi.json` exportado del backend → `openapi-typescript`
+  + `openapi-fetch` (cliente type-safe), fixtures derivados del schema, drift gate.
+- **Renombres** de cara al usuario: "La Torre" → **Tablero Ejecutivo**, "La Ruta" →
+  **Ruta de Cobranza**, "Clawback" → **Reversión de Comisión**, "Payoff" → **Saldo de
+  Cancelación**, etc.
+- **Code-splitting**: bundle inicial de 1.4MB → ~78KB (lazy por ruta).
+- **E2E con Playwright** (antes "fuera de alcance"): 7 tests de flujos financieros y
+  offline contra el backend real.
+
+## Auditoría adversarial full-stack (2026-06-14)
+
+Auditoría de todo el stack con verificación en vivo. Bugs reales encontrados y
+**arreglados**: IDOR (fuga de datos entre cobradores/vendedores), tolerancia que
+re-cobraba plata perdonada, `visitar` sin idempotencia, 4 mismatches de contrato que
+rompían pantallas con datos reales, y crashes defensivos del frontend. Detalle en
+[`AUDITORIA_2026-06-14.md`](AUDITORIA_2026-06-14.md). Deuda restante en
+[`DEUDA_TECNICA.md`](DEUDA_TECNICA.md).
+
+### Resultados (post-rebuild + auditoría)
+
+- **Backend:** 413 tests passed; `ruff check backend` limpio.
+- **Frontend:** 227 tests + 7 E2E (Playwright); `tsc` + ESLint limpios; build OK.
+- **Contrato:** los 22 listados de colección unificados al sobre paginado
+  `{data, total, page, per_page}`; `/auditoria` pagina en SQL.
+- **Verificado en vivo** contra el backend real: IDOR→403, payoff 200, Tablero con
+  aging real, Tesorería/cuotas sin crash, pago con conservación de caja exacta.
