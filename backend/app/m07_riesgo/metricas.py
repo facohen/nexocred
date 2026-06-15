@@ -60,6 +60,15 @@ _BUCKETS = [
 ]
 
 
+def bucket_atraso(dias_atraso: int) -> str:
+    """Nombre del bucket de aging para un atraso dado. Fuente única de los tramos
+    (la usan aging y el cálculo de PE monetaria en analytics)."""
+    for nombre, lo, hi in _BUCKETS:
+        if dias_atraso >= lo and (hi is None or dias_atraso <= hi):
+            return nombre
+    return _BUCKETS[-1][0]
+
+
 def aging(prestamos: list[PrestamoRiesgo]) -> dict[str, Decimal]:
     """Reparte el capital outstanding en buckets por dias de atraso."""
     out: dict[str, Decimal] = {nombre: CERO for nombre, _, _ in _BUCKETS}

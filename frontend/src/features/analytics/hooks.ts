@@ -1,15 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api/client";
+import type { Pagina } from "@/lib/api/queries";
 import type { components } from "@/lib/api/schema";
 
 type Sch = components["schemas"];
-
-interface Pagina<T> {
-  data: T[];
-  total: number;
-  page: number;
-  per_page: number;
-}
 
 export type DimensionRentabilidad =
   | "producto"

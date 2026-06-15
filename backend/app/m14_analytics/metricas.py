@@ -16,11 +16,11 @@ Definiciones:
 from dataclasses import dataclass
 from decimal import Decimal
 
-from app.m07_riesgo.metricas import _PE_PONDERACION
+from app.finanzas import prorratear_costo
+from app.m07_riesgo.metricas import _PE_PONDERACION, bucket_atraso
 from nexocred_core import CERO, redondear, sumar
 
 ESCALA_RATIO = Decimal("0.0001")
-_DIAS_ANIO = Decimal("365")
 
 
 @dataclass(frozen=True)
@@ -41,33 +41,19 @@ class PrestamoRentabilidad:
     refinanciado: bool = False
 
 
-def _bucket(dias_atraso: int) -> str:
-    if dias_atraso <= 0:
-        return "al_dia"
-    if dias_atraso <= 30:
-        return "1_30"
-    if dias_atraso <= 60:
-        return "31_60"
-    if dias_atraso <= 90:
-        return "61_90"
-    return "90_mas"
-
-
 def margen_bruto(p: PrestamoRentabilidad) -> Decimal:
     return redondear(p.interes_cobrado - p.comision_originacion - p.gastos_originacion)
 
 
 def costo_fondeo(p: PrestamoRentabilidad, tasa_anual: Decimal) -> Decimal:
     """Costo de fondear el capital pendiente durante la vida transcurrida."""
-    if p.capital_pendiente <= CERO or p.dias_vida <= 0:
-        return CERO
-    costo = p.capital_pendiente * tasa_anual * Decimal(p.dias_vida) / _DIAS_ANIO
-    return redondear(costo)
+    return prorratear_costo(p.capital_pendiente, tasa_anual, p.dias_vida)
 
 
 def pe_monetaria(p: PrestamoRentabilidad) -> Decimal:
-    """Perdida esperada en dinero = capital pendiente * ponderacion del bucket."""
-    ponderacion = _PE_PONDERACION[_bucket(p.dias_atraso)]
+    """Perdida esperada en dinero = capital pendiente * ponderacion del bucket
+    (reusa los tramos de aging de m07 vía bucket_atraso)."""
+    ponderacion = _PE_PONDERACION[bucket_atraso(p.dias_atraso)]
     return redondear(p.capital_pendiente * ponderacion)
 
 

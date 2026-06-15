@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.m07_riesgo.servicio import snapshot_prestamo
-from app.m12_auth.router import costo_capital_anual
+from app.parametros_globales import costo_capital_anual
 from app.m14_analytics.metricas import (
     AgregadoRentabilidad,
     PrestamoRentabilidad,
@@ -97,6 +97,10 @@ async def _snapshots(
     comision = await _comision_por_prestamo(session)
     gastos_pp = await _gastos_por_producto(session)
 
+    # DEUDA CONOCIDA (N+1): snapshot_prestamo hace 2 queries por préstamo (cuotas +
+    # imputaciones), igual que cartera_riesgo en m07. Para carteras grandes conviene
+    # un loader batch (cuotas/imputaciones de todos los prestamo_id en 2 queries con
+    # IN). Se deja como mejora acotada del motor de riesgo, no de este módulo.
     salida: list[PrestamoRentabilidad] = []
     for p in prestamos:
         riesgo = await snapshot_prestamo(session, p, fecha)

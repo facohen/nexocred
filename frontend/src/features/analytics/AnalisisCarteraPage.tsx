@@ -12,11 +12,18 @@ import {
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MoneyText } from "@/components/MoneyText";
-import { formatMoneyAr } from "@/lib/money";
 import { formatRatioPercent } from "@/features/riesgo/format";
 import { useResumenAnalytics, useRentabilidad, type DimensionRentabilidad } from "./hooks";
 import { useDcf } from "@/features/tesoreria/hooks";
 import { CurvaDcf } from "./CurvaDcf";
+import {
+  AXIS_STROKE,
+  AXIS_TICK,
+  GRID_PROPS,
+  TOOLTIP_STYLE,
+  moneyTickFormatter,
+} from "./recharts-config";
+import { aNumero, pctIsNegative, signedIntent, truncarEtiqueta } from "./utils";
 import type { components } from "@/lib/api/schema";
 
 type RentabilidadItem = components["schemas"]["RentabilidadItem"];
@@ -130,6 +137,7 @@ export function AnalisisCarteraPage() {
               <button
                 key={d.key}
                 type="button"
+                aria-pressed={dimension === d.key}
                 onClick={() => setDimension(d.key)}
                 className={`rounded-md border px-2.5 py-1 text-xs transition-colors ${
                   dimension === d.key
@@ -171,51 +179,19 @@ function Kpi({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-// Conversión SOLO para geometría del gráfico (posición de barras). El dinero NUNCA
-// se muestra desde estos números: la UI usa MoneyText/formatMoneyAr con el string.
-function aNumero(monto: string): number {
-  const n = Number(monto);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function signedIntent(monto: string | undefined): "income" | "expense" | "neutral" {
-  if (!monto) return "neutral";
-  const n = Number(monto);
-  if (n > 0) return "income";
-  if (n < 0) return "expense";
-  return "neutral";
-}
-
-function pctIsNegative(tasa: string | undefined): boolean {
-  return Boolean(tasa) && Number(tasa) < 0;
-}
-
 function BarrasMargen({ items }: { items: RentabilidadItem[] }) {
   const data = items.slice(0, 12).map((i) => ({
-    clave: i.clave.length > 14 ? `${i.clave.slice(0, 12)}…` : i.clave,
+    clave: truncarEtiqueta(i.clave),
     margen: aNumero(i.margen_neto),
   }));
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-          <XAxis dataKey="clave" tick={{ fontSize: 11 }} stroke="hsl(var(--text-muted))" />
-          <YAxis
-            tick={{ fontSize: 11 }}
-            stroke="hsl(var(--text-muted))"
-            tickFormatter={(v) => formatMoneyAr(String(v))}
-            width={90}
-          />
-          <Tooltip
-            formatter={(v) => formatMoneyAr(String(v ?? 0))}
-            contentStyle={{
-              background: "hsl(var(--surface))",
-              border: "1px solid hsl(var(--border))",
-              borderRadius: 8,
-              fontSize: 12,
-            }}
-          />
+          <CartesianGrid {...GRID_PROPS} />
+          <XAxis dataKey="clave" tick={AXIS_TICK} stroke={AXIS_STROKE} />
+          <YAxis tick={AXIS_TICK} stroke={AXIS_STROKE} tickFormatter={moneyTickFormatter} width={90} />
+          <Tooltip formatter={moneyTickFormatter} contentStyle={TOOLTIP_STYLE} />
           <Bar dataKey="margen" radius={[4, 4, 0, 0]}>
             {data.map((d) => (
               <Cell
@@ -238,9 +214,11 @@ function TablaRentabilidad({
   dimension: DimensionRentabilidad;
 }) {
   const link = DEEPLINK[dimension];
+  const etiqueta = DIMENSIONES.find((d) => d.key === dimension)?.label ?? dimension;
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
+        <caption className="sr-only">Rentabilidad por {etiqueta}</caption>
         <thead>
           <tr className="border-b border-border text-left text-text-muted">
             <th className="py-1 pr-2">Clave</th>

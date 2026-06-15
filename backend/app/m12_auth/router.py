@@ -26,25 +26,12 @@ from app.m12_auth.seguridad import (
     decodificar_token,
 )
 from app.paginacion import Pagina, paginar, paginar_query
+# El store de parámetros vive en un módulo neutral (sin dependencias de router)
+# para que los servicios lo lean sin invertir la jerarquía. Se re-exporta acá por
+# compatibilidad con importadores existentes.
+from app.parametros_globales import PARAMETROS_GLOBALES, costo_capital_anual
 
 router = APIRouter()
-
-# Parametros globales del sistema (almacen simple en memoria para F1a).
-# `costo_capital_anual`: tasa de fondeo anual (tanto por uno, ej "0.40" = 40%).
-# Es el costo de oportunidad del capital colocado; lo usan tesoreria (egresos de
-# cashflow, tasa de descuento DCF) y analytics (margen neto). Configurable via
-# PATCH /parametros (admin). Refinable a futuro a costo por fuente de fondeo.
-PARAMETROS_GLOBALES: dict[str, object] = {
-    "bcra_vigencia_dias": 30,
-    "tolerancia_cobro": "50.00",
-    "costo_capital_anual": "0.40",
-}
-
-
-def costo_capital_anual() -> Decimal:
-    """Lee el costo de capital anual (Decimal) del store global, con default 0.40."""
-    valor = PARAMETROS_GLOBALES.get("costo_capital_anual", "0.40")
-    return Decimal(str(valor))
 
 
 def _usuario_out(u: Usuario) -> UsuarioOut:
@@ -214,12 +201,31 @@ async def obtener_parametros(_: CurrentUser) -> dict:
     return dict(PARAMETROS_GLOBALES)
 
 
+def _validar_costo_capital(valor: object) -> None:
+    """costo_capital_anual debe ser un Decimal válido en (0, 1]; si no, 422 acá y
+    no un InvalidOperation oscuro al calcular cashflow/DCF más tarde."""
+    try:
+        tasa = Decimal(str(valor))
+    except (ArithmeticError, ValueError) as exc:
+        raise ErrorAPI(
+            "parametro_invalido", "costo_capital_anual debe ser numérico", status=422
+        ) from exc
+    if not (Decimal("0") < tasa <= Decimal("1")):
+        raise ErrorAPI(
+            "parametro_invalido",
+            "costo_capital_anual debe estar en (0, 1]",
+            status=422,
+        )
+
+
 @router.patch("/parametros", tags=["parametros"])
 async def actualizar_parametros(
     cambios: dict,
     session: SessionDep,
     actor: AdminUser,
 ) -> dict:
+    if "costo_capital_anual" in cambios:
+        _validar_costo_capital(cambios["costo_capital_anual"])
     PARAMETROS_GLOBALES.update(cambios)
     await escribir_evento(
         session, actor_id=actor.id, accion="parametros_modificacion",

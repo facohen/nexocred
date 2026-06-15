@@ -25,7 +25,8 @@ from app.m04_caja.servicio import (
 from app.m07_riesgo.metricas import perdida_esperada
 from app.m07_riesgo.servicio import cartera_riesgo
 from app.m10_tesoreria.modelos import AporteRetiro
-from app.m12_auth.router import costo_capital_anual
+from app.finanzas import prorratear_costo
+from app.parametros_globales import costo_capital_anual
 from app.modelos_stub import Cuota, Prestamo
 from nexocred_core import CERO, redondear, restar, sumar
 
@@ -120,12 +121,8 @@ async def _cuotas_pendientes(
 
 
 def _egreso_fondeo(capital_colocado: Decimal, dias_tramo: int) -> Decimal:
-    """Costo de fondeo del capital colocado prorrateado al tramo (dias/365)."""
-    if capital_colocado <= CERO:
-        return CERO
-    anual = costo_capital_anual()
-    costo = capital_colocado * anual * Decimal(dias_tramo) / Decimal(365)
-    return redondear(costo)
+    """Costo de fondeo del capital colocado agregado, prorrateado al tramo."""
+    return prorratear_costo(capital_colocado, costo_capital_anual(), dias_tramo)
 
 
 async def cashflow(
@@ -279,7 +276,13 @@ async def _crear_aporte_retiro(
         if existente is not None:
             ar_id = uuid.UUID(json.loads(existente)["aporte_retiro_id"])
             fila = await session.get(AporteRetiro, ar_id)
-            assert fila is not None
+            # No usar assert: con python -O desaparece y devolvería None tipado mal.
+            if fila is None:
+                raise ErrorAPI(
+                    "inconsistencia_idempotencia",
+                    "el aporte/retiro idempotente referenciado no existe",
+                    status=500,
+                )
             return fila
 
     if monto <= CERO:

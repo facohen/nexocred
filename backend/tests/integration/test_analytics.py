@@ -80,14 +80,14 @@ async def test_resumen_cartera(client, tesoreria_token):
     assert body["mejor_producto"] is not None
 
 
-async def test_dimension_invalida_cae_a_producto(client, tesoreria_token):
+async def test_dimension_invalida_rechazada(client, tesoreria_token):
     await _seed()
     r = await client.get(
         "/api/v1/analytics/rentabilidad",
         params={"dimension": "inexistente", "fecha": HOY.isoformat()},
         headers=_h(tesoreria_token),
     )
-    assert r.status_code == 200, r.text
+    assert r.status_code == 422, r.text
 
 
 async def test_analytics_requiere_rol(client):

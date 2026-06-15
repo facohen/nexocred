@@ -7,7 +7,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { formatMoneyAr } from "@/lib/money";
+import {
+  AXIS_STROKE,
+  AXIS_TICK,
+  GRID_PROPS,
+  TOOLTIP_STYLE,
+  moneyTickFormatter,
+} from "./recharts-config";
 import type { components } from "@/lib/api/schema";
 
 type DCFPuntoCurva = components["schemas"]["DCFPuntoCurva"];
@@ -37,28 +43,18 @@ export function CurvaDcf({ curva }: { curva: DCFPuntoCurva[] }) {
               <stop offset="100%" stopColor="hsl(var(--brand))" stopOpacity={0.03} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+          <CartesianGrid {...GRID_PROPS} />
           <XAxis
             dataKey="mes"
-            tick={{ fontSize: 11 }}
-            stroke="hsl(var(--text-muted))"
+            tick={AXIS_TICK}
+            stroke={AXIS_STROKE}
             tickFormatter={(m: number) => `${m}m`}
           />
-          <YAxis
-            tick={{ fontSize: 11 }}
-            stroke="hsl(var(--text-muted))"
-            tickFormatter={(v: number) => formatMoneyAr(String(v))}
-            width={90}
-          />
+          <YAxis tick={AXIS_TICK} stroke={AXIS_STROKE} tickFormatter={moneyTickFormatter} width={90} />
           <Tooltip
             labelFormatter={(m) => `Mes ${m}`}
-            formatter={(v) => formatMoneyAr(String(v ?? 0))}
-            contentStyle={{
-              background: "hsl(var(--surface))",
-              border: "1px solid hsl(var(--border))",
-              borderRadius: 8,
-              fontSize: 12,
-            }}
+            formatter={moneyTickFormatter}
+            contentStyle={TOOLTIP_STYLE}
           />
           <Area
             type="monotone"

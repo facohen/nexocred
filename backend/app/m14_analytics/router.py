@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 
 from app.deps import SessionDep, requiere_rol
+from app.errors import ErrorAPI
 from app.m12_auth.modelos import Usuario
 from app.m14_analytics import servicio
 from app.m14_analytics.schemas import RentabilidadItem, ResumenAnalytics
@@ -32,8 +33,15 @@ async def get_rentabilidad(
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
 ) -> Pagina[RentabilidadItem]:
-    dim = dimension if dimension in DIMENSIONES else "producto"
-    agregados = await servicio.rentabilidad_por(session, dim, _fecha(fecha), desde, hasta)
+    if dimension not in DIMENSIONES:
+        raise ErrorAPI(
+            "dimension_invalida",
+            f"dimension debe ser una de: {', '.join(sorted(DIMENSIONES))}",
+            status=422,
+        )
+    agregados = await servicio.rentabilidad_por(
+        session, dimension, _fecha(fecha), desde, hasta
+    )
     items = [RentabilidadItem(**asdict(a)) for a in agregados]
     return paginar(items, page, per_page)
 

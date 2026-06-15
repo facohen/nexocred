@@ -53,6 +53,7 @@ export function UsuariosPage() {
       ) : (
         <div className="overflow-hidden rounded-lg border border-border bg-surface">
           <table className="w-full text-sm">
+            <caption className="sr-only">Usuarios del sistema</caption>
             <thead>
               <tr className="border-b border-border bg-surface-sunken text-left text-text-muted">
                 <th className="px-4 py-2 font-medium">Nombre</th>

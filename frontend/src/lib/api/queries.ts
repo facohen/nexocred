@@ -5,7 +5,7 @@ import type { components } from "./schema";
 
 type Sch = components["schemas"];
 
-interface Pagina<T> {
+export interface Pagina<T> {
   data: T[];
   total: number;
   page: number;
