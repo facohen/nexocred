@@ -7,53 +7,56 @@ import { getSessionUser, hasRole, isAuthenticated, type Rol } from "@/lib/auth";
  * means "any authenticated user".
  */
 export const ROUTE_ROLES: Record<string, Rol[]> = {
+  // Espeja nav.ts (WORK_AREAS): visibilidad de menú y guard de ruta nunca divergen.
+  // Modelo de 5 roles: vendedor / analista_riesgo / administrativo / ceo / admin_sistema.
   // Homes de trabajo (inbox-driven)
-  "/bandeja": ["admin", "analista", "vendedor", "operador", "cobrador", "tesoreria"],
-  "/evaluacion": ["admin", "analista"],
-  "/originar": ["admin", "analista", "vendedor"],
-  "/originar/nuevo": ["admin", "analista", "vendedor"],
+  "/bandeja": ["vendedor", "analista_riesgo", "administrativo", "ceo", "admin_sistema"],
+  "/evaluacion": ["analista_riesgo"],
+  "/originar": ["vendedor"],
+  "/originar/nuevo": ["vendedor"],
   // Entidades y vistas (destino de drill-down / tabs)
-  "/personas": ["admin", "analista", "vendedor", "operador"],
-  "/personas/$personaId": ["admin", "analista", "vendedor", "operador"],
-  "/catalogo/productos": ["admin", "analista"],
-  "/catalogo/matrices": ["admin", "analista"],
-  "/catalogo/simulador": ["admin", "analista", "vendedor"],
-  "/solicitudes": ["admin", "analista", "vendedor"],
-  "/solicitudes/$solicitudId": ["admin", "analista", "vendedor"],
-  "/prestamos": ["admin", "analista", "cobrador", "operador"],
-  "/prestamos/$prestamoId": ["admin", "analista", "cobrador", "operador"],
-  "/pagos": ["admin", "cobrador", "operador", "tesoreria"],
-  "/caja": ["admin", "tesoreria", "operador"],
-  "/novaciones": ["admin", "analista"],
-  "/usuarios": ["admin"],
+  "/mis-clientes": ["vendedor"],
+  "/personas": ["vendedor", "analista_riesgo"],
+  "/personas/$personaId": ["vendedor", "analista_riesgo"],
+  // Catálogo/Matrices: configuración (admin_sistema); Simulador lo usa el vendedor para cotizar.
+  "/catalogo/productos": ["admin_sistema"],
+  "/catalogo/matrices": ["admin_sistema"],
+  "/catalogo/simulador": ["vendedor", "admin_sistema"],
+  "/solicitudes": ["vendedor", "analista_riesgo"],
+  "/solicitudes/$solicitudId": ["vendedor", "analista_riesgo"],
+  "/prestamos": ["administrativo"],
+  "/prestamos/$prestamoId": ["administrativo"],
+  "/pagos": ["administrativo"],
+  "/caja": ["administrativo"],
+  "/novaciones": ["vendedor", "analista_riesgo"],
+  "/usuarios": ["admin_sistema"],
   // ---- F1c / F1d ----
-  "/ruta": ["cobrador", "admin"],
-  "/rendicion": ["cobrador", "admin"],
-  "/crm/inbox": ["operador", "admin"],
-  "/crm/incidentes": ["operador", "admin"],
-  "/crm/asignaciones": ["admin"],
-  "/crm/prospectos": ["operador", "admin"],
-  "/riesgo/tablero": ["admin", "analista"],
-  "/riesgo/alertas": ["admin", "analista", "operador"],
-  "/vendedores/comisiones": ["admin", "vendedor"],
-  "/vendedores/liquidaciones": ["admin", "tesoreria"],
-  "/tesoreria": ["admin", "tesoreria"],
-  "/analisis/cartera": ["admin", "tesoreria"],
-  "/torre": ["admin", "tesoreria"],
-  "/documentos": ["admin", "analista", "operador"],
+  "/ruta": ["administrativo"],
+  "/rendicion": ["administrativo"],
+  "/crm/inbox": ["vendedor", "administrativo"],
+  "/crm/incidentes": ["vendedor", "administrativo"],
+  "/crm/asignaciones": ["administrativo"],
+  "/crm/prospectos": ["vendedor", "administrativo"],
+  "/riesgo/tablero": ["analista_riesgo", "ceo"],
+  "/riesgo/alertas": ["analista_riesgo", "ceo"],
+  "/vendedores/comisiones": ["vendedor", "administrativo"],
+  "/vendedores/liquidaciones": ["administrativo"],
+  "/tesoreria": ["administrativo", "ceo"],
+  "/analisis/cartera": ["ceo", "administrativo"],
+  "/torre": ["ceo", "administrativo"],
+  "/documentos": ["administrativo", "analista_riesgo"],
 };
 
 /**
  * Landing por rol = HOME DE TRABAJO (no entidad). Cada rol aterriza en el estado
- * de su trabajo de hoy, nunca en una tabla de personas. Ver plan §IA.
+ * de su trabajo de hoy, nunca en una tabla de personas.
  */
 const ROLE_FALLBACK: [Rol, string][] = [
-  ["cobrador",  "/ruta"],        // su ruta del día
-  ["analista",  "/evaluacion"],  // su cola de solicitudes a evaluar
-  ["vendedor",  "/originar"],    // su pipeline + comisiones
-  ["operador",  "/crm/inbox"],   // su bandeja de tareas
-  ["tesoreria", "/tesoreria"],   // posición + aprobaciones financieras
-  ["admin",     "/torre"],       // Tablero Ejecutivo
+  ["vendedor", "/originar"], // su pipeline + clientes
+  ["analista_riesgo", "/evaluacion"], // su cola de solicitudes a evaluar
+  ["administrativo", "/bandeja"], // hub operativo (pagos/rutas/CRM/cartera)
+  ["ceo", "/torre"], // Tablero Ejecutivo
+  ["admin_sistema", "/usuarios"], // configuración del sistema
 ];
 
 export function fallbackRoute(roles: Rol[]): string {

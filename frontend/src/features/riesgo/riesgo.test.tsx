@@ -9,16 +9,16 @@ import { AlertasPage } from "./AlertasPage";
 import { setToken, setSessionUser } from "@/lib/auth";
 
 const BASE = "/api/v1";
-const admin = { email: "admin@nexocred.test", nombre: "Admin", roles: ["admin"] as const };
+const admin = { email: "admin@nexocred.test", nombre: "Admin", roles: ["analista_riesgo"] as const };
 
 beforeEach(() => {
   setToken({ access_token: "t", refresh_token: "r", token_type: "bearer" });
-  setSessionUser({ ...admin, roles: ["admin"] });
+  setSessionUser({ ...admin, roles: ["analista_riesgo"] });
 });
 
 describe("RiesgoBoard", () => {
   it("renderiza PAR y cartera total desde el mock (money strings)", async () => {
-    renderWithProviders(<RiesgoBoard />, { ...admin, roles: ["admin"] });
+    renderWithProviders(<RiesgoBoard />, { ...admin, roles: ["analista_riesgo"] });
     expect(await screen.findByText(/8,50\s*%/)).toBeInTheDocument(); // PAR30
     expect(await screen.findByText(/1\.225\.000,00/)).toBeInTheDocument(); // cartera total
     // cosechas presentes (al menos los meses)
@@ -26,7 +26,7 @@ describe("RiesgoBoard", () => {
   });
 
   it("muestra estado de carga y luego datos", async () => {
-    renderWithProviders(<RiesgoBoard />, { ...admin, roles: ["admin"] });
+    renderWithProviders(<RiesgoBoard />, { ...admin, roles: ["analista_riesgo"] });
     expect(screen.getByTestId("riesgo-loading")).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByTestId("riesgo-loading")).not.toBeInTheDocument());
   });
@@ -37,7 +37,7 @@ describe("RiesgoBoard", () => {
         HttpResponse.json({ error: { code: "x", message: "falló" } }, { status: 500 }),
       ),
     );
-    renderWithProviders(<RiesgoBoard />, { ...admin, roles: ["admin"] });
+    renderWithProviders(<RiesgoBoard />, { ...admin, roles: ["analista_riesgo"] });
     expect(await screen.findByRole("alert")).toBeInTheDocument();
   });
 });
@@ -45,7 +45,7 @@ describe("RiesgoBoard", () => {
 describe("AlertasPage", () => {
   it("lista alertas activas y resuelve con justificación", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<AlertasPage />, { ...admin, roles: ["admin"] });
+    renderWithProviders(<AlertasPage />, { ...admin, roles: ["analista_riesgo"] });
     expect(await screen.findByText(/mora_temprana/i)).toBeInTheDocument();
     await user.click(screen.getAllByRole("button", { name: /Resolver/i })[0]);
     await user.type(await screen.findByLabelText(/Justificación/i), "Regularizado");
@@ -55,7 +55,7 @@ describe("AlertasPage", () => {
 
   it("asigna una alerta (crea tarea)", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<AlertasPage />, { ...admin, roles: ["admin"] });
+    renderWithProviders(<AlertasPage />, { ...admin, roles: ["analista_riesgo"] });
     await screen.findByText(/mora_temprana/i);
     await user.click(screen.getAllByRole("button", { name: /Asignar/i })[0]);
     await waitFor(() => expect(screen.getByText(/Tarea creada/i)).toBeInTheDocument());
@@ -67,7 +67,7 @@ describe("AlertasPage", () => {
         HttpResponse.json({ data: [], total: 0, page: 1, per_page: 50 }),
       ),
     );
-    renderWithProviders(<AlertasPage />, { ...admin, roles: ["admin"] });
+    renderWithProviders(<AlertasPage />, { ...admin, roles: ["analista_riesgo"] });
     expect(await screen.findByText(/No hay alertas activas/i)).toBeInTheDocument();
   });
 });

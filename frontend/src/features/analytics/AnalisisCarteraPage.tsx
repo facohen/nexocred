@@ -58,8 +58,8 @@ export function AnalisisCarteraPage() {
         <div>
           <h1 className="text-xl font-bold text-text">Análisis de cartera</h1>
           <p className="mt-0.5 text-sm text-text-muted">
-            Rentabilidad ajustada por riesgo, valor presente y líneas/segmentos que crean
-            (o destruyen) valor.
+            Rentabilidad ajustada por riesgo, valor presente y líneas/segmentos que crean (o
+            destruyen) valor.
           </p>
         </div>
       </header>
@@ -190,14 +190,16 @@ function BarrasMargen({ items }: { items: RentabilidadItem[] }) {
         <BarChart data={data} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
           <CartesianGrid {...GRID_PROPS} />
           <XAxis dataKey="clave" tick={AXIS_TICK} stroke={AXIS_STROKE} />
-          <YAxis tick={AXIS_TICK} stroke={AXIS_STROKE} tickFormatter={moneyTickFormatter} width={90} />
+          <YAxis
+            tick={AXIS_TICK}
+            stroke={AXIS_STROKE}
+            tickFormatter={moneyTickFormatter}
+            width={90}
+          />
           <Tooltip formatter={moneyTickFormatter} contentStyle={TOOLTIP_STYLE} />
           <Bar dataKey="margen" radius={[4, 4, 0, 0]}>
             {data.map((d) => (
-              <Cell
-                key={d.clave}
-                fill={d.margen >= 0 ? "hsl(var(--pos))" : "hsl(var(--neg))"}
-              />
+              <Cell key={d.clave} fill={d.margen >= 0 ? "hsl(var(--pos))" : "hsl(var(--neg))"} />
             ))}
           </Bar>
         </BarChart>

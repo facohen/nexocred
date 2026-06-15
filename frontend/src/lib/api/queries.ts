@@ -63,8 +63,7 @@ export function useMetaVendedor(vendedorId: string | null, periodo: string) {
   return useQuery({
     queryKey: ["meta-vendedor", vendedorId ?? "", periodo],
     enabled: Boolean(vendedorId),
-    queryFn: () =>
-      apiFetch<Sch["MetaVendedorOut"]>(`/vendedores/${vendedorId}/metas/${periodo}`),
+    queryFn: () => apiFetch<Sch["MetaVendedorOut"]>(`/vendedores/${vendedorId}/metas/${periodo}`),
   });
 }
 
@@ -124,17 +123,55 @@ export function useSolicitud(id: string) {
   return useQuery({
     queryKey: ["solicitud", id],
     queryFn: () => apiFetch<Sch["SolicitudOut"]>(`/solicitudes/${id}`),
+    // id vacío (p. ej. split-view sin selección) NO debe disparar un GET
+    // /solicitudes/ inválido. La query queda inactiva hasta tener un id real.
+    enabled: Boolean(id),
+  });
+}
+
+/** Fila de checklist lista para la UI, derivada del ChecklistOut plano del backend. */
+export interface ChecklistFila {
+  regla: string;
+  etiqueta: string;
+  ok: boolean;
+  detalle: string;
+}
+
+// El backend expone validar-politicas como GET y devuelve un mapa plano
+// regla→boolean (ChecklistOut). Estas etiquetas (orden incluido) traducen ese
+// mapa a las filas que renderiza SolicitudDetailPage. La clave "bcra" debe
+// conservarse: el guard de aprobación la busca por nombre (fail-safe).
+// `negativa: true` marca una regla donde el flag del backend es un problema
+// cuando es true (mora_previa: hay mora previa = malo). Las demás son positivas:
+// true = cumple. La UI muestra OK/No cumple según la regla, no según el bool crudo.
+const REGLAS_CHECKLIST: {
+  regla: keyof Sch["ChecklistOut"];
+  etiqueta: string;
+  negativa?: boolean;
+}[] = [
+  { regla: "edad", etiqueta: "Edad dentro del rango" },
+  { regla: "cuota_ingreso", etiqueta: "Relación cuota/ingreso" },
+  { regla: "bcra", etiqueta: "Situación BCRA" },
+  { regla: "mora_previa", etiqueta: "Sin mora interna", negativa: true },
+];
+
+function aFilasChecklist(out: Sch["ChecklistOut"]): ChecklistFila[] {
+  return REGLAS_CHECKLIST.map(({ regla, etiqueta, negativa }) => {
+    const flag = out[regla] === true;
+    const ok = negativa ? !flag : flag;
+    return { regla, etiqueta, ok, detalle: ok ? "OK" : "No cumple" };
   });
 }
 
 export function useChecklist(id: string) {
   return useQuery({
     queryKey: ["checklist", id],
-    queryFn: () =>
-      apiFetch<{ checklist: { regla: string; etiqueta: string; ok: boolean; detalle: string }[] }>(
-        `/solicitudes/${id}/validar-politicas`,
-        { method: "POST", body: {} },
-      ),
+    queryFn: async () => {
+      // GET (no POST): validar-politicas es una lectura idempotente en el backend.
+      const out = await apiFetch<Sch["ChecklistOut"]>(`/solicitudes/${id}/validar-politicas`);
+      return { checklist: aFilasChecklist(out) };
+    },
+    enabled: Boolean(id),
   });
 }
 
@@ -287,8 +324,7 @@ export function useNovacion() {
 export function useUsuarios(page = 1) {
   return useQuery({
     queryKey: ["usuarios", page],
-    queryFn: () =>
-      apiFetch<Pagina<Sch["UsuarioOut"]>>("/usuarios", { query: { page } }),
+    queryFn: () => apiFetch<Pagina<Sch["UsuarioOut"]>>("/usuarios", { query: { page } }),
   });
 }
 

@@ -13,7 +13,7 @@ from app.paginacion import Pagina, paginar
 
 router = APIRouter(tags=["analytics"])
 
-AnalyticsUser = Annotated[Usuario, Depends(requiere_rol("admin", "tesoreria"))]
+AnalyticsUser = Annotated[Usuario, Depends(requiere_rol("ceo", "administrativo"))]
 
 DIMENSIONES = {"producto", "vendedor", "segmento", "cosecha", "zona"}
 

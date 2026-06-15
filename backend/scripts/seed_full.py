@@ -98,7 +98,7 @@ SEMILLA = 99
 ADMIN_EMAIL = "admin.full@nexocred.test"
 N_PERSONAS = 50
 PLAZOS = (3, 6, 12)
-ROLES = ("admin", "analista", "cobrador", "vendedor", "operador", "tesoreria")
+ROLES = ("admin_sistema", "analista_riesgo", "administrativo", "vendedor", "ceo")
 
 MARCADOR_COMPLETO = "seed_full_completo"
 _OP_MARCADOR = "seed_full"
@@ -318,10 +318,11 @@ async def sembrar_full(session: AsyncSession) -> dict:
 
     await _asegurar_roles(session)
 
-    # ---- Usuarios ----
+    # ---- Usuarios (modelo de 5 roles) ----
+    # admin_sistema actúa como actor de auditoría de la siembra.
     admin = await _get_or_create_usuario(
-        session, email=ADMIN_EMAIL, nombre="Admin Full",
-        roles=["admin"], actor_id=None,
+        session, email="sistema.full@nexocred.test", nombre="Admin Sistema Full",
+        roles=["admin_sistema"], actor_id=None,
     )
     actor = admin.id
 
@@ -329,23 +330,29 @@ async def sembrar_full(session: AsyncSession) -> dict:
         session, email="vendedor.full@nexocred.test", nombre="Vendedor Full",
         roles=["vendedor"], actor_id=actor,
     )
+    # cobrador_a/b y operador del modelo viejo se consolidan en "administrativo"
+    # (opera rutas, cobranza, pagos y CRM). Se mantienen como usuarios distintos
+    # para que la siembra de rutas/cobranza siga teniendo varios responsables.
     cobrador_a = await _get_or_create_usuario(
-        session, email="cobrador_a.full@nexocred.test", nombre="Cobrador A Full",
-        roles=["cobrador"], actor_id=actor,
+        session, email="administrativo_a.full@nexocred.test", nombre="Administrativo A Full",
+        roles=["administrativo"], actor_id=actor,
     )
     cobrador_b = await _get_or_create_usuario(
-        session, email="cobrador_b.full@nexocred.test", nombre="Cobrador B Full",
-        roles=["cobrador"], actor_id=actor,
+        session, email="administrativo_b.full@nexocred.test", nombre="Administrativo B Full",
+        roles=["administrativo"], actor_id=actor,
     )
     operador = await _get_or_create_usuario(
-        session, email="operador.full@nexocred.test", nombre="Operador Full",
-        roles=["operador"], actor_id=actor,
+        session, email="administrativo.full@nexocred.test", nombre="Administrativo Full",
+        roles=["administrativo"], actor_id=actor,
     )
-    for rol in ("analista", "tesoreria"):
-        await _get_or_create_usuario(
-            session, email=f"{rol}.full@nexocred.test", nombre=f"{rol.title()} Full",
-            roles=[rol], actor_id=actor,
-        )
+    await _get_or_create_usuario(
+        session, email="riesgo.full@nexocred.test", nombre="Analista de Riesgo Full",
+        roles=["analista_riesgo"], actor_id=actor,
+    )
+    await _get_or_create_usuario(
+        session, email="ceo.full@nexocred.test", nombre="CEO Full",
+        roles=["ceo"], actor_id=actor,
+    )
 
     # ---- Producto ----
     producto = await session.scalar(

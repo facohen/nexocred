@@ -48,7 +48,7 @@ export const WORK_AREAS: WorkArea[] = [
     to: "/bandeja",
     seccion: "operacion",
     icon: "inbox",
-    roles: ["admin", "analista", "vendedor", "operador", "cobrador", "tesoreria"],
+    roles: ["vendedor", "analista_riesgo", "administrativo", "ceo", "admin_sistema"],
   },
   {
     id: "originar",
@@ -56,7 +56,7 @@ export const WORK_AREAS: WorkArea[] = [
     to: "/originar",
     seccion: "operacion",
     icon: "originar",
-    roles: ["admin", "analista", "vendedor"],
+    roles: ["vendedor"],
     tabs: [
       { label: "Solicitudes", to: "/solicitudes" },
       { label: "Catálogo", to: "/catalogo/productos" },
@@ -70,7 +70,7 @@ export const WORK_AREAS: WorkArea[] = [
     to: "/evaluacion",
     seccion: "operacion",
     icon: "evaluar",
-    roles: ["admin", "analista"],
+    roles: ["analista_riesgo"],
   },
   {
     id: "cobrar",
@@ -78,7 +78,7 @@ export const WORK_AREAS: WorkArea[] = [
     to: "/ruta",
     seccion: "operacion",
     icon: "cobrar",
-    roles: ["cobrador", "admin"],
+    roles: ["administrativo"],
     tabs: [
       { label: "Ruta de Cobranza", to: "/ruta" },
       { label: "Rendición", to: "/rendicion" },
@@ -90,7 +90,7 @@ export const WORK_AREAS: WorkArea[] = [
     to: "/prestamos",
     seccion: "operacion",
     icon: "cartera",
-    roles: ["admin", "analista", "cobrador", "operador", "tesoreria"],
+    roles: ["administrativo"],
     tabs: [
       { label: "Préstamos", to: "/prestamos" },
       { label: "Pagos", to: "/pagos" },
@@ -99,12 +99,22 @@ export const WORK_AREAS: WorkArea[] = [
     ],
   },
   {
+    id: "clientes",
+    label: "Mis clientes",
+    to: "/mis-clientes",
+    seccion: "operacion",
+    icon: "relacion",
+    // Cartera del vendedor: clientes derivados de SUS solicitudes (MisClientesPage).
+    // El padrón completo (/personas) queda como drill-down, no como área de menú.
+    roles: ["vendedor"],
+  },
+  {
     id: "relacion",
     label: "Relación",
     to: "/crm/inbox",
     seccion: "operacion",
     icon: "relacion",
-    roles: ["operador", "admin"],
+    roles: ["vendedor", "administrativo"],
     tabs: [
       { label: "Inbox", to: "/crm/inbox" },
       { label: "Incidentes", to: "/crm/incidentes" },
@@ -120,7 +130,7 @@ export const WORK_AREAS: WorkArea[] = [
     to: "/riesgo/tablero",
     seccion: "control",
     icon: "riesgo",
-    roles: ["admin", "analista", "operador"],
+    roles: ["analista_riesgo", "ceo"],
     tabs: [
       { label: "Tablero", to: "/riesgo/tablero" },
       { label: "Alertas", to: "/riesgo/alertas" },
@@ -132,7 +142,9 @@ export const WORK_AREAS: WorkArea[] = [
     to: "/tesoreria",
     seccion: "control",
     icon: "dinero",
-    roles: ["admin", "tesoreria", "vendedor"],
+    // Sin vendedor: tesorería/análisis/liquidaciones no son del vendedor. Sus
+    // comisiones las ve desde su propio home, no desde el área financiera.
+    roles: ["administrativo"],
     tabs: [
       { label: "Tesorería", to: "/tesoreria" },
       { label: "Análisis de cartera", to: "/analisis/cartera" },
@@ -148,7 +160,22 @@ export const WORK_AREAS: WorkArea[] = [
     to: "/torre",
     seccion: "direccion",
     icon: "tablero",
-    roles: ["admin", "tesoreria"],
+    roles: ["ceo", "administrativo"],
+  },
+  {
+    // Vistas financieras de solo lectura para el CEO: cash flow (Tesorería) y
+    // valor presente/rentabilidad (Análisis de cartera). El backend expone los
+    // GET de tesorería a ceo (TesoreriaLectura); las escrituras siguen bloqueadas.
+    id: "finanzas",
+    label: "Finanzas",
+    to: "/tesoreria",
+    seccion: "direccion",
+    icon: "dinero",
+    roles: ["ceo"],
+    tabs: [
+      { label: "Cash flow", to: "/tesoreria" },
+      { label: "Análisis de cartera", to: "/analisis/cartera" },
+    ],
   },
 
   // ---------- SISTEMA ----------
@@ -158,7 +185,7 @@ export const WORK_AREAS: WorkArea[] = [
     to: "/documentos",
     seccion: "sistema",
     icon: "documentos",
-    roles: ["admin", "analista", "operador"],
+    roles: ["administrativo", "analista_riesgo"],
   },
   {
     id: "usuarios",
@@ -166,7 +193,7 @@ export const WORK_AREAS: WorkArea[] = [
     to: "/usuarios",
     seccion: "sistema",
     icon: "usuarios",
-    roles: ["admin"],
+    roles: ["admin_sistema"],
   },
 ];
 
@@ -207,15 +234,21 @@ export function areaActiva(
   return undefined;
 }
 
-/** Para el ⌘K modo "Ir a": lista plana de destinos navegables (áreas + tabs). */
-export function destinosNavegables(
-  roles: Rol[] | undefined,
-): { label: string; to: string }[] {
+/** Para el ⌘K modo "Ir a": lista plana de destinos navegables (áreas + tabs).
+ * Deduplicado por `to`: un mismo destino puede vivir en dos áreas (p. ej.
+ * /analisis/cartera en "Dinero" y en "Finanzas"), pero en ⌘K se lista una vez. */
+export function destinosNavegables(roles: Rol[] | undefined): { label: string; to: string }[] {
   const out: { label: string; to: string }[] = [];
+  const vistos = new Set<string>();
+  const agregar = (label: string, to: string) => {
+    if (vistos.has(to)) return;
+    vistos.add(to);
+    out.push({ label, to });
+  };
   for (const area of areasVisibles(roles)) {
-    out.push({ label: area.label, to: area.to });
+    agregar(area.label, area.to);
     for (const tab of area.tabs ?? []) {
-      out.push({ label: `${area.label} · ${tab.label}`, to: tab.to });
+      agregar(`${area.label} · ${tab.label}`, tab.to);
     }
   }
   return out;

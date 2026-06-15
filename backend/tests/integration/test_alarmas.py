@@ -12,7 +12,7 @@ async def _crear_operador(client, admin_token, email="op_al@nexo.test"):
     r = await client.post(
         "/api/v1/usuarios",
         json={"email": email, "nombre": "Operador", "password": "secreto123",
-              "roles": ["operador"]},
+              "roles": ["administrativo"]},
         headers=_h(admin_token),
     )
     assert r.status_code == 201, r.text

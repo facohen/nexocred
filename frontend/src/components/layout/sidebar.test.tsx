@@ -20,16 +20,16 @@ function renderSidebar(user: SesionUsuario) {
 }
 
 describe("Sidebar RBAC", () => {
-  it("un cobrador NO ve la nav admin (Usuarios)", () => {
-    renderSidebar({ email: "c@x", nombre: "Cobrador", roles: ["cobrador"] });
+  it("un administrativo NO ve la nav de sistema (Usuarios)", () => {
+    renderSidebar({ email: "c@x", nombre: "Administrativo", roles: ["administrativo"] });
     expect(screen.queryByRole("link", { name: /Usuarios/i })).not.toBeInTheDocument();
     // pero sí ve sus áreas de trabajo: Cobrar y Cartera
     expect(screen.getByRole("link", { name: /Cobrar/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Cartera/i })).toBeInTheDocument();
   });
 
-  it("un admin SÍ ve Usuarios", () => {
-    renderSidebar({ email: "a@x", nombre: "Admin", roles: ["admin"] });
+  it("un admin_sistema SÍ ve Usuarios", () => {
+    renderSidebar({ email: "a@x", nombre: "Admin", roles: ["admin_sistema"] });
     expect(screen.getByRole("link", { name: /Usuarios/i })).toBeInTheDocument();
   });
 });

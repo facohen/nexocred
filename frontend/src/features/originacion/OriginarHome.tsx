@@ -1,11 +1,6 @@
 import { useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import {
-  useSolicitudes,
-  usePersonas,
-  useProductos,
-  useMetaVendedor,
-} from "@/lib/api/queries";
+import { useSolicitudes, usePersonas, useProductos, useMetaVendedor } from "@/lib/api/queries";
 import { useLiquidaciones } from "@/features/vendedores/hooks";
 import { getToken, decodeUserIdFromToken } from "@/lib/auth";
 import { addMoney } from "@/lib/money";
@@ -13,12 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { MoneyText } from "@/components/MoneyText";
-import {
-  WorkInbox,
-  WorkInboxHero,
-  InboxRow,
-  type InboxSection,
-} from "@/components/WorkInbox";
+import { WorkInbox, WorkInboxHero, InboxRow, type InboxSection } from "@/components/WorkInbox";
 import type { components } from "@/lib/api/schema";
 
 type Solicitud = components["schemas"]["SolicitudOut"];
@@ -84,8 +74,7 @@ export function OriginarHome() {
       if (!porPersona.get(s.persona_id)) {
         porPersona.set(s.persona_id, {
           personaId: s.persona_id,
-          nombre:
-            nombrePorPersona.get(s.persona_id) ?? `Cliente ${idCorto(s.persona_id)}`,
+          nombre: nombrePorPersona.get(s.persona_id) ?? `Cliente ${idCorto(s.persona_id)}`,
           ultima: s,
         });
       }
@@ -118,9 +107,7 @@ export function OriginarHome() {
   // sesión (useSession) no expone (solo email/nombre/roles). Como proxy honesto
   // usamos las liquidaciones ya pagadas (suma de monto_total) y dejamos el
   // detalle a un clic en /vendedores/comisiones.
-  const liquidacionesPagadas = (liquidacionesQ.data ?? []).filter(
-    (l) => l.estado === "pagada",
-  );
+  const liquidacionesPagadas = (liquidacionesQ.data ?? []).filter((l) => l.estado === "pagada");
   const totalComisionesPagadas = liquidacionesPagadas.reduce(
     (acc, l) => addMoney(acc, l.monto_total),
     "0",
@@ -160,9 +147,7 @@ export function OriginarHome() {
                   <MoneyText value={s.monto ?? null} />
                 </span>
               }
-              signals={
-                <Badge tone={ESTADO_TONE[s.estado] ?? "default"}>{s.estado}</Badge>
-              }
+              signals={<Badge tone={ESTADO_TONE[s.estado] ?? "default"}>{s.estado}</Badge>}
               onClick={() => navigate({ to: `/solicitudes/${s.id}` as string })}
             />
           );
@@ -227,11 +212,7 @@ function MetaHero({ meta, cargando }: { meta?: Meta; cargando: boolean }) {
         <div>
           <CardTitle className="mb-1">Mi meta del mes</CardTitle>
           <div className="flex items-baseline gap-2">
-            <MoneyText
-              value={meta.monto_colocado}
-              intent="income"
-              className="text-2xl font-bold"
-            />
+            <MoneyText value={meta.monto_colocado} intent="income" className="text-2xl font-bold" />
             {tieneMeta && (
               <span className="text-sm text-text-muted">
                 de <MoneyText value={meta.monto_meta} className="font-medium" />
@@ -303,9 +284,7 @@ function CarteraClientes({
                 <div className="text-sm font-medium text-text">{c.nombre}</div>
                 <div className="text-xs text-text-subtle">
                   Última solicitud{" "}
-                  <Badge tone={ESTADO_TONE[c.ultima.estado] ?? "default"}>
-                    {c.ultima.estado}
-                  </Badge>
+                  <Badge tone={ESTADO_TONE[c.ultima.estado] ?? "default"}>{c.ultima.estado}</Badge>
                 </div>
               </div>
               <Button variant="outline" size="sm" onClick={() => onAbrir(c.personaId)}>

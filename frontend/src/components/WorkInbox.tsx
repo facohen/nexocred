@@ -8,6 +8,9 @@ import { Card } from "@/components/ui/card";
  */
 
 export interface InboxSection<T> {
+  /** id estable para la key de React (default: title). Útil cuando el mismo
+   * título puede repetirse o traducirse. */
+  id?: string;
   /** título de la sección (urgencia/tema) */
   title: string;
   /** items de esta sección */
@@ -56,7 +59,7 @@ export function WorkInbox<T>({
   return (
     <div className="space-y-6">
       {sections.map((section) => (
-        <section key={section.title}>
+        <section key={section.id ?? section.title}>
           <div className="mb-2 flex items-center gap-2">
             <h2 className="text-sm font-semibold text-text">{section.title}</h2>
             <span
@@ -98,15 +101,26 @@ export function InboxRow({
   onClick?: () => void;
   className?: string;
 }) {
+  const contenido = (
+    <>
+      <div className="truncate text-sm font-medium text-text">{title}</div>
+      {context && <div className="truncate text-xs text-text-muted">{context}</div>}
+      {signals && <div className="mt-1 flex flex-wrap items-center gap-1.5">{signals}</div>}
+    </>
+  );
   return (
     <Card
-      className={`flex items-center justify-between gap-3 ${onClick ? "cursor-pointer hover:bg-surface-sunken" : ""} ${className ?? ""}`}
+      className={`flex items-center justify-between gap-3 ${onClick ? "hover:bg-surface-sunken" : ""} ${className ?? ""}`}
     >
-      <div className="min-w-0 flex-1" onClick={onClick}>
-        <div className="truncate text-sm font-medium text-text">{title}</div>
-        {context && <div className="truncate text-xs text-text-muted">{context}</div>}
-        {signals && <div className="mt-1 flex flex-wrap items-center gap-1.5">{signals}</div>}
-      </div>
+      {/* El bloque clickeable es un <button> para que sea accesible por teclado.
+          La acción (puede contener botones) queda FUERA para no anidar botones. */}
+      {onClick ? (
+        <button type="button" onClick={onClick} className="min-w-0 flex-1 text-left">
+          {contenido}
+        </button>
+      ) : (
+        <div className="min-w-0 flex-1">{contenido}</div>
+      )}
       {action && <div className="shrink-0">{action}</div>}
     </Card>
   );

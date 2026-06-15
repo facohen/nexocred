@@ -29,12 +29,12 @@ from app.paginacion import Pagina, paginar
 
 router = APIRouter(tags=["crm"])
 
-CrmUser = Annotated[Usuario, Depends(requiere_rol("admin", "operador"))]
-AdminUser = Annotated[Usuario, Depends(requiere_rol("admin"))]
+CrmUser = Annotated[Usuario, Depends(requiere_rol("administrativo", "vendedor"))]
+AdminUser = Annotated[Usuario, Depends(requiere_rol("administrativo"))]
 
 
 def _es_admin(usuario: Usuario) -> bool:
-    return any(r.nombre == "admin" for r in usuario.roles)
+    return any(r.nombre == "administrativo" for r in usuario.roles)
 
 
 # ---------- Tareas ----------

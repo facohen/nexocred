@@ -16,8 +16,7 @@ export function useCashflow(horizontesMeses?: number[]) {
   const horizontes = horizontesMeses?.length ? horizontesMeses.join(",") : undefined;
   return useQuery({
     queryKey: ["tesoreria-cashflow", horizontes ?? ""],
-    queryFn: () =>
-      apiFetch<Sch["CashflowOut"]>("/tesoreria/cashflow", { query: { horizontes } }),
+    queryFn: () => apiFetch<Sch["CashflowOut"]>("/tesoreria/cashflow", { query: { horizontes } }),
   });
 }
 export function useDcf() {

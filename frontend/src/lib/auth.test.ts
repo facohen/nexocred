@@ -17,9 +17,9 @@ function makeJwt(payload: Record<string, unknown>): string {
 
 describe("decodeRolesFromToken", () => {
   it("reads roles from the JWT claims, NOT from the email", () => {
-    // email contains 'admin' but the token only grants 'cobrador'
-    const token = makeJwt({ sub: "admin.persona@nexocred.test", roles: ["cobrador"] });
-    expect(decodeRolesFromToken(token)).toEqual(["cobrador"]);
+    // email contains 'admin' but the token only grants 'administrativo'
+    const token = makeJwt({ sub: "admin.persona@nexocred.test", roles: ["administrativo"] });
+    expect(decodeRolesFromToken(token)).toEqual(["administrativo"]);
   });
 
   it("returns empty roles for a malformed token", () => {
@@ -28,24 +28,24 @@ describe("decodeRolesFromToken", () => {
   });
 
   it("ignores unknown role strings in the claims", () => {
-    const token = makeJwt({ roles: ["admin", "superuser", "cobrador"] });
-    expect(decodeRolesFromToken(token)).toEqual(["admin", "cobrador"]);
+    const token = makeJwt({ roles: ["vendedor", "superuser", "administrativo"] });
+    expect(decodeRolesFromToken(token)).toEqual(["vendedor", "administrativo"]);
   });
 });
 
 describe("hasRole", () => {
-  it("a cobrador session does NOT have admin even if email contains 'admin'", () => {
+  it("an administrativo session does NOT have admin_sistema even if email contains 'admin'", () => {
     const user: SesionUsuario = {
       email: "admin.lookalike@nexocred.test",
       nombre: "x",
-      roles: ["cobrador"],
+      roles: ["administrativo"],
     };
-    expect(hasRole(user, "admin")).toBe(false);
-    expect(hasRole(user, "cobrador")).toBe(true);
+    expect(hasRole(user, "admin_sistema")).toBe(false);
+    expect(hasRole(user, "administrativo")).toBe(true);
   });
 
   it("returns false for a null user", () => {
-    expect(hasRole(null, "admin")).toBe(false);
+    expect(hasRole(null, "admin_sistema")).toBe(false);
   });
 });
 

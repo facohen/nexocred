@@ -17,7 +17,7 @@ from app.m12_auth.modelos import Usuario
 
 router = APIRouter(tags=["torre"])
 
-TorreUser = Annotated[Usuario, Depends(requiere_rol("admin", "tesoreria"))]
+TorreUser = Annotated[Usuario, Depends(requiere_rol("ceo", "administrativo"))]
 
 
 def _fecha(f: date | None) -> date:

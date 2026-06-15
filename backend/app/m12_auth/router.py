@@ -6,7 +6,7 @@ from fastapi import APIRouter, Query, Request
 from sqlalchemy import select
 
 from app.auditoria import AuditoriaEvento, escribir_evento
-from app.deps import AdminUser, CurrentUser, SessionDep
+from app.deps import ConfigUser, CurrentUser, SessionDep
 from app.errors import ErrorAPI
 from app.m12_auth import servicio
 from app.m12_auth.modelos import Usuario
@@ -119,7 +119,7 @@ async def logout(
 @router.get("/usuarios", response_model=Pagina[UsuarioOut], tags=["usuarios"])
 async def listar_usuarios(
     session: SessionDep,
-    _: AdminUser,
+    _: ConfigUser,
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
 ) -> Pagina[UsuarioOut]:
@@ -133,7 +133,7 @@ async def listar_usuarios(
 async def crear_usuario(
     datos: UsuarioCreate,
     session: SessionDep,
-    actor: AdminUser,
+    actor: ConfigUser,
 ) -> UsuarioOut:
     usuario = await servicio.crear_usuario(
         session, email=datos.email, nombre=datos.nombre, password=datos.password,
@@ -149,7 +149,7 @@ async def actualizar_usuario(
     usuario_id: uuid.UUID,
     datos: UsuarioUpdate,
     session: SessionDep,
-    actor: AdminUser,
+    actor: ConfigUser,
 ) -> UsuarioOut:
     usuario = await servicio.obtener_usuario(session, usuario_id)
     if usuario is None:
@@ -169,7 +169,7 @@ async def actualizar_usuario(
 async def desactivar_usuario(
     usuario_id: uuid.UUID,
     session: SessionDep,
-    actor: AdminUser,
+    actor: ConfigUser,
 ) -> dict[str, str]:
     usuario = await servicio.obtener_usuario(session, usuario_id)
     if usuario is None:
@@ -183,7 +183,7 @@ async def desactivar_usuario(
 @router.get("/auditoria", response_model=Pagina[AuditoriaOut], tags=["auditoria"])
 async def listar_auditoria(
     session: SessionDep,
-    _: AdminUser,
+    _: ConfigUser,
     accion: str | None = None,
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
@@ -222,7 +222,7 @@ def _validar_costo_capital(valor: object) -> None:
 async def actualizar_parametros(
     cambios: dict,
     session: SessionDep,
-    actor: AdminUser,
+    actor: ConfigUser,
 ) -> dict:
     if "costo_capital_anual" in cambios:
         _validar_costo_capital(cambios["costo_capital_anual"])

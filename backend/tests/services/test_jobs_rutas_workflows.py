@@ -37,7 +37,7 @@ async def _limpiar_commits(session):
 async def _roles(session):
     from app.m12_auth.modelos import Rol
 
-    for nombre in ("admin", "cobrador"):
+    for nombre in ("admin_sistema", "administrativo"):
         existe = await session.scalar(select(Rol).where(Rol.nombre == nombre))
         if existe is None:
             session.add(Rol(nombre=nombre))
@@ -69,7 +69,7 @@ async def test_generar_rutas_crea_ruta_con_paradas_por_cobrador(session):
     fecha = date(2026, 6, 11)
     cob = await crear_usuario(
         session, email="cob@nexo.test", nombre="Cob", password="secreto123",
-        roles=["cobrador"], actor_id=None,
+        roles=["administrativo"], actor_id=None,
     )
     await _prestamo_en_mora(session, fecha, dias_atraso=10)
 
@@ -93,7 +93,7 @@ async def test_generar_rutas_idempotente_no_duplica(session):
     fecha = date(2026, 6, 11)
     cob = await crear_usuario(
         session, email="cob2@nexo.test", nombre="Cob", password="secreto123",
-        roles=["cobrador"], actor_id=None,
+        roles=["administrativo"], actor_id=None,
     )
     await _prestamo_en_mora(session, fecha, dias_atraso=10)
 

@@ -9,7 +9,7 @@ async def _crear_operador(client, admin_token, email="op1@nexo.test"):
     r = await client.post(
         "/api/v1/usuarios",
         json={"email": email, "nombre": "Operador", "password": "secreto123",
-              "roles": ["operador"]},
+              "roles": ["administrativo"]},
         headers=_h(admin_token),
     )
     assert r.status_code == 201, r.text
@@ -45,7 +45,10 @@ async def test_crear_y_completar_tarea_genera_interaccion(client, admin_token):
     assert det.json()["estado"] == "completada"
 
 
-async def test_inbox_operador_solo_ve_propias(client, admin_token):
+async def test_inbox_administrativo_ve_todas(client, admin_token):
+    # Modelo 5-roles: "administrativo" es back-office/supervisión y VE TODO.
+    # Ya no hay aislamiento por-usuario en el inbox de tareas: cualquier
+    # administrativo ve todas las tareas, propias o ajenas.
     persona = await crear_persona(client, admin_token)
     op1_id, op1_token = await _crear_operador(client, admin_token, "op_a@nexo.test")
     op2_id, op2_token = await _crear_operador(client, admin_token, "op_b@nexo.test")
@@ -63,11 +66,12 @@ async def test_inbox_operador_solo_ve_propias(client, admin_token):
         headers=_h(admin_token),
     )
 
+    # op1 (administrativo) ve TODAS las tareas, incluida la ajena (T2)
     inbox1 = await client.get("/api/v1/tareas", headers=_h(op1_token))
     titulos1 = {t["titulo"] for t in inbox1.json()["data"]}
-    assert titulos1 == {"T1"}
+    assert titulos1 == {"T1", "T2"}
 
-    # admin ve todas
+    # admin tambien ve todas
     todas = await client.get("/api/v1/tareas", headers=_h(admin_token))
     assert len({t["titulo"] for t in todas.json()["data"]}) == 2
 

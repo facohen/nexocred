@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Query
 
-from app.deps import AdminUser, CurrentUser, SessionDep
+from app.deps import ConfigUser, CurrentUser, SessionDep
 from app.errors import ErrorAPI
 from app.m15_catalogo import servicio
 from app.m15_catalogo.modelos import ProductoCredito
@@ -46,7 +46,7 @@ async def _producto_out(session, producto: ProductoCredito) -> ProductoOut:
 # ---------- productos ----------
 @router.post("/productos", response_model=ProductoOut, status_code=201)
 async def crear_producto(
-    datos: ProductoCreate, session: SessionDep, actor: AdminUser
+    datos: ProductoCreate, session: SessionDep, actor: ConfigUser
 ) -> ProductoOut:
     producto = await servicio.crear_producto(session, datos, actor_id=actor.id)
     await session.commit()
@@ -70,7 +70,7 @@ async def listar_productos(
 # ---------- repricing ----------
 @router.post("/productos/repricing", response_model=RepricingPreviewOut)
 async def repricing_preview(
-    datos: RepricingIn, session: SessionDep, _: AdminUser
+    datos: RepricingIn, session: SessionDep, _: ConfigUser
 ) -> RepricingPreviewOut:
     cambios = await servicio.repricing_preview(session, datos.ajustes)
     return RepricingPreviewOut(cambios=cambios)
@@ -78,7 +78,7 @@ async def repricing_preview(
 
 @router.post("/productos/repricing/confirmar", response_model=RepricingResultadoOut)
 async def repricing_confirmar(
-    datos: RepricingIn, session: SessionDep, actor: AdminUser
+    datos: RepricingIn, session: SessionDep, actor: ConfigUser
 ) -> RepricingResultadoOut:
     cambios, versionados = await servicio.repricing_confirmar(
         session, datos.ajustes, actor_id=actor.id
@@ -102,7 +102,7 @@ async def actualizar_producto(
     producto_id: uuid.UUID,
     datos: ProductoUpdate,
     session: SessionDep,
-    actor: AdminUser,
+    actor: ConfigUser,
 ) -> ProductoOut:
     producto = await servicio.obtener_producto(session, producto_id)
     if producto is None:
@@ -117,7 +117,7 @@ async def actualizar_producto(
 
 @router.post("/productos/{producto_id}/publicar", response_model=ProductoOut)
 async def publicar_producto(
-    producto_id: uuid.UUID, session: SessionDep, actor: AdminUser
+    producto_id: uuid.UUID, session: SessionDep, actor: ConfigUser
 ) -> ProductoOut:
     producto = await servicio.obtener_producto(session, producto_id)
     if producto is None:
@@ -132,7 +132,7 @@ async def publicar_producto(
 # ---------- perfiles ----------
 @router.post("/perfiles-pricing", response_model=PerfilOut, status_code=201)
 async def crear_perfil(
-    datos: PerfilCreate, session: SessionDep, actor: AdminUser
+    datos: PerfilCreate, session: SessionDep, actor: ConfigUser
 ) -> PerfilOut:
     perfil = await servicio.crear_perfil(
         session, datos.nombre, datos.descripcion, datos.orden, actor_id=actor.id
@@ -155,7 +155,7 @@ async def listar_perfiles(
 # ---------- matrices ----------
 @router.put("/matrices/tasas", response_model=list[CeldaTasaOut])
 async def actualizar_matriz_tasas(
-    datos: MatrizTasaIn, session: SessionDep, actor: AdminUser
+    datos: MatrizTasaIn, session: SessionDep, actor: ConfigUser
 ) -> list[CeldaTasaOut]:
     celdas = await servicio.upsert_matriz_tasas(
         session, datos.celdas, actor_id=actor.id
@@ -177,7 +177,7 @@ async def listar_matriz_tasas(
 
 @router.put("/matrices/comisiones", response_model=list[CeldaComisionOut])
 async def actualizar_matriz_comisiones(
-    datos: MatrizComisionIn, session: SessionDep, actor: AdminUser
+    datos: MatrizComisionIn, session: SessionDep, actor: ConfigUser
 ) -> list[CeldaComisionOut]:
     celdas = await servicio.upsert_matriz_comisiones(
         session, datos.celdas, actor_id=actor.id

@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Header, Query
 
-from app.deps import AdminOAnalista, CurrentUser, SessionDep
+from app.deps import Administrativo, CurrentUser, SessionDep
 from app.errors import ErrorAPI
 from app.m03_prestamos import servicio
 from app.m03_prestamos.schemas import CancelarIn, CuotaOut, PayoffOut, PrestamoOut
@@ -113,7 +113,7 @@ async def cancelar_prestamo(
     prestamo_id: uuid.UUID,
     datos: CancelarIn,
     session: SessionDep,
-    actor: AdminOAnalista,
+    actor: Administrativo,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> PagoOut:
     clave = _exigir_idem(idempotency_key)

@@ -24,9 +24,7 @@ beforeEach(() => {
 describe("OriginarWizard — asistente de originación", () => {
   it("arranca en el paso Cliente con la búsqueda", async () => {
     renderWithProviders(<OriginarWizard />, { ...vendedor, roles: ["vendedor"] });
-    expect(
-      await screen.findByRole("heading", { name: /Originar préstamo/i }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Originar préstamo/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/Buscar cliente/i)).toBeInTheDocument();
   });
 
@@ -52,15 +50,11 @@ describe("OriginarWizard — asistente de originación", () => {
     await user.click(screen.getByRole("button", { name: /Continuar/i }));
 
     // Paso 3: confirmar y crear
-    expect(
-      await screen.findByRole("heading", { name: /Revisá y confirmá/i }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Revisá y confirmá/i })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Crear solicitud/i }));
 
     // Resultado: solicitud creada
-    expect(
-      await screen.findByRole("heading", { name: /Solicitud creada/i }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Solicitud creada/i })).toBeInTheDocument();
 
     // El CTA navega a la solicitud creada
     await user.click(screen.getByRole("button", { name: /Ver la solicitud/i }));

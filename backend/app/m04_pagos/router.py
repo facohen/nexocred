@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Header, Query
 
-from app.deps import AdminOAnalista, CurrentUser, SessionDep
+from app.deps import Administrativo, CurrentUser, SessionDep
 from app.errors import ErrorAPI
 from app.m04_pagos import servicio
 from app.m04_pagos.schemas import (
@@ -32,7 +32,7 @@ def _exigir_idem(idempotency_key: str | None) -> str:
 async def registrar_pago(
     datos: PagoCreate,
     session: SessionDep,
-    actor: AdminOAnalista,
+    actor: Administrativo,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> PagoOut:
     clave = _exigir_idem(idempotency_key)
@@ -51,7 +51,7 @@ async def registrar_pago(
 @router.get("/pagos/a-aplicar", response_model=Pagina[PagoOut])
 async def pagos_a_aplicar(
     session: SessionDep,
-    _: AdminOAnalista,
+    _: Administrativo,
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
 ) -> Pagina[PagoOut]:
@@ -64,7 +64,7 @@ async def corregir_pago(
     pago_id: uuid.UUID,
     datos: CorreccionIn,
     session: SessionDep,
-    actor: AdminOAnalista,
+    actor: Administrativo,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> CorreccionOut:
     clave = _exigir_idem(idempotency_key)

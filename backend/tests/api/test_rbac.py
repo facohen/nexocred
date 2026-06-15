@@ -17,14 +17,14 @@ async def test_admin_puede_crear_usuario_201(client, admin_token):
         "/api/v1/usuarios",
         json={
             "email": "nuevo@nexo.test", "nombre": "Nuevo",
-            "password": "secreto123", "roles": ["cobrador"],
+            "password": "secreto123", "roles": ["administrativo"],
         },
         headers=_h(admin_token),
     )
     assert r.status_code == 201
     body = r.json()
     assert body["email"] == "nuevo@nexo.test"
-    assert body["roles"] == ["cobrador"]
+    assert body["roles"] == ["administrativo"]
 
 
 async def test_token_invalido_401(client):

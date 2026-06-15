@@ -11,7 +11,7 @@ const BASE = "/api/v1";
 
 function authCobrador() {
   setToken({ access_token: "t", refresh_token: "r", token_type: "bearer" });
-  setSessionUser({ email: "cobrador@nexocred.test", nombre: "Cobra", roles: ["cobrador"] });
+  setSessionUser({ email: "cobrador@nexocred.test", nombre: "Cobra", roles: ["administrativo"] });
 }
 
 const visita = (over: Partial<VisitaEncolada> = {}): VisitaEncolada => ({

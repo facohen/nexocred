@@ -1,12 +1,6 @@
 import { createContext, useContext } from "react";
 
-export type Rol =
-  | "admin"
-  | "analista"
-  | "cobrador"
-  | "vendedor"
-  | "operador"
-  | "tesoreria";
+export type Rol = "vendedor" | "analista_riesgo" | "administrativo" | "ceo" | "admin_sistema";
 
 export interface TokenSet {
   access_token: string;
@@ -21,12 +15,11 @@ export interface SesionUsuario {
 }
 
 export const ROLES_CONOCIDOS: Rol[] = [
-  "admin",
-  "analista",
-  "cobrador",
   "vendedor",
-  "operador",
-  "tesoreria",
+  "analista_riesgo",
+  "administrativo",
+  "ceo",
+  "admin_sistema",
 ];
 
 // XSS tradeoff: keeping the token in localStorage is acceptable for this POC
@@ -69,9 +62,7 @@ export function decodeRolesFromToken(accessToken: string | null | undefined): Ro
  * endpoints scoped to the current user (e.g. metas/cartera del vendedor) since
  * SesionUsuario intentionally does not duplicate the id.
  */
-export function decodeUserIdFromToken(
-  accessToken: string | null | undefined,
-): string | null {
+export function decodeUserIdFromToken(accessToken: string | null | undefined): string | null {
   if (!accessToken) return null;
   const parts = accessToken.split(".");
   if (parts.length < 2) return null;

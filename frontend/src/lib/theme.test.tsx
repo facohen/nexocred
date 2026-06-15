@@ -19,10 +19,13 @@ describe("ThemeProvider", () => {
     localStorage.clear();
     document.documentElement.classList.remove("dark");
   });
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
 
   it("arranca en light por defecto (sin preferencia ni sistema oscuro)", () => {
-    vi.spyOn(window, "matchMedia").mockReturnValue({ matches: false } as MediaQueryList);
+    vi.stubGlobal("matchMedia", () => ({ matches: false }) as MediaQueryList);
     render(
       <ThemeProvider>
         <Probe />
@@ -59,7 +62,7 @@ describe("ThemeProvider", () => {
   });
 
   it("resolveInitialTheme cae al sistema cuando no hay preferencia", () => {
-    vi.spyOn(window, "matchMedia").mockReturnValue({ matches: true } as MediaQueryList);
+    vi.stubGlobal("matchMedia", () => ({ matches: true }) as MediaQueryList);
     expect(resolveInitialTheme()).toBe("dark");
   });
 

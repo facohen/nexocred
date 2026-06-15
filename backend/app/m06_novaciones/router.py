@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Header
 
-from app.deps import AdminOAnalista, CurrentUser, SessionDep
+from app.deps import ProponeNovacion, CurrentUser, SessionDep
 from app.errors import ErrorAPI
 from app.m06_novaciones import servicio
 from app.m06_novaciones.schemas import (
@@ -31,7 +31,7 @@ def _exigir_idem(idempotency_key: str | None) -> str:
 async def refinanciar(
     datos: RefinanciarIn,
     session: SessionDep,
-    actor: AdminOAnalista,
+    actor: ProponeNovacion,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> NovacionOut:
     clave = _exigir_idem(idempotency_key)
@@ -48,7 +48,7 @@ async def refinanciar(
 async def consolidar(
     datos: ConsolidarIn,
     session: SessionDep,
-    actor: AdminOAnalista,
+    actor: ProponeNovacion,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> NovacionOut:
     clave = _exigir_idem(idempotency_key)
@@ -65,7 +65,7 @@ async def consolidar(
 async def transferir(
     datos: TransferirIn,
     session: SessionDep,
-    actor: AdminOAnalista,
+    actor: ProponeNovacion,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> NovacionOut:
     clave = _exigir_idem(idempotency_key)
@@ -82,7 +82,7 @@ async def transferir(
 async def repactar_rapido(
     datos: RepactarRapidoIn,
     session: SessionDep,
-    actor: AdminOAnalista,
+    actor: ProponeNovacion,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> NovacionOut:
     clave = _exigir_idem(idempotency_key)

@@ -17,7 +17,9 @@ import { setToken, setSessionUser } from "@/lib/auth";
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
-  useParams: () => ({}),
+  // solicitudId real: useChecklist/useSolicitud usan enabled:Boolean(id), un id
+  // vacío dejaría la query inactiva y el checklist nunca cargaría.
+  useParams: () => ({ solicitudId: "solicitud-1" }),
   Link: ({ children, ...p }: { children: React.ReactNode }) => <a {...p}>{children}</a>,
 }));
 
@@ -26,7 +28,7 @@ const BASE = "/api/v1";
 describe("Botones transaccionales: disable durante la mutacion en vuelo", () => {
   beforeEach(() => {
     setToken({ access_token: "t", refresh_token: "r", token_type: "bearer" });
-    setSessionUser({ email: "admin@nexocred.test", nombre: "Admin", roles: ["admin"] });
+    setSessionUser({ email: "admin@nexocred.test", nombre: "Admin", roles: ["administrativo"] });
   });
 
   it("registrar pago se deshabilita mientras postea", async () => {
@@ -34,9 +36,18 @@ describe("Botones transaccionales: disable durante la mutacion en vuelo", () => 
       http.post(`${BASE}/pagos`, async () => {
         await delay(200);
         return HttpResponse.json(
-          { id: "p1", prestamo_id: "prestamo-1", monto: "100.00", excedente: "0.00",
-            estado: "aplicado", canal: "efectivo", fecha_negocio: "2026-06-01",
-            corrige_pago_id: null, created_at: "x", imputaciones: [] },
+          {
+            id: "p1",
+            prestamo_id: "prestamo-1",
+            monto: "100.00",
+            excedente: "0.00",
+            estado: "aplicado",
+            canal: "efectivo",
+            fecha_negocio: "2026-06-01",
+            corrige_pago_id: null,
+            created_at: "x",
+            imputaciones: [],
+          },
           { status: 201 },
         );
       }),
@@ -54,14 +65,14 @@ describe("Botones transaccionales: disable durante la mutacion en vuelo", () => 
       http.post(`${BASE}/pagos/:id/corregir`, async ({ params }) => {
         await delay(200);
         return HttpResponse.json({
-          pago_original_id: params.id, pago_nuevo_id: "pn", estado_original: "aplicado",
+          pago_original_id: params.id,
+          pago_nuevo_id: "pn",
+          estado_original: "aplicado",
         });
       }),
     );
     const { CorreccionDialog } = await import("./pagos/CorreccionDialog");
-    renderWithProviders(
-      <CorreccionDialog pagoId="pago-1" open onOpenChange={() => {}} />,
-    );
+    renderWithProviders(<CorreccionDialog pagoId="pago-1" open onOpenChange={() => {}} />);
     const btn = screen.getByRole("button", { name: /corregir/i });
     await userEvent.click(btn);
     await waitFor(() => expect(btn).toBeDisabled());
@@ -70,18 +81,21 @@ describe("Botones transaccionales: disable durante la mutacion en vuelo", () => 
   it("desembolsar (aprobar y desembolsar) se deshabilita mientras postea", async () => {
     server.use(
       // Checklist limpio (todas las politicas OK, BCRA OK) -> Aprobar habilitado.
-      http.post(`${BASE}/solicitudes/:id/validar-politicas`, () =>
+      // GET + forma plana ChecklistOut (igual que el backend real).
+      http.get(`${BASE}/solicitudes/:id/validar-politicas`, () =>
         HttpResponse.json({
-          checklist: [
-            { regla: "bcra", ok: true, detalle: "Situación 1" },
-            { regla: "cuota_ingreso", ok: true, detalle: "OK" },
-          ],
+          edad: true,
+          cuota_ingreso: true,
+          bcra: true,
+          mora_previa: false,
         }),
       ),
       http.post(`${BASE}/solicitudes/:id/desembolsar`, async () => {
         await delay(200);
-        return HttpResponse.json({ prestamo_id: "pr1", estado: "desembolsada",
-          cantidad_cuotas: 6 }, { status: 201 });
+        return HttpResponse.json(
+          { prestamo_id: "pr1", estado: "desembolsada", cantidad_cuotas: 6 },
+          { status: 201 },
+        );
       }),
     );
     const { SolicitudDetailPage } = await import("./solicitudes/SolicitudDetailPage");
@@ -98,9 +112,17 @@ describe("Botones transaccionales: disable durante la mutacion en vuelo", () => 
       http.post(`${BASE}/documentos/generar`, async () => {
         await delay(200);
         return HttpResponse.json(
-          { id: "d1", prestamo_id: "prestamo-1", tipo: "pagare", numero: 1,
-            hash_sha256: "abc", url_storage: null, emitido_por: "u1",
-            anulado_en: null, anulado_por: null },
+          {
+            id: "d1",
+            prestamo_id: "prestamo-1",
+            tipo: "pagare",
+            numero: 1,
+            hash_sha256: "abc",
+            url_storage: null,
+            emitido_por: "u1",
+            anulado_en: null,
+            anulado_por: null,
+          },
           { status: 201 },
         );
       }),
@@ -117,17 +139,30 @@ describe("Botones transaccionales: disable durante la mutacion en vuelo", () => 
       http.get(`${BASE}/comisiones/liquidaciones`, () =>
         HttpResponse.json({
           data: [
-            { id: "liq-1", vendedor_id: "user-vendedor", periodo_desde: "2026-05-01",
-              periodo_hasta: "2026-06-01", monto_total: "2000.00", estado: "aprobada" },
+            {
+              id: "liq-1",
+              vendedor_id: "user-vendedor",
+              periodo_desde: "2026-05-01",
+              periodo_hasta: "2026-06-01",
+              monto_total: "2000.00",
+              estado: "aprobada",
+            },
           ],
-          total: 1, page: 1, per_page: 50,
+          total: 1,
+          page: 1,
+          per_page: 50,
         }),
       ),
       http.post(`${BASE}/comisiones/liquidaciones/:id/pagar`, async () => {
         await delay(200);
-        return HttpResponse.json({ id: "liq-1", vendedor_id: "user-vendedor",
-          periodo_desde: "2026-05-01", periodo_hasta: "2026-06-01",
-          monto_total: "2000.00", estado: "pagada" });
+        return HttpResponse.json({
+          id: "liq-1",
+          vendedor_id: "user-vendedor",
+          periodo_desde: "2026-05-01",
+          periodo_hasta: "2026-06-01",
+          monto_total: "2000.00",
+          estado: "pagada",
+        });
       }),
     );
     const { LiquidacionesPage } = await import("./vendedores/LiquidacionesPage");
@@ -146,8 +181,14 @@ describe("Botones transaccionales: disable durante la mutacion en vuelo", () => 
       http.post(`${BASE}/comisiones/liquidaciones`, async () => {
         await delay(200);
         return HttpResponse.json(
-          { id: "liq-n", vendedor_id: "user-vendedor", periodo_desde: "2026-06-01",
-            periodo_hasta: "2026-06-30", monto_total: "0.00", estado: "borrador" },
+          {
+            id: "liq-n",
+            vendedor_id: "user-vendedor",
+            periodo_desde: "2026-06-01",
+            periodo_hasta: "2026-06-30",
+            monto_total: "0.00",
+            estado: "borrador",
+          },
           { status: 201 },
         );
       }),
@@ -164,8 +205,13 @@ describe("Botones transaccionales: disable durante la mutacion en vuelo", () => 
       http.post(`${BASE}/novaciones/:tipo`, async () => {
         await delay(200);
         return HttpResponse.json(
-          { id: "nov-1", tipo: "refinanciar", estado: "ejecutada",
-            nuevo_prestamo_id: "pr-nuevo", origenes: ["prestamo-1"] },
+          {
+            id: "nov-1",
+            tipo: "refinanciar",
+            estado: "ejecutada",
+            nuevo_prestamo_id: "pr-nuevo",
+            origenes: ["prestamo-1"],
+          },
           { status: 201 },
         );
       }),
@@ -181,16 +227,24 @@ describe("Botones transaccionales: disable durante la mutacion en vuelo", () => 
     server.use(
       http.get(`${BASE}/rendiciones/:id`, () =>
         HttpResponse.json({
-          id: "rendicion-1", ruta_id: "ruta-1", estado: "borrador",
-          total_cobrado: "100.00", total_descargos: "0.00", diferencia: "100.00",
+          id: "rendicion-1",
+          ruta_id: "ruta-1",
+          estado: "borrador",
+          total_cobrado: "100.00",
+          total_descargos: "0.00",
+          diferencia: "100.00",
           descargos: [],
         }),
       ),
       http.patch(`${BASE}/rendiciones/:id`, async () => {
         await delay(200);
         return HttpResponse.json({
-          id: "rendicion-1", ruta_id: "ruta-1", estado: "presentada",
-          total_cobrado: "100.00", total_descargos: "0.00", diferencia: "100.00",
+          id: "rendicion-1",
+          ruta_id: "ruta-1",
+          estado: "presentada",
+          total_cobrado: "100.00",
+          total_descargos: "0.00",
+          diferencia: "100.00",
         });
       }),
     );
@@ -207,9 +261,18 @@ describe("Botones transaccionales: disable durante la mutacion en vuelo", () => 
     const { _reset, encolarVisita } = await import("./ruta/queue");
     await _reset();
     await encolarVisita({
-      id: "uuidv7-tx-1", rutaId: "ruta-1", paradaId: "p1", prestamoId: "L1",
-      orden: 1, resultado: "pago", montoCobrado: "2200.00", pagoId: "uuidv7-pago-tx",
-      fotoUrl: null, lat: null, lng: null, notas: null,
+      id: "uuidv7-tx-1",
+      rutaId: "ruta-1",
+      paradaId: "p1",
+      prestamoId: "L1",
+      orden: 1,
+      resultado: "pago",
+      montoCobrado: "2200.00",
+      pagoId: "uuidv7-pago-tx",
+      fotoUrl: null,
+      lat: null,
+      lng: null,
+      notas: null,
       visitadaEn: "2026-06-12T10:00:00Z",
     });
     server.use(

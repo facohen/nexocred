@@ -5,12 +5,7 @@ import type { components } from "@/lib/api/schema";
 
 type Sch = components["schemas"];
 
-export type DimensionRentabilidad =
-  | "producto"
-  | "vendedor"
-  | "segmento"
-  | "cosecha"
-  | "zona";
+export type DimensionRentabilidad = "producto" | "vendedor" | "segmento" | "cosecha" | "zona";
 
 /** Rentabilidad agregada por dimensión (producto/vendedor/segmento/cosecha/zona). */
 export function useRentabilidad(dimension: DimensionRentabilidad) {

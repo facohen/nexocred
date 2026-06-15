@@ -4,8 +4,8 @@ from typing import Annotated
 from fastapi import APIRouter, Header, Query
 
 from app.deps import (
-    AdminAnalistaOVendedor,
-    AdminOAnalista,
+    OriginaSolicitud,
+    AnalistaRiesgo,
     CurrentUser,
     SessionDep,
 )
@@ -50,7 +50,7 @@ def _es_vendedor(actor) -> bool:
 
 @router.post("/solicitudes", response_model=SolicitudOut, status_code=201)
 async def crear_solicitud(
-    datos: SolicitudCreate, session: SessionDep, actor: AdminAnalistaOVendedor
+    datos: SolicitudCreate, session: SessionDep, actor: OriginaSolicitud
 ) -> SolicitudOut:
     # Atribución del vendedor: un vendedor SIEMPRE origina a su propio nombre
     # (no puede crear a nombre de otro). Admin/analista pueden fijar el vendedor
@@ -94,7 +94,7 @@ async def cambiar_estado(
     solicitud_id: uuid.UUID,
     datos: CambioEstadoIn,
     session: SessionDep,
-    actor: AdminOAnalista,
+    actor: AnalistaRiesgo,
 ) -> SolicitudOut:
     sol = await _get_solicitud(session, solicitud_id)
     await servicio.cambiar_estado(
@@ -107,7 +107,7 @@ async def cambiar_estado(
 
 @router.get("/solicitudes/{solicitud_id}/validar-politicas", response_model=ChecklistOut)
 async def validar_politicas(
-    solicitud_id: uuid.UUID, session: SessionDep, _: AdminOAnalista
+    solicitud_id: uuid.UUID, session: SessionDep, _: AnalistaRiesgo
 ) -> ChecklistOut:
     sol = await _get_solicitud(session, solicitud_id)
     checklist = await servicio.validar_politicas(session, sol)
@@ -116,7 +116,7 @@ async def validar_politicas(
 
 @router.post("/solicitudes/{solicitud_id}/evaluar", response_model=SolicitudOut)
 async def evaluar(
-    solicitud_id: uuid.UUID, session: SessionDep, actor: AdminOAnalista
+    solicitud_id: uuid.UUID, session: SessionDep, actor: AnalistaRiesgo
 ) -> SolicitudOut:
     sol = await _get_solicitud(session, solicitud_id)
     await servicio.evaluar(session, sol, actor_id=actor.id)
@@ -129,7 +129,7 @@ async def simular(
     solicitud_id: uuid.UUID,
     datos: SimularIn,
     session: SessionDep,
-    _: AdminOAnalista,
+    _: AnalistaRiesgo,
 ) -> SimuladorOut:
     sol = await _get_solicitud(session, solicitud_id)
     return await servicio.simular_oferta(session, sol, datos.fecha_primera_cuota)
@@ -144,7 +144,7 @@ async def desembolsar_solicitud(
     solicitud_id: uuid.UUID,
     datos: DesembolsarIn,
     session: SessionDep,
-    actor: AdminOAnalista,
+    actor: AnalistaRiesgo,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> DesembolsoOut:
     clave = _exigir_idem(idempotency_key)

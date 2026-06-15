@@ -8,16 +8,16 @@ import * as fx from "@/mocks/fixtures";
 import { setToken, setSessionUser } from "@/lib/auth";
 
 const BASE = "/api/v1";
-const admin = { email: "admin@nexocred.test", nombre: "Admin", roles: ["admin"] as const };
+const admin = { email: "admin@nexocred.test", nombre: "Admin", roles: ["ceo"] as const };
 
 beforeEach(() => {
   setToken({ access_token: "t", refresh_token: "r", token_type: "bearer" });
-  setSessionUser({ ...admin, roles: ["admin"] });
+  setSessionUser({ ...admin, roles: ["ceo"] });
 });
 
 describe("TorreDashboard", () => {
   it("renderiza resumen (Índice Nexo) y pulso (5 cards) DESDE el mock", async () => {
-    renderWithProviders(<TorreDashboard />, { ...admin, roles: ["admin"] });
+    renderWithProviders(<TorreDashboard />, { ...admin, roles: ["ceo"] });
     // Índice Nexo viene del mock (78.50), no hardcodeado
     expect(await screen.findByTestId("indice-nexo")).toHaveTextContent(/78,50/);
     const cards = await screen.findAllByTestId("pulso-card");
@@ -27,7 +27,7 @@ describe("TorreDashboard", () => {
   });
 
   it("alertas-live con deep-link al préstamo", async () => {
-    renderWithProviders(<TorreDashboard />, { ...admin, roles: ["admin"] });
+    renderWithProviders(<TorreDashboard />, { ...admin, roles: ["ceo"] });
     const link = await screen.findByRole("link", { name: /mora_temprana/i });
     expect(link).toHaveAttribute("href", expect.stringContaining("prestamo-1"));
   });
@@ -37,7 +37,7 @@ describe("TorreDashboard", () => {
       http.get(`${BASE}/torre/resumen`, () => HttpResponse.json(fx.torreResumenVacio)),
       http.get(`${BASE}/torre/pulso`, () => HttpResponse.json(fx.torrePulsoVacio)),
     );
-    renderWithProviders(<TorreDashboard />, { ...admin, roles: ["admin"] });
+    renderWithProviders(<TorreDashboard />, { ...admin, roles: ["ceo"] });
     expect(await screen.findByText(/Aún no hay snapshot/i)).toBeInTheDocument();
   });
 
@@ -47,7 +47,7 @@ describe("TorreDashboard", () => {
     server.use(
       http.get(`${BASE}/torre/pulso`, () => HttpResponse.json(fx.torrePulsoVacio)),
     );
-    renderWithProviders(<TorreDashboard />, { ...admin, roles: ["admin"] });
+    renderWithProviders(<TorreDashboard />, { ...admin, roles: ["ceo"] });
     expect(await screen.findByText(/Aún no hay snapshot/i)).toBeInTheDocument();
   });
 
@@ -57,12 +57,12 @@ describe("TorreDashboard", () => {
         HttpResponse.json({ error: { code: "x", message: "falló" } }, { status: 500 }),
       ),
     );
-    renderWithProviders(<TorreDashboard />, { ...admin, roles: ["admin"] });
+    renderWithProviders(<TorreDashboard />, { ...admin, roles: ["ceo"] });
     expect(await screen.findByRole("alert")).toBeInTheDocument();
   });
 
   it("muestra aging de cartera con la escala de mora (Al día / PAR30 / Castigo)", async () => {
-    renderWithProviders(<TorreDashboard />, { ...admin, roles: ["admin"] });
+    renderWithProviders(<TorreDashboard />, { ...admin, roles: ["ceo"] });
     expect(await screen.findByText(/Salud de cartera/i)).toBeInTheDocument();
     // Los tramos de la escala ordinal de mora en la sección de aging.
     expect(screen.getByText("Al día")).toBeInTheDocument();
@@ -73,7 +73,7 @@ describe("TorreDashboard", () => {
   it("el aging muestra los MONTOS reales (keys al_dia/1_30/... ), no $0", async () => {
     // Regresión A4: con las keys viejas ("0","1-30",...) el lookup fallaba y
     // todos los tramos mostraban $0,00. Con las keys reales deben verse los montos.
-    renderWithProviders(<TorreDashboard />, { ...admin, roles: ["admin"] });
+    renderWithProviders(<TorreDashboard />, { ...admin, roles: ["ceo"] });
     await screen.findByText(/Salud de cartera/i);
     // al_dia=1.000.000, 1_30=120.000, 31_60=60.000, 61_90=30.000, 90_mas=15.000
     expect(screen.getByText("$ 1.000.000,00")).toBeInTheDocument();
@@ -84,13 +84,13 @@ describe("TorreDashboard", () => {
   });
 
   it("usa el nombre renombrado 'Alertas Activas' (no 'Alertas en vivo')", async () => {
-    renderWithProviders(<TorreDashboard />, { ...admin, roles: ["admin"] });
+    renderWithProviders(<TorreDashboard />, { ...admin, roles: ["ceo"] });
     expect(await screen.findByText("Alertas Activas")).toBeInTheDocument();
     expect(screen.queryByText(/Alertas en vivo/i)).not.toBeInTheDocument();
   });
 
   it("los KPIs de pulso son deep-links (drill-down accionable)", async () => {
-    renderWithProviders(<TorreDashboard />, { ...admin, roles: ["admin"] });
+    renderWithProviders(<TorreDashboard />, { ...admin, roles: ["ceo"] });
     const cards = await screen.findAllByTestId("pulso-card");
     // cada card está envuelta en un <a href> a su cola correspondiente
     cards.forEach((card) => {

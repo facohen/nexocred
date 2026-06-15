@@ -30,8 +30,8 @@ from nexocred_core import CERO, sumar
 
 router = APIRouter(tags=["riesgo"])
 
-RiesgoUser = Annotated[Usuario, Depends(requiere_rol("admin", "analista"))]
-AdminUser = Annotated[Usuario, Depends(requiere_rol("admin"))]
+RiesgoUser = Annotated[Usuario, Depends(requiere_rol("analista_riesgo", "ceo"))]
+AdminUser = Annotated[Usuario, Depends(requiere_rol("analista_riesgo"))]
 
 
 @router.get("/riesgo/tablero", response_model=TableroOut)

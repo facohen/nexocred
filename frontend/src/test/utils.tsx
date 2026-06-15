@@ -4,10 +4,13 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SessionContext, type SesionUsuario } from "@/lib/auth";
 
+// Usuario de test con TODOS los roles: preserva la intención de los tests amplios
+// (el actor por defecto está autorizado para todo). Tests específicos por rol pasan
+// su propio user a renderWithProviders.
 const DEFAULT_USER: SesionUsuario = {
-  email: "admin@nexocred.test",
-  nombre: "Admin",
-  roles: ["admin"],
+  email: "demo@nexocred.test",
+  nombre: "Demo",
+  roles: ["vendedor", "analista_riesgo", "administrativo", "ceo", "admin_sistema"],
 };
 
 export function makeWrapper(user: SesionUsuario = DEFAULT_USER) {

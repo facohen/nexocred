@@ -8,22 +8,21 @@ import type { components } from "@/lib/api/schema";
 type TokenOut = components["schemas"]["TokenOut"];
 
 const DEMO_USERS = [
-  { rol: "admin",     email: "admin.full@nexocred.test" },
-  { rol: "analista",  email: "analista.full@nexocred.test" },
-  { rol: "vendedor",  email: "vendedor.full@nexocred.test" },
-  { rol: "cobrador",  email: "cobrador_a.full@nexocred.test" },
-  { rol: "operador",  email: "operador.full@nexocred.test" },
-  { rol: "tesoreria", email: "tesoreria.full@nexocred.test" },
+  { rol: "vendedor", email: "vendedor.full@nexocred.test" },
+  { rol: "analista de riesgo", email: "riesgo.full@nexocred.test" },
+  { rol: "administrativo", email: "administrativo.full@nexocred.test" },
+  { rol: "ceo", email: "ceo.full@nexocred.test" },
+  { rol: "admin sistema", email: "sistema.full@nexocred.test" },
 ] as const;
 
 const DEMO_PASSWORD = "demo12345";
 
 export function LoginPage({ onSuccess }: { onSuccess?: () => void }) {
   const { login } = useSession();
-  const [email, setEmail]       = useState("admin.full@nexocred.test");
+  const [email, setEmail] = useState("vendedor.full@nexocred.test");
   const [password, setPassword] = useState(DEMO_PASSWORD);
-  const [error, setError]       = useState<string | null>(null);
-  const [loading, setLoading]   = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -47,7 +46,6 @@ export function LoginPage({ onSuccess }: { onSuccess?: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg">
       <div className="w-full max-w-sm space-y-4">
-
         {/* Formulario */}
         <form
           onSubmit={handleSubmit}
@@ -57,7 +55,9 @@ export function LoginPage({ onSuccess }: { onSuccess?: () => void }) {
           <p className="text-sm text-text-muted">Ingresá tus credenciales</p>
 
           <div className="space-y-1">
-            <label htmlFor="email" className="text-sm font-medium">Email</label>
+            <label htmlFor="email" className="text-sm font-medium">
+              Email
+            </label>
             <Input
               id="email"
               type="email"
@@ -68,7 +68,9 @@ export function LoginPage({ onSuccess }: { onSuccess?: () => void }) {
           </div>
 
           <div className="space-y-1">
-            <label htmlFor="password" className="text-sm font-medium">Contraseña</label>
+            <label htmlFor="password" className="text-sm font-medium">
+              Contraseña
+            </label>
             <Input
               id="password"
               type="password"
@@ -79,7 +81,9 @@ export function LoginPage({ onSuccess }: { onSuccess?: () => void }) {
           </div>
 
           {error && (
-            <p role="alert" className="text-sm text-neg">{error}</p>
+            <p role="alert" className="text-sm text-neg">
+              {error}
+            </p>
           )}
 
           <Button type="submit" className="w-full" disabled={loading}>
@@ -99,17 +103,23 @@ export function LoginPage({ onSuccess }: { onSuccess?: () => void }) {
                 <button
                   key={rol}
                   type="button"
-                  onClick={() => { setEmail(demoEmail); setPassword(DEMO_PASSWORD); setError(null); }}
+                  onClick={() => {
+                    setEmail(demoEmail);
+                    setPassword(DEMO_PASSWORD);
+                    setError(null);
+                  }}
                   className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm transition-colors ${
-                    isActive
-                      ? "bg-brand-subtle ring-1 ring-brand/30"
-                      : "hover:bg-surface-sunken"
+                    isActive ? "bg-brand-subtle ring-1 ring-brand/30" : "hover:bg-surface-sunken"
                   }`}
                 >
-                  <span className={`w-4 text-center text-xs ${isActive ? "text-brand" : "text-text-subtle"}`}>
+                  <span
+                    className={`w-4 text-center text-xs ${isActive ? "text-brand" : "text-text-subtle"}`}
+                  >
                     {isActive ? "▶" : "·"}
                   </span>
-                  <span className={`w-20 font-medium capitalize ${isActive ? "text-brand" : "text-text-muted"}`}>
+                  <span
+                    className={`w-20 font-medium capitalize ${isActive ? "text-brand" : "text-text-muted"}`}
+                  >
                     {rol}
                   </span>
                   <span className="font-num text-xs text-text-subtle">{demoEmail}</span>
@@ -118,7 +128,6 @@ export function LoginPage({ onSuccess }: { onSuccess?: () => void }) {
             })}
           </div>
         </div>
-
       </div>
     </div>
   );

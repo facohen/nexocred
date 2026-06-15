@@ -7,21 +7,21 @@ import { InboxPage } from "./InboxPage";
 import { setToken, setSessionUser } from "@/lib/auth";
 
 const BASE = "/api/v1";
-const operador = { email: "op@x", nombre: "Ope", roles: ["operador"] as const };
+const operador = { email: "op@x", nombre: "Ope", roles: ["administrativo"] as const };
 
 beforeEach(() => {
   setToken({ access_token: "t", refresh_token: "r", token_type: "bearer" });
-  setSessionUser({ ...operador, roles: ["operador"] });
+  setSessionUser({ ...operador, roles: ["administrativo"] });
 });
 
 describe("InboxPage — bandeja del operador (inbox-driven)", () => {
   it("muestra el hero 'Mi inbox' con conteo de pendientes", async () => {
-    renderWithProviders(<InboxPage />, { ...operador, roles: ["operador"] });
+    renderWithProviders(<InboxPage />, { ...operador, roles: ["administrativo"] });
     expect(await screen.findByRole("heading", { name: /Mi inbox/i })).toBeInTheDocument();
   });
 
   it("agrupa tareas por urgencia (Vencidas / Para hoy / Próximas)", async () => {
-    renderWithProviders(<InboxPage />, { ...operador, roles: ["operador"] });
+    renderWithProviders(<InboxPage />, { ...operador, roles: ["administrativo"] });
     // Las 3 secciones de urgencia siempre se renderizan (con su conteo).
     expect(await screen.findByText("Vencidas")).toBeInTheDocument();
     expect(screen.getByText("Para hoy")).toBeInTheDocument();
@@ -52,7 +52,7 @@ describe("InboxPage — bandeja del operador (inbox-driven)", () => {
         }),
       ),
     );
-    renderWithProviders(<InboxPage />, { ...operador, roles: ["operador"] });
+    renderWithProviders(<InboxPage />, { ...operador, roles: ["administrativo"] });
     expect(await screen.findByText("Tarea atrasada")).toBeInTheDocument();
     // El subtítulo del hero menciona "N vencidas" (minúscula); distinto de la
     // sección "Vencidas". Verificamos que la tarea cayó en la sección correcta.

@@ -28,9 +28,7 @@ export function UsuariosPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-xl font-bold text-text">Usuarios</h1>
-          <p className="mt-0.5 text-sm text-text-muted">
-            Gestión de usuarios y roles del sistema.
-          </p>
+          <p className="mt-0.5 text-sm text-text-muted">Gestión de usuarios y roles del sistema.</p>
         </div>
         <Button onClick={() => setCreando(true)}>Nuevo usuario</Button>
       </div>
@@ -92,11 +90,7 @@ export function UsuariosPage() {
                         Editar
                       </Button>
                       {u.activo && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setADesactivar(u)}
-                        >
+                        <Button size="sm" variant="ghost" onClick={() => setADesactivar(u)}>
                           Desactivar
                         </Button>
                       )}

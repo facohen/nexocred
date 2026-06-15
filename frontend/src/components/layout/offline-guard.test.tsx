@@ -23,7 +23,7 @@ import { TransactionButton } from "@/components/TransactionButton";
 import { SessionContext, type SesionUsuario } from "@/lib/auth";
 import { ThemeProvider } from "@/lib/theme";
 
-const USER: SesionUsuario = { email: "op@nexo.test", nombre: "Op", roles: ["admin"] };
+const USER: SesionUsuario = { email: "op@nexo.test", nombre: "Op", roles: ["administrativo"] };
 
 function setOnline(value: boolean) {
   Object.defineProperty(navigator, "onLine", { value, configurable: true });
@@ -44,7 +44,11 @@ function montarEn(pathname: string) {
       </AppShell>
     ),
   });
-  const pagos = createRoute({ getParentRoute: () => root, path: "/pagos", component: MostradorPantalla });
+  const pagos = createRoute({
+    getParentRoute: () => root,
+    path: "/pagos",
+    component: MostradorPantalla,
+  });
   const ruta = createRoute({ getParentRoute: () => root, path: "/ruta", component: RutaPantalla });
   const router = createRouter({
     routeTree: root.addChildren([pagos, ruta]),

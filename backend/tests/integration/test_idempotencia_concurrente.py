@@ -43,7 +43,7 @@ def _maker():
 async def _seed_prestamo_y_usuario() -> tuple[str, str]:
     engine, maker = _maker()
     async with maker() as s:
-        s.add(Rol(nombre="admin"))
+        s.add(Rol(nombre="admin_sistema"))
         u = Usuario(email="doc@test.com", nombre="Doc", password_hash="x")
         s.add(u)
         persona = await crear_persona(s)

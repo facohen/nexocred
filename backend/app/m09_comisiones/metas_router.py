@@ -13,14 +13,14 @@ from nexocred_core import CERO
 
 router = APIRouter(tags=["metas"])
 
-AdminUser = Annotated[Usuario, Depends(requiere_rol("admin"))]
-VendedorUser = Annotated[Usuario, Depends(requiere_rol("admin", "vendedor"))]
+AdminUser = Annotated[Usuario, Depends(requiere_rol("administrativo"))]
+VendedorUser = Annotated[Usuario, Depends(requiere_rol("vendedor", "administrativo"))]
 
 _CIEN = Decimal("100")
 
 
 def _es_admin(actor: Usuario) -> bool:
-    return any(r.nombre == "admin" for r in actor.roles)
+    return any(r.nombre == "administrativo" for r in actor.roles)
 
 
 def _exigir_vendedor_propio(actor: Usuario, vendedor_id: uuid.UUID) -> None:

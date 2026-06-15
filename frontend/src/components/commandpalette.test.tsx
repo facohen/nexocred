@@ -11,7 +11,11 @@ function renderPalette() {
   return render(
     <SessionContext.Provider
       value={{
-        user: { email: "a@x", nombre: "Admin", roles: ["admin"] },
+        user: {
+          email: "a@x",
+          nombre: "Admin",
+          roles: ["vendedor", "analista_riesgo", "administrativo", "ceo", "admin_sistema"],
+        },
         login: () => {},
         logout: () => {},
       }}

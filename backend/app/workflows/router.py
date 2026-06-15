@@ -20,8 +20,8 @@ from app.workflows.schemas import (
 
 router = APIRouter(tags=["workflows"])
 
-AdminUser = Annotated[Usuario, Depends(requiere_rol("admin"))]
-WorkflowUser = Annotated[Usuario, Depends(requiere_rol("admin", "operador"))]
+AdminUser = Annotated[Usuario, Depends(requiere_rol("admin_sistema"))]
+WorkflowUser = Annotated[Usuario, Depends(requiere_rol("administrativo"))]
 
 
 @router.get("/workflow-reglas", response_model=Pagina[ReglaOut])

@@ -31,7 +31,11 @@ export const handlers = [
   }),
   http.post(`${BASE}/auth/logout`, () => HttpResponse.json({ ok: true })),
   http.post(`${BASE}/auth/refresh`, () =>
-    HttpResponse.json({ access_token: "token-x", refresh_token: "refresh-x", token_type: "bearer" }),
+    HttpResponse.json({
+      access_token: "token-x",
+      refresh_token: "refresh-x",
+      token_type: "bearer",
+    }),
   ),
 
   // ---- Usuarios ----
@@ -162,7 +166,9 @@ export const handlers = [
   ),
   http.post(`${BASE}/matrices/tasas`, () => HttpResponse.json({ ok: true })),
   http.get(`${BASE}/matrices/comisiones`, () =>
-    HttpResponse.json({ data: [{ producto_id: "producto-1", canal: "directo", comision: "2.00" }] }),
+    HttpResponse.json({
+      data: [{ producto_id: "producto-1", canal: "directo", comision: "2.00" }],
+    }),
   ),
   http.post(`${BASE}/simulador/otorgante`, () => HttpResponse.json(fx.simuladorOut)),
   http.post(`${BASE}/simulador/cotizador`, () => HttpResponse.json(fx.simuladorOut)),
@@ -170,7 +176,12 @@ export const handlers = [
 
   // ---- Solicitudes ----
   http.get(`${BASE}/solicitudes`, () =>
-    HttpResponse.json({ data: fx.solicitudes, total: fx.solicitudes.length, page: 1, per_page: 50 }),
+    HttpResponse.json({
+      data: fx.solicitudes,
+      total: fx.solicitudes.length,
+      page: 1,
+      per_page: 50,
+    }),
   ),
   http.post(`${BASE}/solicitudes`, async ({ request }) => {
     const body = (await request.json()) as {
@@ -198,8 +209,9 @@ export const handlers = [
     if (!s) return err("no_encontrada", "Solicitud no encontrada", 404);
     return HttpResponse.json(s);
   }),
-  http.post(`${BASE}/solicitudes/:id/validar-politicas`, ({ params }) =>
-    HttpResponse.json({ checklist: fx.checklistPoliticas[params.id as string] ?? [] }),
+  // GET (no POST): refleja el backend real, que devuelve el mapa plano ChecklistOut.
+  http.get(`${BASE}/solicitudes/:id/validar-politicas`, ({ params }) =>
+    HttpResponse.json(fx.checklistPoliticas[params.id as string] ?? fx.checklistPoliticas.default),
   ),
   http.post(`${BASE}/solicitudes/:id/evaluar`, ({ params }) => {
     const s = fx.solicitudes.find((x) => x.id === params.id);
@@ -213,7 +225,11 @@ export const handlers = [
   }),
   http.post(`${BASE}/solicitudes/:id/desembolsar`, ({ params }) => {
     const s = fx.solicitudes.find((x) => x.id === params.id);
-    return HttpResponse.json({ ...fx.prestamos[0], solicitud_id: params.id, persona_id: s?.persona_id });
+    return HttpResponse.json({
+      ...fx.prestamos[0],
+      solicitud_id: params.id,
+      persona_id: s?.persona_id,
+    });
   }),
 
   // ---- Préstamos ----
@@ -224,8 +240,7 @@ export const handlers = [
     const personaId = url.searchParams.get("persona_id");
     const estado = url.searchParams.get("estado");
     const data = fx.prestamos.filter(
-      (p) =>
-        (!personaId || p.persona_id === personaId) && (!estado || p.estado === estado),
+      (p) => (!personaId || p.persona_id === personaId) && (!estado || p.estado === estado),
     );
     return HttpResponse.json({ data, total: data.length, page: 1, per_page: 50 });
   }),
@@ -249,7 +264,9 @@ export const handlers = [
   http.get(`${BASE}/prestamos/:id/novaciones`, () => HttpResponse.json({ data: fx.novaciones })),
 
   // ---- Pagos ----
-  http.get(`${BASE}/pagos`, () => HttpResponse.json({ data: fx.pagos, total: fx.pagos.length, page: 1, per_page: 50 })),
+  http.get(`${BASE}/pagos`, () =>
+    HttpResponse.json({ data: fx.pagos, total: fx.pagos.length, page: 1, per_page: 50 }),
+  ),
   http.post(`${BASE}/pagos`, async ({ request }) => {
     const body = (await request.json()) as { monto?: string; prestamo_id?: string; canal?: string };
     const monto = body.monto ?? "0.00";
@@ -265,9 +282,30 @@ export const handlers = [
         corrige_pago_id: null,
         created_at: new Date().toISOString(),
         imputaciones: [
-          { id: "i-1", concepto: "punitorio_vencido", monto: "0.00", orden_waterfall: 1, cuota_numero: 3, cuota_id: "cuota-3" },
-          { id: "i-2", concepto: "interes_vencido", monto: "12500.00", orden_waterfall: 2, cuota_numero: 3, cuota_id: "cuota-3" },
-          { id: "i-3", concepto: "capital_vencido", monto: "41666.67", orden_waterfall: 3, cuota_numero: 3, cuota_id: "cuota-3" },
+          {
+            id: "i-1",
+            concepto: "punitorio_vencido",
+            monto: "0.00",
+            orden_waterfall: 1,
+            cuota_numero: 3,
+            cuota_id: "cuota-3",
+          },
+          {
+            id: "i-2",
+            concepto: "interes_vencido",
+            monto: "12500.00",
+            orden_waterfall: 2,
+            cuota_numero: 3,
+            cuota_id: "cuota-3",
+          },
+          {
+            id: "i-3",
+            concepto: "capital_vencido",
+            monto: "41666.67",
+            orden_waterfall: 3,
+            cuota_numero: 3,
+            cuota_id: "cuota-3",
+          },
         ],
       },
       { status: 201 },
@@ -293,20 +331,34 @@ export const handlers = [
   http.get(`${BASE}/cajas/:id/movimientos`, ({ params }) =>
     HttpResponse.json({ data: fx.movimientos[params.id as string] ?? [] }),
   ),
-  http.post(`${BASE}/transferencias-internas`, () => HttpResponse.json({ ok: true }, { status: 201 })),
+  http.post(`${BASE}/transferencias-internas`, () =>
+    HttpResponse.json({ ok: true }, { status: 201 }),
+  ),
 
   // ---- Novaciones ----
   http.post(`${BASE}/novaciones/refinanciar`, () =>
-    HttpResponse.json({ ...fx.novaciones[0], id: "novacion-new", tipo: "refinanciar" }, { status: 201 }),
+    HttpResponse.json(
+      { ...fx.novaciones[0], id: "novacion-new", tipo: "refinanciar" },
+      { status: 201 },
+    ),
   ),
   http.post(`${BASE}/novaciones/consolidar`, () =>
-    HttpResponse.json({ ...fx.novaciones[0], id: "novacion-new", tipo: "consolidar" }, { status: 201 }),
+    HttpResponse.json(
+      { ...fx.novaciones[0], id: "novacion-new", tipo: "consolidar" },
+      { status: 201 },
+    ),
   ),
   http.post(`${BASE}/novaciones/transferir`, () =>
-    HttpResponse.json({ ...fx.novaciones[0], id: "novacion-new", tipo: "transferir" }, { status: 201 }),
+    HttpResponse.json(
+      { ...fx.novaciones[0], id: "novacion-new", tipo: "transferir" },
+      { status: 201 },
+    ),
   ),
   http.post(`${BASE}/novaciones/repactar-rapido`, () =>
-    HttpResponse.json({ ...fx.novaciones[0], id: "novacion-new", tipo: "repactar" }, { status: 201 }),
+    HttpResponse.json(
+      { ...fx.novaciones[0], id: "novacion-new", tipo: "repactar" },
+      { status: 201 },
+    ),
   ),
   http.get(`${BASE}/novaciones/:id`, ({ params }) => {
     const n = fx.novaciones.find((x) => x.id === params.id) ?? fx.novaciones[0];
@@ -359,16 +411,19 @@ export const handlers = [
 
   // ---- Rendiciones ----
   http.get(`${BASE}/rendiciones`, () =>
-    HttpResponse.json({ data: fx.rendiciones, total: fx.rendiciones.length, page: 1, per_page: 50 }),
+    HttpResponse.json({
+      data: fx.rendiciones,
+      total: fx.rendiciones.length,
+      page: 1,
+      per_page: 50,
+    }),
   ),
   http.get(`${BASE}/rendiciones/:id`, ({ params }) => {
     const r = fx.rendiciones.find((x) => x.id === params.id);
     if (!r) return err("no_encontrada", "Rendición no encontrada", 404);
     return HttpResponse.json(r);
   }),
-  http.post(`${BASE}/rendiciones`, () =>
-    HttpResponse.json(fx.rendiciones[0], { status: 201 }),
-  ),
+  http.post(`${BASE}/rendiciones`, () => HttpResponse.json(fx.rendiciones[0], { status: 201 })),
   http.post(`${BASE}/rendiciones/:id/descargos`, async ({ params, request }) => {
     const body = (await request.json()) as { concepto?: string; monto?: string };
     return HttpResponse.json(
@@ -438,7 +493,10 @@ export const handlers = [
   ),
   http.post(`${BASE}/prospectos`, async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
-    return HttpResponse.json({ id: `prospecto-${Date.now()}`, estado: "nuevo", persona_id: null, ...body }, { status: 201 });
+    return HttpResponse.json(
+      { id: `prospecto-${Date.now()}`, estado: "nuevo", persona_id: null, ...body },
+      { status: 201 },
+    );
   }),
   http.patch(`${BASE}/prospectos/:id`, async ({ params, request }) => {
     const p = fx.prospectos.find((x) => x.id === params.id) ?? fx.prospectos[0];
@@ -465,12 +523,23 @@ export const handlers = [
   http.post(`${BASE}/alertas/:id/resolver`, async ({ params, request }) => {
     const a = fx.alertas.find((x) => x.id === params.id) ?? fx.alertas[0];
     const body = (await request.json()) as { justificacion?: string };
-    return HttpResponse.json({ ...a, id: params.id, estado: "resuelta", resuelta_en: new Date().toISOString(), justificacion: body.justificacion ?? null });
+    return HttpResponse.json({
+      ...a,
+      id: params.id,
+      estado: "resuelta",
+      resuelta_en: new Date().toISOString(),
+      justificacion: body.justificacion ?? null,
+    });
   }),
   http.post(`${BASE}/alertas/:id/asignar`, async ({ params, request }) => {
     const a = fx.alertas.find((x) => x.id === params.id) ?? fx.alertas[0];
     const body = (await request.json()) as { operador_id?: string };
-    return HttpResponse.json({ ...a, id: params.id, operador_id: body.operador_id ?? "user-operador", tarea_id: `tarea-${Date.now()}` });
+    return HttpResponse.json({
+      ...a,
+      id: params.id,
+      operador_id: body.operador_id ?? "user-operador",
+      tarea_id: `tarea-${Date.now()}`,
+    });
   }),
 
   // ---- Vendedores / comisiones ----
@@ -485,22 +554,43 @@ export const handlers = [
   ),
   // Forma real del backend: paginado { data, total, page, per_page }.
   http.get(`${BASE}/comisiones/liquidaciones`, () =>
-    HttpResponse.json({ data: fx.liquidaciones, total: fx.liquidaciones.length, page: 1, per_page: 50 }),
+    HttpResponse.json({
+      data: fx.liquidaciones,
+      total: fx.liquidaciones.length,
+      page: 1,
+      per_page: 50,
+    }),
   ),
   http.get(`${BASE}/comisiones/liquidaciones/:id`, ({ params }) => {
     const l = fx.liquidaciones.find((x) => x.id === params.id);
     if (!l) return err("no_encontrada", "Liquidación no encontrada", 404);
-    return HttpResponse.json({ ...l, detalle: [{ id: "ld-1", comision_devengo_id: "com-1", monto: "5000.00" }] });
+    return HttpResponse.json({
+      ...l,
+      detalle: [{ id: "ld-1", comision_devengo_id: "com-1", monto: "5000.00" }],
+    });
   }),
   http.post(`${BASE}/comisiones/liquidaciones`, async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
-    return HttpResponse.json({ ...fx.liquidaciones[0], id: `liq-${Date.now()}`, ...body }, { status: 201 });
+    return HttpResponse.json(
+      { ...fx.liquidaciones[0], id: `liq-${Date.now()}`, ...body },
+      { status: 201 },
+    );
   }),
   http.post(`${BASE}/comisiones/liquidaciones/:id/aprobar`, ({ params }) =>
-    HttpResponse.json({ ...fx.liquidaciones[0], id: params.id, estado: "aprobada", aprobada_en: new Date().toISOString() }),
+    HttpResponse.json({
+      ...fx.liquidaciones[0],
+      id: params.id,
+      estado: "aprobada",
+      aprobada_en: new Date().toISOString(),
+    }),
   ),
   http.post(`${BASE}/comisiones/liquidaciones/:id/pagar`, ({ params }) =>
-    HttpResponse.json({ ...fx.liquidaciones[0], id: params.id, estado: "pagada", egreso_id: `egreso-${params.id}` }),
+    HttpResponse.json({
+      ...fx.liquidaciones[0],
+      id: params.id,
+      estado: "pagada",
+      egreso_id: `egreso-${params.id}`,
+    }),
   ),
 
   // ---- Tesorería ----
@@ -569,6 +659,12 @@ export const handlers = [
   http.post(`${BASE}/documentos/:id/anular`, async ({ params, request }) => {
     const d = fx.documentos.find((x) => x.id === params.id) ?? fx.documentos[0];
     const body = (await request.json()) as { motivo?: string };
-    return HttpResponse.json({ ...d, id: params.id, anulado_en: new Date().toISOString(), anulado_por: "admin", motivo_anulacion: body.motivo ?? null });
+    return HttpResponse.json({
+      ...d,
+      id: params.id,
+      anulado_en: new Date().toISOString(),
+      anulado_por: "admin",
+      motivo_anulacion: body.motivo ?? null,
+    });
   }),
 ];

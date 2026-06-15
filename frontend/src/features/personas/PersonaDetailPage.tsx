@@ -116,9 +116,7 @@ function FichaHeader({
           <p className="text-sm text-text-muted">
             DNI {persona.dni} · CUIL {persona.cuil}
           </p>
-          {persona.email && (
-            <p className="text-sm text-text-subtle">{persona.email}</p>
-          )}
+          {persona.email && <p className="text-sm text-text-subtle">{persona.email}</p>}
         </div>
       </div>
 
@@ -145,9 +143,7 @@ function PrestamosDelCliente({ personaId }: { personaId: string }) {
       ) : isLoading ? (
         <p className="animate-pulse text-sm text-text-subtle">Cargando préstamos…</p>
       ) : prestamos.length === 0 ? (
-        <p className="text-sm text-text-subtle">
-          Este cliente todavía no tiene préstamos.
-        </p>
+        <p className="text-sm text-text-subtle">Este cliente todavía no tiene préstamos.</p>
       ) : (
         <ul className="divide-y divide-border">
           {prestamos.map((p) => (
@@ -163,13 +159,7 @@ function PrestamosDelCliente({ personaId }: { personaId: string }) {
   );
 }
 
-function PrestamoFila({
-  prestamo,
-  onVer,
-}: {
-  prestamo: Prestamo;
-  onVer: () => void;
-}) {
+function PrestamoFila({ prestamo, onVer }: { prestamo: Prestamo; onVer: () => void }) {
   const tono = ESTADO_TONO[prestamo.estado] ?? "default";
   return (
     <li className="flex flex-wrap items-center justify-between gap-3 py-3">
@@ -217,10 +207,7 @@ function DatosFicha({ persona }: { persona: components["schemas"]["PersonaOut"] 
           label="Ingresos en blanco"
           value={<MoneyText value={persona.ingresos_en_blanco} />}
         />
-        <Field
-          label="Ingresos totales"
-          value={<MoneyText value={persona.ingresos_totales} />}
-        />
+        <Field label="Ingresos totales" value={<MoneyText value={persona.ingresos_totales} />} />
       </dl>
     </Card>
   );

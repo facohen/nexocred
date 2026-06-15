@@ -7,7 +7,7 @@ async def test_alta_usuario_genera_auditoria(client, admin_token):
         "/api/v1/usuarios",
         json={
             "email": "audit@nexo.test", "nombre": "Audit",
-            "password": "secreto123", "roles": ["analista"],
+            "password": "secreto123", "roles": ["analista_riesgo"],
         },
         headers=_h(admin_token),
     )
@@ -23,13 +23,13 @@ async def test_cambio_roles_genera_auditoria(client, admin_token):
         "/api/v1/usuarios",
         json={
             "email": "roles@nexo.test", "nombre": "Roles",
-            "password": "secreto123", "roles": ["analista"],
+            "password": "secreto123", "roles": ["analista_riesgo"],
         },
         headers=_h(admin_token),
     )
     uid = r.json()["id"]
     await client.patch(
-        f"/api/v1/usuarios/{uid}", json={"roles": ["admin"]}, headers=_h(admin_token)
+        f"/api/v1/usuarios/{uid}", json={"roles": ["admin_sistema"]}, headers=_h(admin_token)
     )
     r = await client.get(
         "/api/v1/auditoria?accion=usuario_cambio_roles", headers=_h(admin_token)

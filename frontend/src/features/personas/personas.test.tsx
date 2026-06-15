@@ -57,9 +57,7 @@ describe("PersonaForm validacion", () => {
     await userEvent.click(screen.getByRole("button", { name: /guardar/i }));
     expect(await screen.findAllByRole("alert")).not.toHaveLength(0);
     expect(onCreated).not.toHaveBeenCalled();
-    expect(
-      screen.getByText(/los ingresos totales son obligatorios/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/los ingresos totales son obligatorios/i)).toBeInTheDocument();
   });
 
   it("bloquea el submit si falta estado_civil o domicilio (campos obligatorios §1)", async () => {
@@ -88,9 +86,7 @@ describe("PersonaForm validacion", () => {
     await userEvent.clear(enBlanco);
     await userEvent.type(enBlanco, "999999");
     await userEvent.click(screen.getByRole("button", { name: /guardar/i }));
-    expect(
-      await screen.findByText(/en blanco no pueden superar/i),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/en blanco no pueden superar/i)).toBeInTheDocument();
     expect(onCreated).not.toHaveBeenCalled();
   });
 
@@ -127,9 +123,7 @@ describe("PersonaDetail 360", () => {
     const seccion = await screen.findByText(/Préstamos del cliente/i);
     expect(seccion).toBeInTheDocument();
     expect(await screen.findByText("$ 292.500,00")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /ver estado de cuenta/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /ver estado de cuenta/i })).toBeInTheDocument();
   });
 
   it("muestra la ficha y consulta BCRA renderizando la deuda (pestaña Ficha)", async () => {

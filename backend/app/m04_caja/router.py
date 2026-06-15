@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Header, Query
 
-from app.deps import AdminOAnalista, AdminUser, CurrentUser, SessionDep
+from app.deps import Administrativo, Administrativo, CurrentUser, SessionDep
 from app.errors import ErrorAPI
 from app.m04_caja import servicio
 from app.m04_caja.schemas import (
@@ -36,7 +36,7 @@ async def listar_cajas(
 
 @router.post("/cajas", response_model=CajaOut, status_code=201)
 async def crear_caja(
-    datos: CajaCreate, session: SessionDep, actor: AdminUser
+    datos: CajaCreate, session: SessionDep, actor: Administrativo
 ) -> CajaOut:
     caja = await servicio.crear_caja(session, datos.nombre, datos.tipo, actor_id=actor.id)
     await session.commit()
@@ -70,7 +70,7 @@ async def registrar_movimiento(
     caja_id: uuid.UUID,
     datos: MovimientoIn,
     session: SessionDep,
-    actor: AdminOAnalista,
+    actor: Administrativo,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> MovimientoOut:
     mov = await servicio.movimiento_manual(
@@ -87,7 +87,7 @@ async def registrar_movimiento(
 async def arqueo_pendiente(
     caja_id: uuid.UUID,
     session: SessionDep,
-    _: AdminOAnalista,
+    _: Administrativo,
     fecha_negocio: Annotated[date, Query()],
 ) -> ArqueoPendienteOut:
     res = await servicio.arqueo_pendiente(session, caja_id, fecha_negocio)
@@ -99,7 +99,7 @@ async def cerrar_arqueo(
     caja_id: uuid.UUID,
     datos: ArqueoIn,
     session: SessionDep,
-    actor: AdminOAnalista,
+    actor: Administrativo,
 ) -> ArqueoOut:
     arqueo = await servicio.cerrar_arqueo(
         session, caja_id, fecha_negocio=datos.fecha_negocio,
@@ -113,7 +113,7 @@ async def cerrar_arqueo(
 async def transferencia_interna(
     datos: TransferenciaIn,
     session: SessionDep,
-    actor: AdminOAnalista,
+    actor: Administrativo,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> list[MovimientoOut]:
     if datos.monto <= 0:

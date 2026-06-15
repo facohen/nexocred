@@ -18,7 +18,11 @@ from app.paginacion import Pagina, paginar
 
 router = APIRouter(tags=["tesoreria"])
 
-TesoreriaUser = Annotated[Usuario, Depends(requiere_rol("admin", "tesoreria"))]
+# Escritura (aportes/retiros): solo administrativo.
+TesoreriaUser = Annotated[Usuario, Depends(requiere_rol("administrativo"))]
+# Lectura (posición/cashflow/dcf/rotación): administrativo opera + ceo lo ve como
+# dashboard ejecutivo (read-only).
+TesoreriaLectura = Annotated[Usuario, Depends(requiere_rol("administrativo", "ceo"))]
 
 
 def _fecha(f: date | None) -> date:
@@ -28,7 +32,7 @@ def _fecha(f: date | None) -> date:
 @router.get("/tesoreria/posicion", response_model=PosicionOut)
 async def get_posicion(
     session: SessionDep,
-    _: TesoreriaUser,
+    _: TesoreriaLectura,
     fecha: Annotated[date | None, Query()] = None,
 ) -> PosicionOut:
     return PosicionOut(**await servicio.posicion(session, _fecha(fecha)))
@@ -37,7 +41,7 @@ async def get_posicion(
 @router.get("/tesoreria/cashflow", response_model=CashflowOut)
 async def get_cashflow(
     session: SessionDep,
-    _: TesoreriaUser,
+    _: TesoreriaLectura,
     dias: Annotated[int, Query()] = 90,
     fecha: Annotated[date | None, Query()] = None,
     horizontes: Annotated[
@@ -56,7 +60,7 @@ async def get_cashflow(
 @router.get("/tesoreria/dcf", response_model=DCFOut)
 async def get_dcf(
     session: SessionDep,
-    _: TesoreriaUser,
+    _: TesoreriaLectura,
     fecha: Annotated[date | None, Query()] = None,
 ) -> DCFOut:
     return DCFOut(**await servicio.dcf(session, _fecha(fecha)))
@@ -65,7 +69,7 @@ async def get_dcf(
 @router.get("/tesoreria/rotacion", response_model=RotacionOut)
 async def get_rotacion(
     session: SessionDep,
-    _: TesoreriaUser,
+    _: TesoreriaLectura,
     fecha: Annotated[date | None, Query()] = None,
 ) -> RotacionOut:
     return RotacionOut(**await servicio.rotacion(session, _fecha(fecha)))
@@ -100,7 +104,7 @@ async def post_retiro(
 @router.get("/tesoreria/aportes-retiros", response_model=Pagina[AporteRetiroOut])
 async def get_aportes_retiros(
     session: SessionDep,
-    _: TesoreriaUser,
+    _: TesoreriaLectura,
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
 ) -> Pagina[AporteRetiroOut]:

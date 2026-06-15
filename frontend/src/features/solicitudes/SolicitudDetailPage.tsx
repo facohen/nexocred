@@ -8,9 +8,14 @@ import { Button } from "@/components/ui/button";
 import { TransactionButton } from "@/components/TransactionButton";
 import { MoneyText } from "@/components/MoneyText";
 import { ApiError } from "@/lib/api/client";
+import { useSession, hasRole } from "@/lib/auth";
 
 export function SolicitudDetailPage() {
   const { solicitudId } = useParams({ strict: false }) as { solicitudId: string };
+  const { user } = useSession();
+  // El vendedor ve la solicitud en modo lectura: evaluar/simular/aprobar son
+  // acciones del analista de riesgo, no del vendedor que la originó.
+  const puedeAccionar = hasRole(user, "analista_riesgo");
   const { data: solicitud } = useSolicitud(solicitudId);
   const { data: checklistData, isSuccess: checklistListo } = useChecklist(solicitudId);
   const accion = useAccionSolicitud(solicitudId);
@@ -27,8 +32,7 @@ export function SolicitudDetailPage() {
   const bcraBlocked = !bcraItem || !bcraItem.ok;
   const algunaFalla = checklist.some((c) => !c.ok);
   // Aprobar sólo cuando el checklist cargó Y no hay políticas en falla Y BCRA OK.
-  const aprobarDeshabilitado =
-    accion.isPending || !checklistListo || algunaFalla || bcraBlocked;
+  const aprobarDeshabilitado = accion.isPending || !checklistListo || algunaFalla || bcraBlocked;
   const accionError =
     accion.error instanceof ApiError
       ? accion.error.message
@@ -43,53 +47,63 @@ export function SolicitudDetailPage() {
           <h1 className="text-xl font-bold">Solicitud {solicitudId}</h1>
           {solicitud && (
             <p className="text-sm text-text-muted">
-              <MoneyText value={solicitud.monto ?? null} intent="neutral" /> · {solicitud.cantidad_cuotas} cuotas ·{" "}
-              <Badge>{solicitud.estado}</Badge>
+              <MoneyText value={solicitud.monto ?? null} intent="neutral" /> ·{" "}
+              {solicitud.cantidad_cuotas} cuotas · <Badge>{solicitud.estado}</Badge>
             </p>
           )}
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => accion.mutate({ accion: "evaluar" })}
-            disabled={accion.isPending}
-          >
-            Evaluar
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => accion.mutate({ accion: "simular" })}
-            disabled={accion.isPending}
-          >
-            Simular
-          </Button>
-          <TransactionButton
-            onClick={() => accion.mutate({ accion: "desembolsar", idempotencyKey: desembolsoKey })}
-            disabled={aprobarDeshabilitado}
-            pending={accion.isPending}
-            title={
-              !checklistListo
-                ? "Validando políticas…"
-                : bcraBlocked
-                  ? "Bloqueado: situación BCRA pendiente o vencida"
-                  : undefined
-            }
-          >
-            Aprobar y desembolsar
-          </TransactionButton>
-        </div>
+        {puedeAccionar && (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => accion.mutate({ accion: "evaluar" })}
+              disabled={accion.isPending}
+            >
+              Evaluar
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => accion.mutate({ accion: "simular" })}
+              disabled={accion.isPending}
+            >
+              Simular
+            </Button>
+            <TransactionButton
+              onClick={() =>
+                accion.mutate({ accion: "desembolsar", idempotencyKey: desembolsoKey })
+              }
+              disabled={aprobarDeshabilitado}
+              pending={accion.isPending}
+              title={
+                !checklistListo
+                  ? "Validando políticas…"
+                  : bcraBlocked
+                    ? "Bloqueado: situación BCRA pendiente o vencida"
+                    : undefined
+              }
+            >
+              Aprobar y desembolsar
+            </TransactionButton>
+          </div>
+        )}
       </div>
 
       {accionError && (
-        <div role="alert" className="rounded-lg border border-neg-border bg-neg-bg p-3 text-sm text-neg">
+        <div
+          role="alert"
+          className="rounded-lg border border-neg-border bg-neg-bg p-3 text-sm text-neg"
+        >
           {accionError}
         </div>
       )}
 
       {checklistListo && bcraBlocked && (
-        <div role="alert" className="rounded-lg border border-neg-border bg-neg-bg p-3 text-sm text-neg">
-          La verificación BCRA está pendiente o vencida. No se puede aprobar la
-          solicitud hasta resolverla.
+        <div
+          role="alert"
+          className="rounded-lg border border-neg-border bg-neg-bg p-3 text-sm text-neg"
+        >
+          La verificación BCRA está pendiente o vencida. No se puede aprobar la solicitud hasta
+          resolverla.
         </div>
       )}
 

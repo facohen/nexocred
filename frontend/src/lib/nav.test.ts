@@ -16,8 +16,8 @@ describe("nav — áreas de trabajo (inbox-driven)", () => {
     expect(labels).toContain("Tablero Ejecutivo");
   });
 
-  it("un cobrador ve solo sus áreas (Mi bandeja, Cobrar, Cartera) y no Usuarios", () => {
-    const areas = areasVisibles(["cobrador"]).map((a) => a.id);
+  it("un administrativo ve sus áreas (Mi bandeja, Cobrar, Cartera) y no Usuarios ni Evaluar", () => {
+    const areas = areasVisibles(["administrativo"]).map((a) => a.id);
     expect(areas).toContain("cobrar");
     expect(areas).toContain("cartera");
     expect(areas).toContain("bandeja");
@@ -25,8 +25,14 @@ describe("nav — áreas de trabajo (inbox-driven)", () => {
     expect(areas).not.toContain("evaluar");
   });
 
-  it("un admin ve áreas de todas las secciones", () => {
-    const grupos = areasPorSeccion(["admin"]);
+  it("un usuario con todos los roles ve áreas de todas las secciones", () => {
+    const grupos = areasPorSeccion([
+      "vendedor",
+      "analista_riesgo",
+      "administrativo",
+      "ceo",
+      "admin_sistema",
+    ]);
     const secciones = grupos.map((g) => g.seccion);
     expect(secciones).toContain("operacion");
     expect(secciones).toContain("control");
@@ -35,15 +41,15 @@ describe("nav — áreas de trabajo (inbox-driven)", () => {
   });
 
   it("omite secciones enteras cuando el rol no ve ningún área dentro", () => {
-    // El cobrador no tiene áreas en 'sistema' ni 'direccion'.
-    const grupos = areasPorSeccion(["cobrador"]);
+    // El vendedor no tiene áreas en 'control', 'direccion' ni 'sistema'.
+    const grupos = areasPorSeccion(["vendedor"]);
     const secciones = grupos.map((g) => g.seccion);
     expect(secciones).not.toContain("sistema");
     expect(secciones).not.toContain("direccion");
   });
 
   it("destinosNavegables incluye áreas y sus tabs (para ⌘K)", () => {
-    const destinos = destinosNavegables(["admin"]);
+    const destinos = destinosNavegables(["administrativo"]);
     const tos = destinos.map((d) => d.to);
     // área Cartera + sus tabs
     expect(tos).toContain("/prestamos");

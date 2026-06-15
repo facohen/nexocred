@@ -32,8 +32,8 @@ from app.paginacion import Pagina, paginar
 
 router = APIRouter(tags=["ruta"])
 
-RutaUser = Annotated[Usuario, Depends(requiere_rol("admin", "cobrador"))]
-AdminUser = Annotated[Usuario, Depends(requiere_rol("admin"))]
+RutaUser = Annotated[Usuario, Depends(requiere_rol("administrativo"))]
+AdminUser = Annotated[Usuario, Depends(requiere_rol("administrativo"))]
 
 
 async def _get_ruta(session, ruta_id: uuid.UUID):
@@ -45,7 +45,7 @@ async def _get_ruta(session, ruta_id: uuid.UUID):
 
 def _es_admin(actor: Usuario) -> bool:
     """Check if actor has admin role."""
-    return any(r.nombre == "admin" for r in actor.roles)
+    return any(r.nombre == "administrativo" for r in actor.roles)
 
 
 async def _get_ruta_propia(session, ruta_id: uuid.UUID, actor: Usuario):

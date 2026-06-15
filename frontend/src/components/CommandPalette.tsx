@@ -16,9 +16,9 @@ interface QuickAction {
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
-  { label: "Registrar pago", to: "/pagos", roles: ["admin", "cobrador", "operador", "tesoreria"] },
-  { label: "Nueva solicitud", to: "/originar/nuevo", roles: ["admin", "analista", "vendedor"] },
-  { label: "Nueva persona", to: "/personas", roles: ["admin", "analista", "vendedor", "operador"] },
+  { label: "Registrar pago", to: "/pagos", roles: ["administrativo"] },
+  { label: "Nueva solicitud", to: "/originar/nuevo", roles: ["vendedor"] },
+  { label: "Nueva persona", to: "/personas", roles: ["vendedor", "analista_riesgo"] },
 ];
 
 export function CommandPalette({
@@ -31,7 +31,9 @@ export function CommandPalette({
   const { user } = useSession();
   const navigate = useNavigate();
   const destinos = destinosNavegables(user?.roles);
-  const acciones = QUICK_ACTIONS.filter((a) => a.roles.some((r) => user?.roles?.includes(r as never)));
+  const acciones = QUICK_ACTIONS.filter((a) =>
+    a.roles.some((r) => user?.roles?.includes(r as never)),
+  );
 
   const [query, setQuery] = useState("");
   const [personas, setPersonas] = useState<PersonaListItem[]>([]);

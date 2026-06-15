@@ -18,7 +18,7 @@ from app.m12_auth.modelos import Usuario
 
 router = APIRouter(tags=["jobs"])
 
-AdminUser = Annotated[Usuario, Depends(requiere_rol("admin"))]
+AdminUser = Annotated[Usuario, Depends(requiere_rol("admin_sistema"))]
 
 
 class JobIn(BaseModel):

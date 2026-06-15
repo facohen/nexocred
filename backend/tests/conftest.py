@@ -156,7 +156,7 @@ async def roles_seed() -> None:
     engine = make_test_engine()
     maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     async with maker() as s:
-        for nombre in ("admin", "analista", "cobrador", "vendedor", "operador", "tesoreria"):
+        for nombre in ("admin_sistema", "analista_riesgo", "administrativo", "vendedor", "ceo"):
             existente = await s.execute(
                 text("SELECT 1 FROM rol WHERE nombre=:n"), {"n": nombre}
             )
@@ -174,12 +174,15 @@ async def usuario_seed(roles_seed) -> dict:
     engine = make_test_engine()
     maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     async with maker() as s:
+        # El fixture admin de tests tenía el viejo rol "admin" (superusuario). El
+        # modelo nuevo no tiene superusuario; para preservar la intención de los
+        # tests amplios (admin = autorizado para todo) se le otorgan los 5 roles.
         u = await crear_usuario(
             s,
             email="admin@nexo.test",
             nombre="Admin",
             password="secreto123",
-            roles=["admin"],
+            roles=["admin_sistema", "analista_riesgo", "administrativo", "vendedor", "ceo"],
             actor_id=None,
         )
         await s.commit()
@@ -209,7 +212,7 @@ async def analista_token(client, roles_seed) -> str:
             email="analista@nexo.test",
             nombre="Analista",
             password="secreto123",
-            roles=["analista"],
+            roles=["analista_riesgo"],
             actor_id=None,
         )
         await s.commit()
@@ -233,7 +236,7 @@ async def tesoreria_token(client, roles_seed) -> str:
             email="tesoreria@nexo.test",
             nombre="Tesoreria",
             password="secreto123",
-            roles=["tesoreria"],
+            roles=["administrativo"],
             actor_id=None,
         )
         await s.commit()
@@ -258,7 +261,7 @@ async def cobrador_usuario(client, roles_seed) -> dict:
             email="cobrador@nexo.test",
             nombre="Cobrador",
             password="secreto123",
-            roles=["cobrador"],
+            roles=["administrativo"],
             actor_id=None,
         )
         await s.commit()

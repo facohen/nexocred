@@ -12,7 +12,7 @@ from app.m13_documentos.schemas import AnularIn, DocumentoOut, GenerarIn
 
 router = APIRouter(tags=["documentos"])
 
-DocUser = Annotated[Usuario, Depends(requiere_rol("admin", "analista", "operador"))]
+DocUser = Annotated[Usuario, Depends(requiere_rol("administrativo", "analista_riesgo"))]
 
 
 async def _get_doc(session, documento_id: uuid.UUID):

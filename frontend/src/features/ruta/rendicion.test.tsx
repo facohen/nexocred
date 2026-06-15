@@ -8,16 +8,16 @@ import { RendicionPage } from "./RendicionPage";
 import { setToken, setSessionUser } from "@/lib/auth";
 
 const BASE = "/api/v1";
-const cobrador = { email: "cobrador@nexocred.test", nombre: "Cobra", roles: ["cobrador"] as const };
+const cobrador = { email: "cobrador@nexocred.test", nombre: "Cobra", roles: ["administrativo"] as const };
 
 beforeEach(() => {
   setToken({ access_token: "t", refresh_token: "r", token_type: "bearer" });
-  setSessionUser({ ...cobrador, roles: ["cobrador"] });
+  setSessionUser({ ...cobrador, roles: ["administrativo"] });
 });
 
 describe("RendicionPage", () => {
   it("muestra total cobrado, descargos y diferencia con MoneyText", async () => {
-    renderWithProviders(<RendicionPage rendicionId="rendicion-1" />, { ...cobrador, roles: ["cobrador"] });
+    renderWithProviders(<RendicionPage rendicionId="rendicion-1" />, { ...cobrador, roles: ["administrativo"] });
     expect(await screen.findByText(/20\.800,50/)).toBeInTheDocument(); // total cobrado
     expect(await screen.findByText(/combustible/i)).toBeInTheDocument();
     expect(await screen.findByText(/300,00/)).toBeInTheDocument(); // diferencia
@@ -25,7 +25,7 @@ describe("RendicionPage", () => {
 
   it("permite agregar un descargo", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<RendicionPage rendicionId="rendicion-1" />, { ...cobrador, roles: ["cobrador"] });
+    renderWithProviders(<RendicionPage rendicionId="rendicion-1" />, { ...cobrador, roles: ["administrativo"] });
     await screen.findByText(/combustible/i);
     await user.type(await screen.findByLabelText(/Concepto/i), "viáticos");
     await user.type(await screen.findByLabelText(/Monto/i), "500.00");
@@ -35,7 +35,7 @@ describe("RendicionPage", () => {
 
   it("ejecuta la acción presentar", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<RendicionPage rendicionId="rendicion-1" />, { ...cobrador, roles: ["cobrador"] });
+    renderWithProviders(<RendicionPage rendicionId="rendicion-1" />, { ...cobrador, roles: ["administrativo"] });
     await screen.findByText(/combustible/i);
     await user.click(screen.getByRole("button", { name: /Presentar rendición/i }));
     await waitFor(() => expect(screen.getByText(/presentada/i)).toBeInTheDocument());
@@ -47,7 +47,7 @@ describe("RendicionPage", () => {
         HttpResponse.json({ error: { code: "no_encontrada", message: "Rendición no encontrada" } }, { status: 404 }),
       ),
     );
-    renderWithProviders(<RendicionPage rendicionId="rendicion-x" />, { ...cobrador, roles: ["cobrador"] });
+    renderWithProviders(<RendicionPage rendicionId="rendicion-x" />, { ...cobrador, roles: ["administrativo"] });
     expect(await screen.findByRole("alert")).toHaveTextContent(/no encontrada/i);
   });
 });

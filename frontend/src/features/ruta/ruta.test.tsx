@@ -13,7 +13,7 @@ const BASE = "/api/v1";
 
 function authCobrador() {
   setToken({ access_token: "t", refresh_token: "r", token_type: "bearer" });
-  setSessionUser({ email: "cobrador@nexocred.test", nombre: "Cobra", roles: ["cobrador"] });
+  setSessionUser({ email: "cobrador@nexocred.test", nombre: "Cobra", roles: ["administrativo"] });
 }
 
 function setOnline(value: boolean) {
@@ -34,7 +34,7 @@ describe("RutaPage (La Ruta offline)", () => {
     renderWithProviders(<RutaPage rutaId="ruta-1" />, {
       email: "cobrador@nexocred.test",
       nombre: "Cobra",
-      roles: ["cobrador"],
+      roles: ["administrativo"],
     });
     expect((await screen.findAllByText(/Préstamo/i)).length).toBeGreaterThan(0);
     // saldo exigible formateado es-AR (12500.00 -> 12.500,00)
@@ -47,25 +47,44 @@ describe("RutaPage (La Ruta offline)", () => {
         HttpResponse.json({
           data: [
             {
-              id: "parada-1", ruta_id: "ruta-1", prestamo_id: "prestamo-1", orden: 1,
-              resultado: "pago", monto_cobrado: "5000.00", foto_url: null, lat: null,
-              lng: null, notas: null, visitada_en: "2026-06-14T09:00:00Z",
+              id: "parada-1",
+              ruta_id: "ruta-1",
+              prestamo_id: "prestamo-1",
+              orden: 1,
+              resultado: "pago",
+              monto_cobrado: "5000.00",
+              foto_url: null,
+              lat: null,
+              lng: null,
+              notas: null,
+              visitada_en: "2026-06-14T09:00:00Z",
               saldo_exigible: "12500.00",
             },
             {
-              id: "parada-2", ruta_id: "ruta-1", prestamo_id: "prestamo-2", orden: 2,
-              resultado: null, monto_cobrado: null, foto_url: null, lat: null,
-              lng: null, notas: null, visitada_en: null, saldo_exigible: "8300.50",
+              id: "parada-2",
+              ruta_id: "ruta-1",
+              prestamo_id: "prestamo-2",
+              orden: 2,
+              resultado: null,
+              monto_cobrado: null,
+              foto_url: null,
+              lat: null,
+              lng: null,
+              notas: null,
+              visitada_en: null,
+              saldo_exigible: "8300.50",
             },
           ],
-          total: 2, page: 1, per_page: 50,
+          total: 2,
+          page: 1,
+          per_page: 50,
         }),
       ),
     );
     renderWithProviders(<RutaPage rutaId="ruta-1" />, {
       email: "cobrador@nexocred.test",
       nombre: "Cobra",
-      roles: ["cobrador"],
+      roles: ["administrativo"],
     });
     const resumen = await screen.findByLabelText(/resumen del día/i);
     // cobrado del día = 5.000,00
@@ -78,7 +97,7 @@ describe("RutaPage (La Ruta offline)", () => {
     renderWithProviders(<RutaPage rutaId="ruta-1" />, {
       email: "cobrador@nexocred.test",
       nombre: "Cobra",
-      roles: ["cobrador"],
+      roles: ["administrativo"],
     });
     expect(await screen.findByTestId("sync-status")).toHaveTextContent(/0 pendientes/i);
   });
@@ -89,7 +108,7 @@ describe("RutaPage (La Ruta offline)", () => {
     renderWithProviders(<RutaPage rutaId="ruta-1" />, {
       email: "cobrador@nexocred.test",
       nombre: "Cobra",
-      roles: ["cobrador"],
+      roles: ["administrativo"],
     });
 
     const registrar = await screen.findAllByRole("button", { name: /Registrar visita/i });
@@ -112,7 +131,7 @@ describe("RutaPage (La Ruta offline)", () => {
     renderWithProviders(<RutaPage rutaId="ruta-1" />, {
       email: "cobrador@nexocred.test",
       nombre: "Cobra",
-      roles: ["cobrador"],
+      roles: ["administrativo"],
     });
 
     // Cobro requiere caja seleccionada para poder sincronizar.
@@ -136,7 +155,7 @@ describe("RutaPage (La Ruta offline)", () => {
     renderWithProviders(<RutaPage rutaId="ruta-1" />, {
       email: "cobrador@nexocred.test",
       nombre: "Cobra",
-      roles: ["cobrador"],
+      roles: ["administrativo"],
     });
     const selector = await screen.findByLabelText(/[Cc]aja/i);
     // opción del fixture de cajas (Caja Central)
@@ -150,7 +169,7 @@ describe("RutaPage (La Ruta offline)", () => {
     renderWithProviders(<RutaPage rutaId="ruta-1" />, {
       email: "cobrador@nexocred.test",
       nombre: "Cobra",
-      roles: ["cobrador"],
+      roles: ["administrativo"],
     });
 
     const registrar = await screen.findAllByRole("button", { name: /Registrar visita/i });
@@ -175,7 +194,11 @@ describe("RutaPage (La Ruta offline)", () => {
       http.post(`${BASE}/rutas/:id/sync`, async ({ request, params }) => {
         const body = (await request.json()) as { paradas: { id: string }[]; caja_id?: string };
         bodyCajaId = body.caja_id;
-        const items = body.paradas.map((p) => ({ parada_id: p.id, estado: "aplicada", pago_id: null }));
+        const items = body.paradas.map((p) => ({
+          parada_id: p.id,
+          estado: "aplicada",
+          pago_id: null,
+        }));
         return HttpResponse.json({
           ruta_id: params.id,
           items,
@@ -189,7 +212,7 @@ describe("RutaPage (La Ruta offline)", () => {
     renderWithProviders(<RutaPage rutaId="ruta-1" />, {
       email: "cobrador@nexocred.test",
       nombre: "Cobra",
-      roles: ["cobrador"],
+      roles: ["administrativo"],
     });
 
     // Seleccionar caja
@@ -218,9 +241,18 @@ describe("RutaPage (La Ruta offline)", () => {
         HttpResponse.json({
           data: [
             {
-              id: "parada-1", ruta_id: "ruta-1", prestamo_id: "prestamo-1", orden: 1,
-              resultado: "pago", monto_cobrado: "2000.00", foto_url: null, lat: null, lng: null,
-              notas: null, visitada_en: "2026-06-12T09:00:00Z", saldo_exigible: "12500.00",
+              id: "parada-1",
+              ruta_id: "ruta-1",
+              prestamo_id: "prestamo-1",
+              orden: 1,
+              resultado: "pago",
+              monto_cobrado: "2000.00",
+              foto_url: null,
+              lat: null,
+              lng: null,
+              notas: null,
+              visitada_en: "2026-06-12T09:00:00Z",
+              saldo_exigible: "12500.00",
             },
           ],
         }),
@@ -230,7 +262,7 @@ describe("RutaPage (La Ruta offline)", () => {
     renderWithProviders(<RutaPage rutaId="ruta-1" />, {
       email: "cobrador@nexocred.test",
       nombre: "Cobra",
-      roles: ["cobrador"],
+      roles: ["administrativo"],
     });
 
     // Estado visitado visible + acción para corregir.
@@ -257,7 +289,7 @@ describe("RutaPage (La Ruta offline)", () => {
     renderWithProviders(<RutaPage rutaId="ruta-1" />, {
       email: "cobrador@nexocred.test",
       nombre: "Cobra",
-      roles: ["cobrador"],
+      roles: ["administrativo"],
     });
     const root = await screen.findByTestId("ruta-root");
     // contenedor de ancho acotado para móvil

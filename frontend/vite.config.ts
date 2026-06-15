@@ -55,13 +55,17 @@ export default defineConfig({
       output: {
         // Solo vendors estables (mejor cacheo entre deploys). El splitting por
         // feature lo hace el lazy-loading del router, no manualChunks.
-        manualChunks: {
-          "react-vendor": ["react", "react-dom"],
-          router: ["@tanstack/react-router"],
-          query: ["@tanstack/react-query"],
-          table: ["@tanstack/react-table"],
-          charts: ["@tremor/react"],
-          forms: ["react-hook-form", "zod"],
+        // Vite 8 / Rollup 4: manualChunks como función (la forma objeto ya no
+        // se acepta en este overload de OutputOptions).
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+          if (id.includes("react-dom") || /node_modules\/react\//.test(id)) return "react-vendor";
+          if (id.includes("@tanstack/react-router")) return "router";
+          if (id.includes("@tanstack/react-query")) return "query";
+          if (id.includes("@tanstack/react-table")) return "table";
+          if (id.includes("@tremor/react")) return "charts";
+          if (id.includes("react-hook-form") || id.includes("/zod/")) return "forms";
+          return undefined;
         },
       },
     },

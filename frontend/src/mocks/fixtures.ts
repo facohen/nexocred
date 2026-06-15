@@ -42,7 +42,16 @@ export const personas: Persona[] = [
     referido_por_id: null,
     activo: true,
     referencias: [
-      { id: "ref-1", persona_id: "persona-1", nombre: "Juan Gómez", apellido: "Gómez", vinculo: "conyuge", telefono: "11-5555-2222", es_alternativo: false, notas: null },
+      {
+        id: "ref-1",
+        persona_id: "persona-1",
+        nombre: "Juan Gómez",
+        apellido: "Gómez",
+        vinculo: "conyuge",
+        telefono: "11-5555-2222",
+        es_alternativo: false,
+        notas: null,
+      },
     ],
   },
   {
@@ -71,7 +80,16 @@ export const personas: Persona[] = [
     referido_por_id: null,
     activo: true,
     referencias: [
-      { id: "ref-2", persona_id: "persona-2", nombre: "Ana Pérez", apellido: "Pérez", vinculo: "hermana", telefono: "11-4444-9999", es_alternativo: false, notas: null },
+      {
+        id: "ref-2",
+        persona_id: "persona-2",
+        nombre: "Ana Pérez",
+        apellido: "Pérez",
+        vinculo: "hermana",
+        telefono: "11-4444-9999",
+        es_alternativo: false,
+        notas: null,
+      },
     ],
   },
 ];
@@ -118,8 +136,26 @@ export const productos: Producto[] = [
     monto_minimo: "50000.00",
     monto_maximo: "2000000.00",
     gastos: [
-      { id: "gasto-1", producto_id: "producto-1", nombre: "Gasto de otorgamiento", tipo: "porcentaje", valor: "2.50", financiado: true, jurisdiccion: null, activo: true },
-      { id: "gasto-2", producto_id: "producto-1", nombre: "Seguro de vida", tipo: "porcentaje", valor: "0.30", financiado: true, jurisdiccion: null, activo: true },
+      {
+        id: "gasto-1",
+        producto_id: "producto-1",
+        nombre: "Gasto de otorgamiento",
+        tipo: "porcentaje",
+        valor: "2.50",
+        financiado: true,
+        jurisdiccion: null,
+        activo: true,
+      },
+      {
+        id: "gasto-2",
+        producto_id: "producto-1",
+        nombre: "Seguro de vida",
+        tipo: "porcentaje",
+        valor: "0.30",
+        financiado: true,
+        jurisdiccion: null,
+        activo: true,
+      },
     ],
   },
   {
@@ -133,7 +169,18 @@ export const productos: Producto[] = [
     plazos_permitidos: [12, 24, 36],
     monto_minimo: "200000.00",
     monto_maximo: "5000000.00",
-    gastos: [{ id: "gasto-3", producto_id: "producto-2", nombre: "Gasto de inscripción", tipo: "fijo", valor: "15000.00", financiado: false, jurisdiccion: null, activo: true }],
+    gastos: [
+      {
+        id: "gasto-3",
+        producto_id: "producto-2",
+        nombre: "Gasto de inscripción",
+        tipo: "fijo",
+        valor: "15000.00",
+        financiado: false,
+        jurisdiccion: null,
+        activo: true,
+      },
+    ],
   },
 ];
 
@@ -144,10 +191,7 @@ export const perfilesPricing = [
 
 export type FilaCronograma = S["FilaCronogramaOut"];
 
-export function buildCronograma(
-  capital: string,
-  cuotas: number,
-): FilaCronograma[] {
+export function buildCronograma(capital: string, cuotas: number): FilaCronograma[] {
   // Static deterministic figures (strings) — not computed via float.
   const filas: FilaCronograma[] = [];
   const base: Record<number, FilaCronograma> = {};
@@ -208,43 +252,16 @@ export const solicitudes: Solicitud[] = [
 ];
 
 // NOTE: hand-written on purpose. The OpenAPI `ChecklistOut` schema is a flat
-// boolean record ({edad, cuota_ingreso, bcra, mora_previa}) — a different shape
-// than this per-rule row used by the checklist UI. No schema alias applies.
-export interface ChecklistPolitica {
-  regla: string;
-  etiqueta: string;
-  ok: boolean;
-  detalle: string;
-}
+// El backend devuelve ChecklistOut: mapa plano regla→boolean. Los fixtures usan
+// la MISMA forma (antes divergían en {regla,etiqueta,ok,detalle}, una ficción
+// que ocultaba el 405 real). La etiqueta/detalle los arma el frontend.
+export type ChecklistPolitica = S["ChecklistOut"];
 
-export const checklistPoliticas: Record<string, ChecklistPolitica[]> = {
-  "solicitud-1": [
-    { regla: "edad", etiqueta: "Edad dentro del rango", ok: true, detalle: "41 años" },
-    {
-      regla: "cuota_ingreso",
-      etiqueta: "Relación cuota/ingreso",
-      ok: true,
-      detalle: "28% (máx 35%)",
-    },
-    { regla: "bcra", etiqueta: "Situación BCRA", ok: true, detalle: "Situación 1" },
-    { regla: "mora", etiqueta: "Sin mora interna", ok: true, detalle: "Sin antecedentes" },
-  ],
-  "solicitud-2": [
-    { regla: "edad", etiqueta: "Edad dentro del rango", ok: true, detalle: "45 años" },
-    {
-      regla: "cuota_ingreso",
-      etiqueta: "Relación cuota/ingreso",
-      ok: true,
-      detalle: "31% (máx 35%)",
-    },
-    {
-      regla: "bcra",
-      etiqueta: "Situación BCRA",
-      ok: false,
-      detalle: "Situación 4 — vencido",
-    },
-    { regla: "mora", etiqueta: "Sin mora interna", ok: true, detalle: "Sin antecedentes" },
-  ],
+export const checklistPoliticas: Record<string, ChecklistPolitica> = {
+  default: { edad: true, cuota_ingreso: true, bcra: true, mora_previa: false },
+  "solicitud-1": { edad: true, cuota_ingreso: true, bcra: true, mora_previa: false },
+  // solicitud-2: BCRA en falla → Aprobar debe quedar deshabilitado.
+  "solicitud-2": { edad: true, cuota_ingreso: true, bcra: false, mora_previa: false },
 };
 
 export type Cuota = S["CuotaOut"];
@@ -349,7 +366,10 @@ export const pagos: Pago[] = [
   },
 ];
 
-export const payoff: Record<string, { fecha_negocio: string; capital: string; interes: string; punitorio: string; total: string }> = {
+export const payoff: Record<
+  string,
+  { fecha_negocio: string; capital: string; interes: string; punitorio: string; total: string }
+> = {
   "prestamo-1": {
     fecha_negocio: "2026-06-11",
     capital: "416666.66",
@@ -362,8 +382,20 @@ export const payoff: Record<string, { fecha_negocio: string; capital: string; in
 export type Caja = S["CajaOut"];
 
 export const cajas: Caja[] = [
-  { id: "caja-1", nombre: "Caja Central", tipo: "efectivo", saldo_teorico: "1250000.00", activo: true },
-  { id: "caja-2", nombre: "Caja Sucursal Sur", tipo: "efectivo", saldo_teorico: "320000.00", activo: true },
+  {
+    id: "caja-1",
+    nombre: "Caja Central",
+    tipo: "efectivo",
+    saldo_teorico: "1250000.00",
+    activo: true,
+  },
+  {
+    id: "caja-2",
+    nombre: "Caja Sucursal Sur",
+    tipo: "efectivo",
+    saldo_teorico: "320000.00",
+    activo: true,
+  },
 ];
 
 export type Movimiento = S["MovimientoOut"];
@@ -424,27 +456,37 @@ export const novaciones: Novacion[] = [
 ];
 
 export const usuarios = [
-  { id: "user-admin", email: "admin@nexocred.test", nombre: "Admin", roles: ["admin"], activo: true },
-  { id: "user-cobrador", email: "cobrador@nexocred.test", nombre: "Cobrador", roles: ["cobrador"], activo: true },
+  {
+    id: "user-sistema",
+    email: "sistema@nexocred.test",
+    nombre: "Admin Sistema",
+    roles: ["admin_sistema"],
+    activo: true,
+  },
+  {
+    id: "user-administrativo",
+    email: "administrativo@nexocred.test",
+    nombre: "Administrativo",
+    roles: ["administrativo"],
+    activo: true,
+  },
 ];
 
-/** Map of email → roles for the login mock. */
+/** Map of email → roles for the login mock. Alineado con el seed (seed_full.py). */
 export const loginRoles: Record<string, string[]> = {
-  "admin.full@nexocred.test":     ["admin"],
-  "analista.full@nexocred.test":  ["analista"],
-  "cobrador_a.full@nexocred.test": ["cobrador"],
-  "cobrador_b.full@nexocred.test": ["cobrador"],
-  "vendedor.full@nexocred.test":  ["vendedor"],
-  "operador.full@nexocred.test":  ["operador"],
-  "tesoreria.full@nexocred.test": ["tesoreria"],
+  "sistema.full@nexocred.test": ["admin_sistema"],
+  "riesgo.full@nexocred.test": ["analista_riesgo"],
+  "administrativo.full@nexocred.test": ["administrativo"],
+  "administrativo_a.full@nexocred.test": ["administrativo"],
+  "administrativo_b.full@nexocred.test": ["administrativo"],
+  "vendedor.full@nexocred.test": ["vendedor"],
+  "ceo.full@nexocred.test": ["ceo"],
 };
 
 function base64Url(obj: unknown): string {
   const json = JSON.stringify(obj);
   const b64 =
-    typeof btoa === "function"
-      ? btoa(json)
-      : Buffer.from(json, "binary").toString("base64");
+    typeof btoa === "function" ? btoa(json) : Buffer.from(json, "binary").toString("base64");
   return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
@@ -473,50 +515,145 @@ export const rutas = [
 export const paradas: Record<string, unknown[]> = {
   "ruta-1": [
     {
-      id: "parada-1", ruta_id: "ruta-1", prestamo_id: "prestamo-1", orden: 1,
-      resultado: null, monto_cobrado: null, foto_url: null, lat: null, lng: null,
-      notas: null, visitada_en: null, saldo_exigible: "12500.00",
+      id: "parada-1",
+      ruta_id: "ruta-1",
+      prestamo_id: "prestamo-1",
+      orden: 1,
+      resultado: null,
+      monto_cobrado: null,
+      foto_url: null,
+      lat: null,
+      lng: null,
+      notas: null,
+      visitada_en: null,
+      saldo_exigible: "12500.00",
     },
     {
-      id: "parada-2", ruta_id: "ruta-1", prestamo_id: "prestamo-2", orden: 2,
-      resultado: null, monto_cobrado: null, foto_url: null, lat: null, lng: null,
-      notas: null, visitada_en: null, saldo_exigible: "8300.50",
+      id: "parada-2",
+      ruta_id: "ruta-1",
+      prestamo_id: "prestamo-2",
+      orden: 2,
+      resultado: null,
+      monto_cobrado: null,
+      foto_url: null,
+      lat: null,
+      lng: null,
+      notas: null,
+      visitada_en: null,
+      saldo_exigible: "8300.50",
     },
   ],
 };
 
 export const rendiciones = [
   {
-    id: "rendicion-1", ruta_id: "ruta-1", cobrador_id: "user-cobrador",
-    fecha_negocio: "2026-06-12", total_cobrado: "20800.50", total_descargos: "1500.00",
-    diferencia: "300.00", estado: "borrador",
+    id: "rendicion-1",
+    ruta_id: "ruta-1",
+    cobrador_id: "user-cobrador",
+    fecha_negocio: "2026-06-12",
+    total_cobrado: "20800.50",
+    total_descargos: "1500.00",
+    diferencia: "300.00",
+    estado: "borrador",
     descargos: [
-      { id: "descargo-1", rendicion_id: "rendicion-1", concepto: "combustible", monto: "1500.00", estado: "aprobado", aprobado_por: "admin" },
+      {
+        id: "descargo-1",
+        rendicion_id: "rendicion-1",
+        concepto: "combustible",
+        monto: "1500.00",
+        estado: "aprobado",
+        aprobado_por: "admin",
+      },
     ],
   },
 ];
 
 export const tareas = [
-  { id: "tarea-1", persona_id: "persona-1", operador_id: "user-operador", titulo: "Llamar por mora", descripcion: "Cuota 3 vencida", estado: "pendiente", origen: "alerta", alerta_id: "alerta-1", prioridad: "alta", vencimiento: "2026-06-13" },
-  { id: "tarea-2", persona_id: "persona-2", operador_id: "user-operador", titulo: "Seguimiento promesa", descripcion: null, estado: "pendiente", origen: "manual", alerta_id: null, prioridad: "media", vencimiento: null },
+  {
+    id: "tarea-1",
+    persona_id: "persona-1",
+    operador_id: "user-operador",
+    titulo: "Llamar por mora",
+    descripcion: "Cuota 3 vencida",
+    estado: "pendiente",
+    origen: "alerta",
+    alerta_id: "alerta-1",
+    prioridad: "alta",
+    vencimiento: "2026-06-13",
+  },
+  {
+    id: "tarea-2",
+    persona_id: "persona-2",
+    operador_id: "user-operador",
+    titulo: "Seguimiento promesa",
+    descripcion: null,
+    estado: "pendiente",
+    origen: "manual",
+    alerta_id: null,
+    prioridad: "media",
+    vencimiento: null,
+  },
 ];
 
 export const incidentes = [
-  { id: "incidente-1", persona_id: "persona-1", tipo: "queja", estado: "abierto", titulo: "Disputa de saldo", severidad: "media", operador_id: "user-operador", detalle: "El cliente discute un punitorio." },
+  {
+    id: "incidente-1",
+    persona_id: "persona-1",
+    tipo: "queja",
+    estado: "abierto",
+    titulo: "Disputa de saldo",
+    severidad: "media",
+    operador_id: "user-operador",
+    detalle: "El cliente discute un punitorio.",
+  },
 ];
 
 export const timeline: Record<string, unknown[]> = {
   "persona-1": [
-    { tipo: "interaccion", fecha: "2026-06-10T10:00:00Z", detalle: "Llamada saliente", referencia: "interaccion-1" },
-    { tipo: "credito", fecha: "2026-06-01T09:00:00Z", detalle: "Desembolso de préstamo", referencia: "prestamo-1" },
-    { tipo: "incidente", fecha: "2026-06-05T12:00:00Z", detalle: "Queja registrada", referencia: "incidente-1" },
-    { tipo: "novacion", fecha: "2026-06-08T15:00:00Z", detalle: "Refinanciación", referencia: "novacion-1" },
+    {
+      tipo: "interaccion",
+      fecha: "2026-06-10T10:00:00Z",
+      detalle: "Llamada saliente",
+      referencia: "interaccion-1",
+    },
+    {
+      tipo: "credito",
+      fecha: "2026-06-01T09:00:00Z",
+      detalle: "Desembolso de préstamo",
+      referencia: "prestamo-1",
+    },
+    {
+      tipo: "incidente",
+      fecha: "2026-06-05T12:00:00Z",
+      detalle: "Queja registrada",
+      referencia: "incidente-1",
+    },
+    {
+      tipo: "novacion",
+      fecha: "2026-06-08T15:00:00Z",
+      detalle: "Refinanciación",
+      referencia: "novacion-1",
+    },
   ],
 };
 
 export const prospectos = [
-  { id: "prospecto-1", nombre: "Juan Nuevo", telefono: "11-4444-0000", estado: "nuevo", persona_id: null, operador_id: "user-operador" },
-  { id: "prospecto-2", nombre: "Ana Contacto", telefono: "11-4444-0001", estado: "contactado", persona_id: null, operador_id: "user-operador" },
+  {
+    id: "prospecto-1",
+    nombre: "Juan Nuevo",
+    telefono: "11-4444-0000",
+    estado: "nuevo",
+    persona_id: null,
+    operador_id: "user-operador",
+  },
+  {
+    id: "prospecto-2",
+    nombre: "Ana Contacto",
+    telefono: "11-4444-0001",
+    estado: "contactado",
+    persona_id: null,
+    operador_id: "user-operador",
+  },
 ];
 
 export const asignaciones = [
@@ -524,9 +661,19 @@ export const asignaciones = [
 ];
 
 export const riesgoTablero = {
-  par30: "8.50", par60: "4.20", par90: "2.10",
-  aging: { al_dia: "1000000.00", "1_30": "120000.00", "31_60": "60000.00", "61_90": "30000.00", "90_mas": "15000.00" },
-  porcentaje_refinanciado: "6.30", perdida_esperada: "45000.00", cartera_total: "1225000.00",
+  par30: "8.50",
+  par60: "4.20",
+  par90: "2.10",
+  aging: {
+    al_dia: "1000000.00",
+    "1_30": "120000.00",
+    "31_60": "60000.00",
+    "61_90": "30000.00",
+    "90_mas": "15000.00",
+  },
+  porcentaje_refinanciado: "6.30",
+  perdida_esperada: "45000.00",
+  cartera_total: "1225000.00",
 };
 
 export const cosechas = [
@@ -544,21 +691,92 @@ export const concentracion = [
 ];
 
 export const alertas = [
-  { id: "alerta-1", prestamo_id: "prestamo-1", persona_id: "persona-1", tipo: "mora_temprana", estado: "activa", severidad: "critica", metrica: "dias_atraso", valor: "15", operador_id: null, tarea_id: null, resuelta_en: null, justificacion: null },
-  { id: "alerta-2", prestamo_id: "prestamo-2", persona_id: "persona-2", tipo: "sobreendeudamiento", estado: "activa", severidad: "media", metrica: "ratio_cuota_ingreso", valor: "0.45", operador_id: null, tarea_id: null, resuelta_en: null, justificacion: null },
+  {
+    id: "alerta-1",
+    prestamo_id: "prestamo-1",
+    persona_id: "persona-1",
+    tipo: "mora_temprana",
+    estado: "activa",
+    severidad: "critica",
+    metrica: "dias_atraso",
+    valor: "15",
+    operador_id: null,
+    tarea_id: null,
+    resuelta_en: null,
+    justificacion: null,
+  },
+  {
+    id: "alerta-2",
+    prestamo_id: "prestamo-2",
+    persona_id: "persona-2",
+    tipo: "sobreendeudamiento",
+    estado: "activa",
+    severidad: "media",
+    metrica: "ratio_cuota_ingreso",
+    valor: "0.45",
+    operador_id: null,
+    tarea_id: null,
+    resuelta_en: null,
+    justificacion: null,
+  },
 ];
 
 // Forma real del backend: `porcentaje` es un RATIO ("0.0250" = 2,5 %), `tipo` es
 // el tipo de comisión ("originacion"). El mock anterior usaba "2.00"/"alta".
 export const comisiones = [
-  { id: "com-1", prestamo_id: "prestamo-1", vendedor_id: "user-vendedor", monto: "5000.00", estado: "devengada", tipo: "originacion", porcentaje: "0.0250", clawback_de_id: null },
-  { id: "com-2", prestamo_id: "prestamo-2", vendedor_id: "user-vendedor", monto: "3200.00", estado: "confirmada", tipo: "originacion", porcentaje: "0.0250", clawback_de_id: null },
-  { id: "com-3", prestamo_id: "prestamo-3", vendedor_id: "user-vendedor", monto: "-1500.00", estado: "clawback", tipo: "clawback", porcentaje: "0.0250", clawback_de_id: "com-1" },
-  { id: "com-4", prestamo_id: "prestamo-4", vendedor_id: "user-vendedor", monto: "2800.00", estado: "liquidada", tipo: "originacion", porcentaje: "0.0300", clawback_de_id: null },
+  {
+    id: "com-1",
+    prestamo_id: "prestamo-1",
+    vendedor_id: "user-vendedor",
+    monto: "5000.00",
+    estado: "devengada",
+    tipo: "originacion",
+    porcentaje: "0.0250",
+    clawback_de_id: null,
+  },
+  {
+    id: "com-2",
+    prestamo_id: "prestamo-2",
+    vendedor_id: "user-vendedor",
+    monto: "3200.00",
+    estado: "confirmada",
+    tipo: "originacion",
+    porcentaje: "0.0250",
+    clawback_de_id: null,
+  },
+  {
+    id: "com-3",
+    prestamo_id: "prestamo-3",
+    vendedor_id: "user-vendedor",
+    monto: "-1500.00",
+    estado: "clawback",
+    tipo: "clawback",
+    porcentaje: "0.0250",
+    clawback_de_id: "com-1",
+  },
+  {
+    id: "com-4",
+    prestamo_id: "prestamo-4",
+    vendedor_id: "user-vendedor",
+    monto: "2800.00",
+    estado: "liquidada",
+    tipo: "originacion",
+    porcentaje: "0.0300",
+    clawback_de_id: null,
+  },
 ];
 
 export const liquidaciones = [
-  { id: "liq-1", vendedor_id: "user-vendedor", periodo_desde: "2026-05-01", periodo_hasta: "2026-05-31", monto_total: "8200.00", estado: "borrador", egreso_id: null, aprobada_en: null },
+  {
+    id: "liq-1",
+    vendedor_id: "user-vendedor",
+    periodo_desde: "2026-05-01",
+    periodo_hasta: "2026-05-31",
+    monto_total: "8200.00",
+    estado: "borrador",
+    egreso_id: null,
+    aprobada_en: null,
+  },
 ];
 
 // MetaVendedorOut: avance real calculado por el backend (colocado vs meta).
@@ -574,7 +792,10 @@ export const metaVendedor: S["MetaVendedorOut"] = {
 };
 
 export const tesoreriaPosicion = {
-  capital_disponible: "3500000.00", capital_colocado: "1225000.00", utilizacion: "25.95", semaforo: "verde",
+  capital_disponible: "3500000.00",
+  capital_colocado: "1225000.00",
+  utilizacion: "25.95",
+  semaforo: "verde",
 };
 export const tesoreriaCashflow = {
   tramos: [
@@ -639,29 +860,49 @@ export const analyticsResumen = {
 export const analyticsRentabilidad = {
   producto: [
     {
-      clave: "Crédito Productivo", n_prestamos: 5, capital: "700000.00",
-      interes_cobrado: "180000.00", comision: "14000.00", gastos: "7000.00",
-      costo_fondeo: "60000.00", pe_monetaria: "12000.00",
-      margen_bruto: "159000.00", margen_neto: "150000.00", rentabilidad_pct: "0.2143",
+      clave: "Crédito Productivo",
+      n_prestamos: 5,
+      capital: "700000.00",
+      interes_cobrado: "180000.00",
+      comision: "14000.00",
+      gastos: "7000.00",
+      costo_fondeo: "60000.00",
+      pe_monetaria: "12000.00",
+      margen_bruto: "159000.00",
+      margen_neto: "150000.00",
+      rentabilidad_pct: "0.2143",
     },
     {
-      clave: "Crédito Express", n_prestamos: 7, capital: "525000.00",
-      interes_cobrado: "60000.00", comision: "10500.00", gastos: "5250.00",
-      costo_fondeo: "45000.00", pe_monetaria: "33000.00",
-      margen_bruto: "44250.00", margen_neto: "-39000.00", rentabilidad_pct: "-0.0743",
+      clave: "Crédito Express",
+      n_prestamos: 7,
+      capital: "525000.00",
+      interes_cobrado: "60000.00",
+      comision: "10500.00",
+      gastos: "5250.00",
+      costo_fondeo: "45000.00",
+      pe_monetaria: "33000.00",
+      margen_bruto: "44250.00",
+      margen_neto: "-39000.00",
+      rentabilidad_pct: "-0.0743",
     },
   ],
 };
 export const tesoreriaRotacion = {
-  colocacion_periodo: "2400000.00", capital_promedio: "1200000.00", rotacion_anualizada: "2.00",
+  colocacion_periodo: "2400000.00",
+  capital_promedio: "1200000.00",
+  rotacion_anualizada: "2.00",
 };
 
 export const torreResumen = {
-  tiene_snapshot: true, periodo: "2026-06", indice_nexo: "78.50",
-  prestamos_vigentes: 142, prestamos_en_mora: 18,
+  tiene_snapshot: true,
+  periodo: "2026-06",
+  indice_nexo: "78.50",
+  prestamos_vigentes: 142,
+  prestamos_en_mora: 18,
 };
 export const torrePulso = {
-  tiene_snapshot: true, periodo: "2026-06",
+  tiene_snapshot: true,
+  periodo: "2026-06",
   tarjetas: [
     { clave: "cartera", etiqueta: "Cartera total", valor: "1225000.00" },
     { clave: "par30", etiqueta: "PAR30", valor: "8.50" },
@@ -672,32 +913,86 @@ export const torrePulso = {
 };
 export const torreSaludCartera = {
   tiene_snapshot: true,
-  aging: { al_dia: "1000000.00", "1_30": "120000.00", "31_60": "60000.00", "61_90": "30000.00", "90_mas": "15000.00" },
+  aging: {
+    al_dia: "1000000.00",
+    "1_30": "120000.00",
+    "31_60": "60000.00",
+    "61_90": "30000.00",
+    "90_mas": "15000.00",
+  },
   perdida_esperada: "45000.00",
-  cosechas, cashflow: tesoreriaCashflow.tramos,
+  cosechas,
+  cashflow: tesoreriaCashflow.tramos,
 };
 export const torreOperacionHoy = {
-  cobranza_del_dia: "20800.50", cuotas_vencen_hoy: 12, rutas_activas: 3,
-  promesas_pendientes: 5, pipeline_solicitudes: 9,
+  cobranza_del_dia: "20800.50",
+  cuotas_vencen_hoy: 12,
+  rutas_activas: 3,
+  promesas_pendientes: 5,
+  pipeline_solicitudes: 9,
 };
 export const torreNegocio = {
-  tiene_snapshot: true, colocacion_mes: "2400000.00",
-  intereses_cobrados_mes: "180000.00", punitorios_cobrados_mes: "12000.00",
+  tiene_snapshot: true,
+  colocacion_mes: "2400000.00",
+  intereses_cobrados_mes: "180000.00",
+  punitorios_cobrados_mes: "12000.00",
   top_vendedores: [{ nombre: "Vendedor 1", monto: "900000.00" }],
   top_productos: [{ nombre: "Producto A", monto: "1400000.00" }],
 };
 export const torreAlertasLive = {
   total: 2,
   alertas: [
-    { id: "alerta-1", tipo: "mora_temprana", severidad: "critica", metrica: "dias_atraso", valor: "15", prestamo_id: "prestamo-1", persona_id: "persona-1" },
-    { id: "alerta-2", tipo: "sobreendeudamiento", severidad: "media", metrica: "ratio_cuota_ingreso", valor: "0.45", prestamo_id: "prestamo-2", persona_id: "persona-2" },
+    {
+      id: "alerta-1",
+      tipo: "mora_temprana",
+      severidad: "critica",
+      metrica: "dias_atraso",
+      valor: "15",
+      prestamo_id: "prestamo-1",
+      persona_id: "persona-1",
+    },
+    {
+      id: "alerta-2",
+      tipo: "sobreendeudamiento",
+      severidad: "media",
+      metrica: "ratio_cuota_ingreso",
+      valor: "0.45",
+      prestamo_id: "prestamo-2",
+      persona_id: "persona-2",
+    },
   ],
 };
 
 export const torrePulsoVacio = { tiene_snapshot: false, periodo: null, tarjetas: [] };
-export const torreResumenVacio = { tiene_snapshot: false, periodo: null, indice_nexo: "0.00", prestamos_vigentes: 0, prestamos_en_mora: 0 };
+export const torreResumenVacio = {
+  tiene_snapshot: false,
+  periodo: null,
+  indice_nexo: "0.00",
+  prestamos_vigentes: 0,
+  prestamos_en_mora: 0,
+};
 
 export const documentos = [
-  { id: "doc-1", prestamo_id: "prestamo-1", tipo: "pagare", numero: 1001, hash_sha256: "a".repeat(64), url_storage: "https://files.test/doc-1.pdf", emitido_por: "admin", anulado_en: null, anulado_por: null },
-  { id: "doc-2", prestamo_id: "prestamo-1", tipo: "contrato", numero: 1002, hash_sha256: "b".repeat(64), url_storage: "https://files.test/doc-2.pdf", emitido_por: "admin", anulado_en: "2026-06-10T10:00:00Z", anulado_por: "admin" },
+  {
+    id: "doc-1",
+    prestamo_id: "prestamo-1",
+    tipo: "pagare",
+    numero: 1001,
+    hash_sha256: "a".repeat(64),
+    url_storage: "https://files.test/doc-1.pdf",
+    emitido_por: "admin",
+    anulado_en: null,
+    anulado_por: null,
+  },
+  {
+    id: "doc-2",
+    prestamo_id: "prestamo-1",
+    tipo: "contrato",
+    numero: 1002,
+    hash_sha256: "b".repeat(64),
+    url_storage: "https://files.test/doc-2.pdf",
+    emitido_por: "admin",
+    anulado_en: "2026-06-10T10:00:00Z",
+    anulado_por: "admin",
+  },
 ];

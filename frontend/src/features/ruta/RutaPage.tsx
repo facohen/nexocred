@@ -117,13 +117,17 @@ export function RutaPage({ rutaId }: { rutaId: string }) {
         </TransactionButton>
         {ultimo?.enviado && (
           <span className="text-xs text-text-muted">
-            {ultimo.aplicadas} aplicadas · {ultimo.omitidas} omitidas · {ultimo.rechazadas} rechazadas
+            {ultimo.aplicadas} aplicadas · {ultimo.omitidas} omitidas · {ultimo.rechazadas}{" "}
+            rechazadas
           </span>
         )}
       </div>
 
       {error && (
-        <div role="alert" className="rounded-lg border border-neg-border bg-neg-bg p-2 text-sm text-neg">
+        <div
+          role="alert"
+          className="rounded-lg border border-neg-border bg-neg-bg p-2 text-sm text-neg"
+        >
           {error}
         </div>
       )}
@@ -133,7 +137,10 @@ export function RutaPage({ rutaId }: { rutaId: string }) {
       {paradasQ.isLoading ? (
         <Skeleton />
       ) : paradasQ.isError ? (
-        <div role="alert" className="rounded-lg border border-neg-border bg-neg-bg p-2 text-sm text-neg">
+        <div
+          role="alert"
+          className="rounded-lg border border-neg-border bg-neg-bg p-2 text-sm text-neg"
+        >
           No se pudo cargar la ruta.
         </div>
       ) : paradas.length === 0 ? (

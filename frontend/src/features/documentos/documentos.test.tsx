@@ -8,16 +8,16 @@ import { DocumentosPage } from "./DocumentosPage";
 import { setToken, setSessionUser } from "@/lib/auth";
 
 const BASE = "/api/v1";
-const admin = { email: "admin@nexocred.test", nombre: "Admin", roles: ["admin"] as const };
+const admin = { email: "admin@nexocred.test", nombre: "Admin", roles: ["administrativo"] as const };
 
 beforeEach(() => {
   setToken({ access_token: "t", refresh_token: "r", token_type: "bearer" });
-  setSessionUser({ ...admin, roles: ["admin"] });
+  setSessionUser({ ...admin, roles: ["administrativo"] });
 });
 
 describe("DocumentosPage", () => {
   it("lista documentos con número y hash; marca anulados", async () => {
-    renderWithProviders(<DocumentosPage prestamoId="prestamo-1" />, { ...admin, roles: ["admin"] });
+    renderWithProviders(<DocumentosPage prestamoId="prestamo-1" />, { ...admin, roles: ["administrativo"] });
     expect(await screen.findByText(/1001/)).toBeInTheDocument();
     expect(await screen.findByText(/aaaaaaaa/i)).toBeInTheDocument(); // hash truncado
     expect(await screen.findByText(/anulado/i)).toBeInTheDocument(); // doc-2 anulado
@@ -32,14 +32,14 @@ describe("DocumentosPage", () => {
           {
             id: "doc-new", prestamo_id: "prestamo-1", tipo: "pagare", numero: 1003,
             hash_sha256: "c".repeat(64), url_storage: "https://x/d.pdf",
-            emitido_por: "admin", anulado_en: null, anulado_por: null,
+            emitido_por: "administrativo", anulado_en: null, anulado_por: null,
           },
           { status: 201 },
         );
       }),
     );
     const user = userEvent.setup();
-    renderWithProviders(<DocumentosPage prestamoId="prestamo-1" />, { ...admin, roles: ["admin"] });
+    renderWithProviders(<DocumentosPage prestamoId="prestamo-1" />, { ...admin, roles: ["administrativo"] });
     await screen.findByText(/1001/);
     await user.click(screen.getByRole("button", { name: /Generar documento/i }));
     await waitFor(() => expect(screen.getByText(/Documento generado/i)).toBeInTheDocument());
@@ -49,7 +49,7 @@ describe("DocumentosPage", () => {
 
   it("anular pide motivo y marca el documento", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<DocumentosPage prestamoId="prestamo-1" />, { ...admin, roles: ["admin"] });
+    renderWithProviders(<DocumentosPage prestamoId="prestamo-1" />, { ...admin, roles: ["administrativo"] });
     await screen.findByText(/1001/);
     await user.click(screen.getAllByRole("button", { name: /Anular/i })[0]);
     await user.type(await screen.findByLabelText(/Motivo/i), "error de carga");
@@ -63,7 +63,7 @@ describe("DocumentosPage", () => {
         HttpResponse.json({ error: { code: "x", message: "falló" } }, { status: 500 }),
       ),
     );
-    renderWithProviders(<DocumentosPage prestamoId="prestamo-1" />, { ...admin, roles: ["admin"] });
+    renderWithProviders(<DocumentosPage prestamoId="prestamo-1" />, { ...admin, roles: ["administrativo"] });
     expect(await screen.findByRole("alert")).toBeInTheDocument();
   });
 });

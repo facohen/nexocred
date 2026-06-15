@@ -61,9 +61,7 @@ export function OriginarWizard() {
     <div className="mx-auto max-w-3xl space-y-6">
       <header className="space-y-1">
         <h1 className="text-2xl font-bold text-text">Originar préstamo</h1>
-        <p className="text-sm text-text-muted">
-          Cargá un cliente y armá su solicitud paso a paso.
-        </p>
+        <p className="text-sm text-text-muted">Cargá un cliente y armá su solicitud paso a paso.</p>
       </header>
 
       {paso !== "listo" && <Stepper pasos={PASOS} activo={idxActual} />}
@@ -101,11 +99,7 @@ export function OriginarWizard() {
               <div>
                 <dt className="text-xs text-text-subtle">Monto</dt>
                 <dd>
-                  <MoneyText
-                    value={prestamo.monto}
-                    intent="neutral"
-                    className="font-semibold"
-                  />
+                  <MoneyText value={prestamo.monto} intent="neutral" className="font-semibold" />
                 </dd>
               </div>
             </dl>
@@ -131,7 +125,15 @@ export function OriginarWizard() {
       {paso === "listo" && solicitudId && (
         <Card className="space-y-4 text-center">
           <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-pos-bg text-pos">
-            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              viewBox="0 0 24 24"
+              className="h-6 w-6"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <path d="M20 6 9 17l-5-5" />
             </svg>
           </div>
@@ -164,13 +166,7 @@ export function OriginarWizard() {
   );
 }
 
-function Stepper({
-  pasos,
-  activo,
-}: {
-  pasos: { key: string; label: string }[];
-  activo: number;
-}) {
+function Stepper({ pasos, activo }: { pasos: { key: string; label: string }[]; activo: number }) {
   return (
     <ol className="flex items-center gap-2" aria-label="Progreso">
       {pasos.map((p, i) => {
@@ -198,9 +194,7 @@ function Stepper({
             >
               {p.label}
             </span>
-            {i < pasos.length - 1 && (
-              <span className="mx-1 h-px flex-1 bg-border" aria-hidden />
-            )}
+            {i < pasos.length - 1 && <span className="mx-1 h-px flex-1 bg-border" aria-hidden />}
           </li>
         );
       })}

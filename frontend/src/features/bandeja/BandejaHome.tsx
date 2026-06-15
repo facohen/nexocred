@@ -1,3 +1,4 @@
+import { useNavigate } from "@tanstack/react-router";
 import { useSession } from "@/lib/auth";
 import type { Rol } from "@/lib/auth";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -14,45 +15,70 @@ interface AreaTrabajo {
 // Hub de entrada multi-rol: cada área enlaza al home de trabajo correspondiente.
 const AREAS: AreaTrabajo[] = [
   {
-    roles: ["analista"],
-    titulo: "Evaluación",
-    descripcion: "Cola de solicitudes a evaluar.",
-    to: "/evaluacion",
-  },
-  {
     roles: ["vendedor"],
     titulo: "Pipeline",
     descripcion: "Tus solicitudes en originación.",
     to: "/originar",
   },
   {
-    roles: ["operador"],
-    titulo: "Tareas",
-    descripcion: "Tu inbox de gestiones del día.",
-    to: "/crm/inbox",
+    roles: ["vendedor"],
+    titulo: "Mis clientes",
+    descripcion: "Tu cartera de clientes.",
+    to: "/mis-clientes",
   },
   {
-    roles: ["cobrador"],
+    roles: ["analista_riesgo"],
+    titulo: "Evaluación",
+    descripcion: "Cola de solicitudes a evaluar y aprobar.",
+    to: "/evaluacion",
+  },
+  {
+    roles: ["analista_riesgo", "ceo"],
+    titulo: "Riesgo",
+    descripcion: "Tablero de cartera y alertas.",
+    to: "/riesgo/tablero",
+  },
+  {
+    roles: ["administrativo"],
+    titulo: "Cartera",
+    descripcion: "Préstamos, pagos, caja y novaciones.",
+    to: "/prestamos",
+  },
+  {
+    roles: ["administrativo"],
     titulo: "Ruta de Cobranza",
-    descripcion: "Tus paradas y promesas de pago.",
+    descripcion: "Paradas y promesas de pago.",
     to: "/ruta",
   },
   {
-    roles: ["tesoreria"],
+    roles: ["vendedor", "administrativo"],
+    titulo: "Relación (CRM)",
+    descripcion: "Inbox de gestiones e incidentes.",
+    to: "/crm/inbox",
+  },
+  {
+    roles: ["administrativo"],
     titulo: "Tesorería",
     descripcion: "Cajas, conciliación y movimientos.",
     to: "/tesoreria",
   },
   {
-    roles: ["admin"],
+    roles: ["ceo", "administrativo"],
     titulo: "Tablero Ejecutivo",
     descripcion: "Indicadores y torre de control.",
     to: "/torre",
+  },
+  {
+    roles: ["admin_sistema"],
+    titulo: "Usuarios",
+    descripcion: "Configuración de usuarios y roles.",
+    to: "/usuarios",
   },
 ];
 
 /** Bandeja genérica: hub de entrada con un atajo por cada área relevante al rol. */
 export function BandejaHome() {
+  const navigate = useNavigate();
   const { user } = useSession();
   const roles = user?.roles ?? [];
 
@@ -66,18 +92,21 @@ export function BandejaHome() {
       />
 
       {areas.length === 0 ? (
-        <p className="text-sm text-text-subtle">
-          No hay áreas de trabajo asignadas a tu perfil.
-        </p>
+        <p className="text-sm text-text-subtle">No hay áreas de trabajo asignadas a tu perfil.</p>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {areas.map((a) => (
-            <a key={a.to} href={a.to} className="block">
+            <button
+              key={`${a.to}-${a.titulo}`}
+              type="button"
+              onClick={() => navigate({ to: a.to as string })}
+              className="block text-left"
+            >
               <Card className="h-full transition-colors hover:bg-surface-sunken">
                 <CardTitle>{a.titulo}</CardTitle>
                 <p className="mt-1 text-sm text-text-muted">{a.descripcion}</p>
               </Card>
-            </a>
+            </button>
           ))}
         </div>
       )}

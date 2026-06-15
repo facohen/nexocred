@@ -44,8 +44,6 @@ describe("OriginarHome — home del vendedor", () => {
   it("conserva el pipeline y la acción de nueva solicitud", async () => {
     renderWithProviders(<OriginarHome />, { ...vendedor, roles: ["vendedor"] });
     expect(await screen.findByText(/Mi pipeline/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /nueva solicitud/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /nueva solicitud/i })).toBeInTheDocument();
   });
 });

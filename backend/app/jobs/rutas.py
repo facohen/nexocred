@@ -22,7 +22,7 @@ async def _cobradores_activos(session: AsyncSession) -> list[Usuario]:
     res = await session.execute(
         select(Usuario)
         .join(Usuario.roles)
-        .where(Usuario.activo.is_(True), Rol.nombre == "cobrador")
+        .where(Usuario.activo.is_(True), Rol.nombre == "administrativo")
     )
     return list(res.unique().scalars().all())
 

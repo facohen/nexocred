@@ -25,7 +25,7 @@ describe("LoginPage", () => {
     renderLogin(onSuccess);
     // Los campos vienen pre-rellenados; limpiar antes de tipear.
     await userEvent.clear(screen.getByLabelText(/email/i));
-    await userEvent.type(screen.getByLabelText(/email/i), "admin.full@nexocred.test");
+    await userEvent.type(screen.getByLabelText(/email/i), "vendedor.full@nexocred.test");
     await userEvent.clear(screen.getByLabelText(/contraseña/i));
     await userEvent.type(screen.getByLabelText(/contraseña/i), "demo12345");
     await userEvent.click(screen.getByRole("button", { name: /ingresar/i }));

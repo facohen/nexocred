@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter
 
 from app.bcra import servicio
-from app.deps import AdminOAnalista, CurrentUser, SessionDep
+from app.deps import OriginaSolicitud, CurrentUser, SessionDep
 from app.m01_personas.schemas import DeudaBcraOut
 
 # Dos superficies para BCRA (spec §3): bajo /personas y bajo /bcra.
@@ -13,7 +13,7 @@ router_bcra = APIRouter(prefix="/bcra", tags=["bcra"])
 
 @router_personas.post("/{persona_id}/deuda-bcra/sync", response_model=list[DeudaBcraOut])
 async def sync_deuda_bcra(
-    persona_id: uuid.UUID, session: SessionDep, actor: AdminOAnalista
+    persona_id: uuid.UUID, session: SessionDep, actor: OriginaSolicitud
 ) -> list[DeudaBcraOut]:
     cliente = servicio.obtener_cliente_bcra()
     filas = await servicio.sincronizar_bcra(
@@ -33,7 +33,7 @@ async def historial_deuda_bcra(
 
 @router_bcra.post("/consultar/{persona_id}", response_model=list[DeudaBcraOut])
 async def consultar_bcra(
-    persona_id: uuid.UUID, session: SessionDep, actor: AdminOAnalista
+    persona_id: uuid.UUID, session: SessionDep, actor: OriginaSolicitud
 ) -> list[DeudaBcraOut]:
     cliente = servicio.obtener_cliente_bcra()
     filas = await servicio.sincronizar_bcra(

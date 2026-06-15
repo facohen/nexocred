@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Query
 
-from app.deps import AdminOAnalista, CurrentUser, SessionDep
+from app.deps import OriginaSolicitud, CurrentUser, SessionDep
 from app.errors import ErrorAPI
 from app.m01_personas import servicio
 from app.m01_personas.modelos import Persona
@@ -29,7 +29,7 @@ def _persona_out(p: Persona) -> PersonaOut:
 
 @router.post("", response_model=PersonaOut, status_code=201)
 async def crear_persona(
-    datos: PersonaCreate, session: SessionDep, actor: AdminOAnalista
+    datos: PersonaCreate, session: SessionDep, actor: OriginaSolicitud
 ) -> PersonaOut:
     persona = await servicio.crear_persona(session, datos, actor_id=actor.id)
     await session.commit()
@@ -82,7 +82,7 @@ async def actualizar_persona(
     persona_id: uuid.UUID,
     datos: PersonaUpdate,
     session: SessionDep,
-    actor: AdminOAnalista,
+    actor: OriginaSolicitud,
 ) -> PersonaOut:
     persona = await servicio.obtener_persona(session, persona_id)
     if persona is None:
@@ -103,7 +103,7 @@ async def agregar_referencia(
     persona_id: uuid.UUID,
     datos: ReferenciaIn,
     session: SessionDep,
-    actor: AdminOAnalista,
+    actor: OriginaSolicitud,
 ) -> ReferenciaOut:
     persona = await servicio.obtener_persona(session, persona_id)
     if persona is None:
@@ -126,7 +126,7 @@ async def eliminar_referencia(
     persona_id: uuid.UUID,
     ref_id: uuid.UUID,
     session: SessionDep,
-    actor: AdminOAnalista,
+    actor: OriginaSolicitud,
 ) -> dict[str, str]:
     await servicio.eliminar_referencia(
         session, persona_id, ref_id, actor_id=actor.id
@@ -141,7 +141,7 @@ async def agregar_marca(
     persona_id: uuid.UUID,
     datos: MarcaIn,
     session: SessionDep,
-    actor: AdminOAnalista,
+    actor: OriginaSolicitud,
 ) -> MarcaOut:
     persona = await servicio.obtener_persona(session, persona_id)
     if persona is None:

@@ -6,7 +6,7 @@ import { setToken, setSessionUser } from "@/lib/auth";
 // always strings; we assert the contract shapes the dashboards consume.
 function auth() {
   setToken({ access_token: "t", refresh_token: "r", token_type: "bearer" });
-  setSessionUser({ email: "admin@nexocred.test", nombre: "Admin", roles: ["admin"] });
+  setSessionUser({ email: "admin@nexocred.test", nombre: "Admin", roles: ["administrativo"] });
 }
 
 describe("MSW f1c/f1d handlers", () => {

@@ -33,22 +33,15 @@ export function StepPrestamo({
   onVolver: () => void;
 }) {
   const productosQ = useProductos();
-  const productos = useMemo(
-    () => productosQ.data?.data ?? [],
-    [productosQ.data],
-  );
+  const productos = useMemo(() => productosQ.data?.data ?? [], [productosQ.data]);
 
   const [productoId, setProductoId] = useState(valorInicial?.productoId ?? "");
   const [monto, setMonto] = useState(valorInicial?.monto ?? "");
-  const [cuotas, setCuotas] = useState<number | "">(
-    valorInicial?.cantidadCuotas ?? "",
-  );
+  const [cuotas, setCuotas] = useState<number | "">(valorInicial?.cantidadCuotas ?? "");
   const [tasa, setTasa] = useState(TASA_INDICATIVA_DEFAULT);
 
   const simular = useSimular();
-  const [cotizacion, setCotizacion] = useState<
-    components["schemas"]["SimuladorOut"] | null
-  >(null);
+  const [cotizacion, setCotizacion] = useState<components["schemas"]["SimuladorOut"] | null>(null);
 
   const producto = useMemo(
     () => productos.find((p) => p.id === productoId),
@@ -164,9 +157,7 @@ export function StepPrestamo({
         </label>
 
         <label className="space-y-1">
-          <span className="text-sm font-medium text-text">
-            Tasa indicativa (directa)
-          </span>
+          <span className="text-sm font-medium text-text">Tasa indicativa (directa)</span>
           <Input
             inputMode="decimal"
             value={tasa}
@@ -180,11 +171,7 @@ export function StepPrestamo({
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button
-          variant="outline"
-          onClick={cotizar}
-          disabled={!completo || simular.isPending}
-        >
+        <Button variant="outline" onClick={cotizar} disabled={!completo || simular.isPending}>
           {simular.isPending ? "Cotizando…" : "Ver cotización indicativa"}
         </Button>
         <span className="text-xs text-text-subtle">

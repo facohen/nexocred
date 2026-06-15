@@ -16,11 +16,7 @@ export interface ClienteElegido {
  * nuevo reusando el PersonaForm (misma validación Zod, mismo contrato). No se
  * reescribe la lógica de alta: se embebe.
  */
-export function StepCliente({
-  onElegir,
-}: {
-  onElegir: (cliente: ClienteElegido) => void;
-}) {
+export function StepCliente({ onElegir }: { onElegir: (cliente: ClienteElegido) => void }) {
   const [modo, setModo] = useState<"buscar" | "crear">("buscar");
   const [q, setQ] = useState("");
   const personasQ = usePersonas(q.trim() || undefined);
@@ -63,9 +59,7 @@ export function StepCliente({
         autoFocus
       />
 
-      {personasQ.isLoading && (
-        <p className="text-sm text-text-muted">Buscando…</p>
-      )}
+      {personasQ.isLoading && <p className="text-sm text-text-muted">Buscando…</p>}
       {!personasQ.isLoading && resultados.length === 0 && (
         <p className="text-sm text-text-muted">
           Sin resultados. Probá otro término o creá un cliente nuevo.

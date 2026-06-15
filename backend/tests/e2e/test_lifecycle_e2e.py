@@ -36,7 +36,11 @@ async def _posicion(client, token) -> Decimal:
     return Decimal(r.json()["total"])
 
 
-async def _crear_vendedor(client, token) -> str:
+async def _crear_vendedor(client, token) -> tuple[str, str]:
+    """Crea un vendedor y devuelve (id, token). En el modelo 5-roles el usuario
+    admin de tests también tiene rol 'vendedor', por lo que al originar con su
+    token la solicitud se auto-atribuye a él. Para que la comisión se devengue al
+    vendedor real, la originación debe hacerse con el token del propio vendedor."""
     r = await client.post(
         "/api/v1/usuarios",
         json={"email": "vend.e2e@nexo.test", "nombre": "Vendedor E2E",
@@ -44,7 +48,13 @@ async def _crear_vendedor(client, token) -> str:
         headers=_h(token),
     )
     assert r.status_code == 201, r.text
-    return r.json()["id"]
+    vendedor_id = r.json()["id"]
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "vend.e2e@nexo.test", "password": "secreto123"},
+    )
+    assert login.status_code == 200, login.text
+    return vendedor_id, login.json()["access_token"]
 
 
 async def test_ciclo_completo_con_conservacion_de_dinero(
@@ -80,7 +90,7 @@ async def test_ciclo_completo_con_conservacion_de_dinero(
     assert r.status_code == 201, r.text
     caja = r.json()["id"]
 
-    vendedor = await _crear_vendedor(client, tok)
+    vendedor, vendedor_token = await _crear_vendedor(client, tok)
 
     r = await client.post(
         "/api/v1/tesoreria/aportes",
@@ -93,11 +103,14 @@ async def test_ciclo_completo_con_conservacion_de_dinero(
     assert pos_tras_aporte == Decimal("1000000.00")
 
     # --- Solicitud -> evaluar -> aprobar ---
+    # Modelo 5-roles: "el vendedor origina". Creamos la solicitud con el token del
+    # vendedor para que la comisión se devengue a él (el endpoint auto-atribuye la
+    # solicitud al actor cuando éste es vendedor).
     r = await client.post(
         "/api/v1/solicitudes",
         json={"persona_id": persona, "producto_id": producto, "monto": "100000.00",
-              "cantidad_cuotas": 6, "vendedor_id": vendedor},
-        headers=_h(tok),
+              "cantidad_cuotas": 6},
+        headers=_h(vendedor_token),
     )
     assert r.status_code == 201, r.text
     sid = r.json()["id"]
@@ -169,7 +182,7 @@ async def test_ciclo_completo_con_conservacion_de_dinero(
         rc = await client.post(
             "/api/v1/usuarios",
             json={"email": "cob.e2e@nexo.test", "nombre": "Cob E2E",
-                  "password": "secreto123", "roles": ["cobrador"]},
+                  "password": "secreto123", "roles": ["administrativo"]},
             headers=_h(tok),
         )
         assert rc.status_code == 201, rc.text

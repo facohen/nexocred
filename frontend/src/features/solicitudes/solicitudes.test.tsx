@@ -23,20 +23,24 @@ describe("Solicitudes", () => {
 
   it("muestra el checklist de politicas y deshabilita Aprobar cuando BCRA esta vencido", async () => {
     renderWithProviders(<SolicitudDetailPage />);
-    // checklist items
+    // checklist items (etiquetas que arma el frontend desde ChecklistOut)
     expect(await screen.findByText(/Relación cuota\/ingreso/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Situación BCRA/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Situación 4 — vencido/i)).toBeInTheDocument();
-    // BCRA flagged → Aprobar disabled
+    // solicitud-2 tiene bcra:false → fila en falla + Aprobar disabled
     const aprobar = screen.getByRole("button", { name: /aprobar/i });
     await waitFor(() => expect(aprobar).toBeDisabled());
   });
 
   it("deshabilita Aprobar mientras el checklist está cargando (fail-safe)", async () => {
     server.use(
-      http.post(`${BASE}/solicitudes/:id/validar-politicas`, async () => {
+      http.get(`${BASE}/solicitudes/:id/validar-politicas`, async () => {
         await delay(200);
-        return HttpResponse.json({ checklist: [] });
+        return HttpResponse.json({
+          edad: true,
+          cuota_ingreso: true,
+          bcra: true,
+          mora_previa: false,
+        });
       }),
     );
     renderWithProviders(<SolicitudDetailPage />);
@@ -49,7 +53,12 @@ describe("Solicitudes", () => {
     server.use(
       http.post(`${BASE}/solicitudes/:id/evaluar`, () =>
         HttpResponse.json(
-          { error: { code: "estado_invalido", message: "La solicitud no puede evaluarse en su estado actual" } },
+          {
+            error: {
+              code: "estado_invalido",
+              message: "La solicitud no puede evaluarse en su estado actual",
+            },
+          },
           { status: 409 },
         ),
       ),
@@ -63,14 +72,28 @@ describe("Solicitudes", () => {
     ).toBeInTheDocument();
   });
 
-  it("trata la regla bcra ausente como bloqueante (fail-safe)", async () => {
+  it("oculta las acciones (evaluar/simular/aprobar) para el vendedor", async () => {
+    renderWithProviders(<SolicitudDetailPage />, {
+      email: "vendedor@nexocred.test",
+      nombre: "Vendedor",
+      roles: ["vendedor"],
+    });
+    // El checklist (lectura) sí carga para el vendedor.
+    expect(await screen.findByText(/Situación BCRA/i)).toBeInTheDocument();
+    // Pero ninguna acción está disponible: ve la solicitud en modo lectura.
+    expect(screen.queryByRole("button", { name: /evaluar/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /simular/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /aprobar/i })).not.toBeInTheDocument();
+  });
+
+  it("trata la regla bcra en falla como bloqueante (fail-safe)", async () => {
     server.use(
-      http.post(`${BASE}/solicitudes/:id/validar-politicas`, () =>
+      http.get(`${BASE}/solicitudes/:id/validar-politicas`, () =>
         HttpResponse.json({
-          checklist: [
-            { regla: "edad", etiqueta: "Edad", ok: true, detalle: "ok" },
-            { regla: "mora", etiqueta: "Mora", ok: true, detalle: "ok" },
-          ],
+          edad: true,
+          cuota_ingreso: true,
+          bcra: false,
+          mora_previa: false,
         }),
       ),
     );

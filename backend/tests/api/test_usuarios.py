@@ -8,7 +8,7 @@ async def test_crud_usuario_completo(client, admin_token):
         "/api/v1/usuarios",
         json={
             "email": "user1@nexo.test", "nombre": "User Uno",
-            "password": "secreto123", "roles": ["cobrador"],
+            "password": "secreto123", "roles": ["administrativo"],
         },
         headers=_h(admin_token),
     )
@@ -24,11 +24,11 @@ async def test_crud_usuario_completo(client, admin_token):
     # patch cambia roles
     r = await client.patch(
         f"/api/v1/usuarios/{uid}",
-        json={"roles": ["vendedor", "operador"]},
+        json={"roles": ["vendedor", "administrativo"]},
         headers=_h(admin_token),
     )
     assert r.status_code == 200
-    assert set(r.json()["roles"]) == {"vendedor", "operador"}
+    assert set(r.json()["roles"]) == {"vendedor", "administrativo"}
 
     # desactivar
     r = await client.delete(f"/api/v1/usuarios/{uid}", headers=_h(admin_token))

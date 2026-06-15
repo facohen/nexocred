@@ -62,11 +62,7 @@ const protectedRoute = createRoute({
   },
 });
 
-function page(
-  path: string,
-  factory: () => Promise<Record<string, unknown>>,
-  exportName: string,
-) {
+function page(path: string, factory: () => Promise<Record<string, unknown>>, exportName: string) {
   const roles = ROUTE_ROLES[path] ?? [];
   return createRoute({
     getParentRoute: () => protectedRoute,
@@ -97,18 +93,35 @@ const routeTree = rootRoute.addChildren([
     page("/bandeja", () => import("@/features/bandeja/BandejaHome"), "BandejaHome"),
     page("/evaluacion", () => import("@/features/evaluacion/EvaluacionHome"), "EvaluacionHome"),
     page("/originar", () => import("@/features/originacion/OriginarHome"), "OriginarHome"),
-    page("/originar/nuevo", () => import("@/features/originacion/OriginarWizard"), "OriginarWizard"),
+    page(
+      "/originar/nuevo",
+      () => import("@/features/originacion/OriginarWizard"),
+      "OriginarWizard",
+    ),
 
     // ── Entidades y vistas (drill-down / tabs de área) ──
+    page("/mis-clientes", () => import("@/features/personas/MisClientesPage"), "MisClientesPage"),
     page("/personas", () => import("@/features/personas/PersonasListPage"), "PersonasListPage"),
-    page("/personas/$personaId", () => import("@/features/personas/PersonaDetailPage"), "PersonaDetailPage"),
+    page(
+      "/personas/$personaId",
+      () => import("@/features/personas/PersonaDetailPage"),
+      "PersonaDetailPage",
+    ),
     page("/catalogo/productos", () => import("@/features/catalogo/ProductosPage"), "ProductosPage"),
     page("/catalogo/matrices", () => import("@/features/catalogo/MatricesPage"), "MatricesPage"),
     page("/catalogo/simulador", () => import("@/features/catalogo/SimuladorPage"), "SimuladorPage"),
     page("/solicitudes", () => import("@/features/solicitudes/SolicitudesPage"), "SolicitudesPage"),
-    page("/solicitudes/$solicitudId", () => import("@/features/solicitudes/SolicitudDetailPage"), "SolicitudDetailPage"),
+    page(
+      "/solicitudes/$solicitudId",
+      () => import("@/features/solicitudes/SolicitudDetailPage"),
+      "SolicitudDetailPage",
+    ),
     page("/prestamos", () => import("@/features/prestamos/PrestamosPage"), "PrestamosPage"),
-    page("/prestamos/$prestamoId", () => import("@/features/prestamos/PrestamoDetailPage"), "PrestamoDetailPage"),
+    page(
+      "/prestamos/$prestamoId",
+      () => import("@/features/prestamos/PrestamoDetailPage"),
+      "PrestamoDetailPage",
+    ),
     page("/pagos", () => import("@/features/pagos/RegistrarPagoPage"), "RegistrarPagoPage"),
     page("/caja", () => import("@/features/caja/CajaPage"), "CajaPage"),
     page("/novaciones", () => import("@/features/novaciones/NovacionesPage"), "NovacionesPage"),
@@ -123,10 +136,22 @@ const routeTree = rootRoute.addChildren([
     page("/crm/prospectos", () => import("@/features/crm/ProspectosPage"), "ProspectosPage"),
     page("/riesgo/tablero", () => import("@/features/riesgo/RiesgoBoard"), "RiesgoBoard"),
     page("/riesgo/alertas", () => import("@/features/riesgo/AlertasPage"), "AlertasPage"),
-    page("/vendedores/comisiones", () => import("@/features/vendedores/ComisionesRoute"), "ComisionesRoute"),
-    page("/vendedores/liquidaciones", () => import("@/features/vendedores/LiquidacionesPage"), "LiquidacionesPage"),
+    page(
+      "/vendedores/comisiones",
+      () => import("@/features/vendedores/ComisionesRoute"),
+      "ComisionesRoute",
+    ),
+    page(
+      "/vendedores/liquidaciones",
+      () => import("@/features/vendedores/LiquidacionesPage"),
+      "LiquidacionesPage",
+    ),
     page("/tesoreria", () => import("@/features/tesoreria/TesoreriaHome"), "TesoreriaHome"),
-    page("/analisis/cartera", () => import("@/features/analytics/AnalisisCarteraPage"), "AnalisisCarteraPage"),
+    page(
+      "/analisis/cartera",
+      () => import("@/features/analytics/AnalisisCarteraPage"),
+      "AnalisisCarteraPage",
+    ),
     page("/torre", () => import("@/features/torre/TorreDashboard"), "TorreDashboard"),
     page("/documentos", () => import("@/features/documentos/DocumentosRoute"), "DocumentosRoute"),
     page("/usuarios", () => import("@/features/admin/UsuariosPage"), "UsuariosPage"),

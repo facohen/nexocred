@@ -87,7 +87,7 @@ async def test_e2e_alerta_asignacion_crea_tarea(client, admin_token, session):
     op = await client.post(
         "/api/v1/usuarios",
         json={"email": "op_e2e@nexo.test", "nombre": "Op", "password": "secreto123",
-              "roles": ["operador"]},
+              "roles": ["administrativo"]},
         headers=_h(admin_token),
     )
     op_id = op.json()["id"]

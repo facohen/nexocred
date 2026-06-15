@@ -11,10 +11,10 @@ const BASE = "/api/v1";
 describe("UsuariosPage", () => {
   it("lista usuarios con sus roles y estado", async () => {
     renderWithProviders(<UsuariosPage />);
-    expect(await screen.findByText("Admin")).toBeInTheDocument();
-    expect(screen.getByText("admin@nexocred.test")).toBeInTheDocument();
+    expect(await screen.findByText("Admin Sistema")).toBeInTheDocument();
+    expect(screen.getByText("sistema@nexocred.test")).toBeInTheDocument();
     // rol como badge
-    expect(screen.getAllByText("admin").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("admin_sistema").length).toBeGreaterThanOrEqual(1);
     // estado activo
     expect(screen.getAllByText(/activo/i).length).toBeGreaterThanOrEqual(1);
   });
@@ -22,7 +22,7 @@ describe("UsuariosPage", () => {
   it("crea un usuario nuevo desde el modal", async () => {
     const user = userEvent.setup();
     renderWithProviders(<UsuariosPage />);
-    await screen.findByText("Admin");
+    await screen.findByText("Admin Sistema");
 
     await user.click(screen.getByRole("button", { name: /nuevo usuario/i }));
     const dialog = await screen.findByRole("dialog", { name: /nuevo usuario/i });
@@ -39,7 +39,7 @@ describe("UsuariosPage", () => {
   it("pide confirmación antes de desactivar", async () => {
     const user = userEvent.setup();
     renderWithProviders(<UsuariosPage />);
-    await screen.findByText("Admin");
+    await screen.findByText("Admin Sistema");
 
     const desactivar = screen.getAllByRole("button", { name: /desactivar/i });
     await user.click(desactivar[0]);

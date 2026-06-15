@@ -56,11 +56,32 @@ def requiere_rol(
     return _dep
 
 
-# Dependencias de rol pre-construidas (evita llamar requiere_rol() en defaults).
-AdminUser = Annotated[Usuario, Depends(requiere_rol("admin"))]
-AdminOAnalista = Annotated[Usuario, Depends(requiere_rol("admin", "analista"))]
-# Originación temprana (crear/simular): el vendedor arma y cotiza la solicitud;
-# evaluar y desembolsar siguen restringidos a admin/analista.
-AdminAnalistaOVendedor = Annotated[
-    Usuario, Depends(requiere_rol("admin", "analista", "vendedor"))
+# Modelo de 5 roles:
+#   vendedor          -> origina, propone novación, CRM, sus clientes
+#   analista_riesgo   -> evalúa y aprueba (aprobar = desembolsar)
+#   administrativo    -> pagos, caja, rutas/cobranza, CRM, tesorería, cartera
+#   ceo               -> dashboards (Torre + Analytics), solo lectura
+#   admin_sistema     -> configuración (usuarios, catálogo, matrices)
+#
+# Dependencias semánticas. Los nombres describen QUIÉN puede, no un rol literal.
+ConfigUser = Annotated[Usuario, Depends(requiere_rol("admin_sistema"))]
+AnalistaRiesgo = Annotated[Usuario, Depends(requiere_rol("analista_riesgo"))]
+Administrativo = Annotated[Usuario, Depends(requiere_rol("administrativo"))]
+Vendedor = Annotated[Usuario, Depends(requiere_rol("vendedor"))]
+Ceo = Annotated[Usuario, Depends(requiere_rol("ceo"))]
+# Operación administrativa o dirección (lectura de dashboards financieros).
+AdministrativoOCeo = Annotated[
+    Usuario, Depends(requiere_rol("administrativo", "ceo"))
 ]
+
+# Originación temprana (crear/simular): el vendedor arma/cotiza; el analista de
+# riesgo también (evalúa lo que origina). Evaluar/desembolsar -> AnalistaRiesgo.
+OriginaSolicitud = Annotated[
+    Usuario, Depends(requiere_rol("vendedor", "analista_riesgo"))
+]
+# Propone novación: vendedor propone, analista de riesgo confirma.
+ProponeNovacion = Annotated[
+    Usuario, Depends(requiere_rol("vendedor", "analista_riesgo"))
+]
+# CRM: vendedor (su relación con clientes) y administrativo (gestión operativa).
+CrmActor = Annotated[Usuario, Depends(requiere_rol("vendedor", "administrativo"))]

@@ -50,7 +50,12 @@ export function CurvaDcf({ curva }: { curva: DCFPuntoCurva[] }) {
             stroke={AXIS_STROKE}
             tickFormatter={(m: number) => `${m}m`}
           />
-          <YAxis tick={AXIS_TICK} stroke={AXIS_STROKE} tickFormatter={moneyTickFormatter} width={90} />
+          <YAxis
+            tick={AXIS_TICK}
+            stroke={AXIS_STROKE}
+            tickFormatter={moneyTickFormatter}
+            width={90}
+          />
           <Tooltip
             labelFormatter={(m) => `Mes ${m}`}
             formatter={moneyTickFormatter}

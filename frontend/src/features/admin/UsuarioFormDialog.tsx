@@ -11,12 +11,11 @@ type UsuarioOut = components["schemas"]["UsuarioOut"];
 // Roles del sistema (seed backend). No hay endpoint de roles, así que la lista es
 // una constante local; el backend valida los nombres al asignar.
 export const ROLES_SISTEMA = [
-  "admin",
-  "analista",
-  "operador",
-  "tesoreria",
-  "cobrador",
   "vendedor",
+  "analista_riesgo",
+  "administrativo",
+  "ceo",
+  "admin_sistema",
 ] as const;
 
 const crearSchema = z.object({

@@ -568,7 +568,7 @@ async def _crear_segundo_cobrador(client, admin_token: str) -> dict:
             "email": "cobrador2@nexo.test",
             "nombre": "Cobrador2",
             "password": "secreto123",
-            "roles": ["cobrador"],
+            "roles": ["administrativo"],
         },
         headers=_h(admin_token),
     )
@@ -614,12 +614,18 @@ async def _seed_ruta_con_parada(
 # ── C4b: IDOR de rutas ─────────────────────────────────────────────────────
 
 
+# Modelo 5-roles: "administrativo" es back-office/supervisión y VE/OPERA TODO.
+# El aislamiento por-usuario entre administrativos (antes: cobrador solo veía SUS
+# rutas) fue removido POR DISEÑO. Por eso los antiguos tests de IDOR entre
+# administrativos ahora validan el comportamiento nuevo: cualquier administrativo
+# puede ver/operar cualquier ruta o rendición.
 class TestC4bIDOR:
 
-    async def test_cobrador_no_puede_visitar_ruta_ajena(
+    async def test_administrativo_puede_visitar_ruta_de_otro(
         self, client, cobrador_usuario: dict, admin_token: str, session
     ):
-        """Cobrador B no puede visitar una parada de la ruta del cobrador A."""
+        """Un administrativo B SÍ puede visitar una parada de la ruta creada para A
+        (no hay aislamiento por-usuario entre administrativos)."""
         datos = await _seed_ruta_con_parada(
             client, cobrador_usuario, admin_token, session, "42000001"
         )
@@ -635,12 +641,12 @@ class TestC4bIDOR:
             json={"resultado": "ausente", "fecha_negocio": date.today().isoformat()},
             headers=_h(cobrador_b["token"]),
         )
-        assert r.status_code == 403, r.text
+        assert r.status_code in (200, 201), r.text
 
-    async def test_cobrador_no_puede_sincronizar_ruta_ajena(
+    async def test_administrativo_puede_sincronizar_ruta_de_otro(
         self, client, cobrador_usuario: dict, admin_token: str, session
     ):
-        """Cobrador B no puede sincronizar la ruta del cobrador A."""
+        """Un administrativo B SÍ puede sincronizar la ruta creada para A."""
         datos = await _seed_ruta_con_parada(
             client, cobrador_usuario, admin_token, session, "42000002"
         )
@@ -653,7 +659,7 @@ class TestC4bIDOR:
             json={"paradas": []},
             headers=_h(cobrador_b["token"]),
         )
-        assert r.status_code == 403, r.text
+        assert r.status_code in (200, 201), r.text
 
     async def test_admin_puede_visitar_ruta_de_cobrador(
         self, client, cobrador_usuario: dict, admin_token: str, session
@@ -674,10 +680,11 @@ class TestC4bIDOR:
         )
         assert r.status_code in (200, 201), r.text
 
-    async def test_cobrador_no_puede_leer_paradas_de_ruta_ajena(
+    async def test_administrativo_puede_leer_paradas_de_otro(
         self, client, cobrador_usuario: dict, admin_token: str, session
     ):
-        """C-1: Cobrador B no puede listar las paradas de la ruta del cobrador A."""
+        """C-1 (modelo nuevo): un administrativo B SÍ puede listar las paradas de la
+        ruta creada para A. El control IDOR entre administrativos se removió."""
         datos = await _seed_ruta_con_parada(
             client, cobrador_usuario, admin_token, session, "42000010"
         )
@@ -689,8 +696,7 @@ class TestC4bIDOR:
             f"/api/v1/rutas/{ruta_id}/paradas",
             headers=_h(cobrador_b["token"]),
         )
-        assert r.status_code == 403, r.text
-        assert r.json()["error"]["code"] == "acceso_denegado"
+        assert r.status_code == 200, r.text
 
     async def test_admin_puede_leer_paradas_de_cualquier_ruta(
         self, client, cobrador_usuario: dict, admin_token: str, session
@@ -703,11 +709,11 @@ class TestC4bIDOR:
         )
         assert r.status_code == 200, r.text
 
-    async def test_listar_rutas_no_admin_solo_ve_propias(
+    async def test_listar_rutas_administrativo_ve_todas(
         self, client, cobrador_usuario: dict, admin_token: str, session
     ):
-        """A-1: el listado de rutas para un cobrador queda limitado a las suyas,
-        incluso si pasa cobrador_id de otro en el query param."""
+        """A-1 (modelo nuevo): un administrativo ve TODAS las rutas, no solo las
+        propias. El listado ya no se aísla por-usuario entre administrativos."""
         cobrador_a_id = cobrador_usuario["id"]
         # ruta vacía asignada al cobrador A (sin paradas: no necesitamos préstamo/BCRA)
         cr = await client.post(
@@ -719,25 +725,29 @@ class TestC4bIDOR:
         ruta_a = cr.json()["id"]
         cobrador_b = await _crear_segundo_cobrador(client, admin_token)
 
-        # cobrador B intenta filtrar por cobrador_id de A -> no ve la ruta de A
+        # administrativo B SÍ ve la ruta de A
         r = await client.get(
             f"/api/v1/rutas?cobrador_id={cobrador_a_id}",
             headers=_h(cobrador_b["token"]),
         )
         assert r.status_code == 200, r.text
         ids = {item["id"] for item in r.json()["data"]}
-        assert ruta_a not in ids
+        assert ruta_a in ids
 
 
 # ── C4c: IDOR de rendiciones ────────────────────────────────────────────────
 
 
+# Modelo 5-roles: un administrativo VE/OPERA todas las rendiciones, sin aislamiento
+# por-usuario. Los antiguos tests de IDOR entre administrativos ahora validan ese
+# comportamiento nuevo.
 class TestC4cRendicionIDOR:
 
-    async def test_cobrador_no_puede_leer_rendicion_ajena(
+    async def test_administrativo_puede_leer_rendicion_de_otro(
         self, client, cobrador_usuario, admin_token, session
     ):
-        """C-2: Cobrador B no puede ver el detalle de la rendición del cobrador A."""
+        """C-2 (modelo nuevo): un administrativo B SÍ puede ver el detalle de la
+        rendición creada por A."""
         rendicion = await _seed_rendicion_del_cobrador(
             client, cobrador_usuario, admin_token, session, "43000001"
         )
@@ -747,12 +757,12 @@ class TestC4cRendicionIDOR:
             f"/api/v1/rendiciones/{rendicion['id']}",
             headers=_h(cobrador_b["token"]),
         )
-        assert r.status_code == 403, r.text
-        assert r.json()["error"]["code"] == "acceso_denegado"
+        assert r.status_code == 200, r.text
 
-    async def test_cobrador_no_puede_descargar_en_rendicion_ajena(
+    async def test_administrativo_puede_descargar_en_rendicion_de_otro(
         self, client, cobrador_usuario, admin_token, session
     ):
+        """Un administrativo B SÍ puede registrar un descargo en la rendición de A."""
         rendicion = await _seed_rendicion_del_cobrador(
             client, cobrador_usuario, admin_token, session, "43000002"
         )
@@ -763,11 +773,12 @@ class TestC4cRendicionIDOR:
             json={"concepto": "robo", "monto": "100.00"},
             headers=_h(cobrador_b["token"]),
         )
-        assert r.status_code == 403, r.text
+        assert r.status_code in (200, 201), r.text
 
-    async def test_cobrador_no_puede_cambiar_estado_rendicion_ajena(
+    async def test_administrativo_puede_cambiar_estado_rendicion_de_otro(
         self, client, cobrador_usuario, admin_token, session
     ):
+        """Un administrativo B SÍ puede cambiar el estado de la rendición de A."""
         rendicion = await _seed_rendicion_del_cobrador(
             client, cobrador_usuario, admin_token, session, "43000003"
         )
@@ -778,7 +789,7 @@ class TestC4cRendicionIDOR:
             json={"estado": "presentada"},
             headers=_h(cobrador_b["token"]),
         )
-        assert r.status_code == 403, r.text
+        assert r.status_code in (200, 201), r.text
 
     async def test_admin_puede_leer_rendicion_de_cualquier_cobrador(
         self, client, cobrador_usuario, admin_token, session
@@ -791,10 +802,11 @@ class TestC4cRendicionIDOR:
         )
         assert r.status_code == 200, r.text
 
-    async def test_listar_rendiciones_no_admin_solo_propias(
+    async def test_listar_rendiciones_administrativo_ve_todas(
         self, client, cobrador_usuario, admin_token, session
     ):
-        """A-2: el listado de rendiciones para un cobrador queda limitado a las suyas."""
+        """A-2 (modelo nuevo): un administrativo ve TODAS las rendiciones, no solo
+        las propias."""
         rendicion = await _seed_rendicion_del_cobrador(
             client, cobrador_usuario, admin_token, session, "43000005"
         )
@@ -803,4 +815,4 @@ class TestC4cRendicionIDOR:
         r = await client.get("/api/v1/rendiciones", headers=_h(cobrador_b["token"]))
         assert r.status_code == 200, r.text
         ids = {item["id"] for item in r.json()["data"]}
-        assert rendicion["id"] not in ids
+        assert rendicion["id"] in ids
