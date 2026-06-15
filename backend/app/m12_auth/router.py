@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 
 import jwt
 from fastapi import APIRouter, Query, Request
@@ -29,10 +30,21 @@ from app.paginacion import Pagina, paginar, paginar_query
 router = APIRouter()
 
 # Parametros globales del sistema (almacen simple en memoria para F1a).
+# `costo_capital_anual`: tasa de fondeo anual (tanto por uno, ej "0.40" = 40%).
+# Es el costo de oportunidad del capital colocado; lo usan tesoreria (egresos de
+# cashflow, tasa de descuento DCF) y analytics (margen neto). Configurable via
+# PATCH /parametros (admin). Refinable a futuro a costo por fuente de fondeo.
 PARAMETROS_GLOBALES: dict[str, object] = {
     "bcra_vigencia_dias": 30,
     "tolerancia_cobro": "50.00",
+    "costo_capital_anual": "0.40",
 }
+
+
+def costo_capital_anual() -> Decimal:
+    """Lee el costo de capital anual (Decimal) del store global, con default 0.40."""
+    valor = PARAMETROS_GLOBALES.get("costo_capital_anual", "0.40")
+    return Decimal(str(valor))
 
 
 def _usuario_out(u: Usuario) -> UsuarioOut:

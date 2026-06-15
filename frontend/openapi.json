@@ -6306,6 +6306,24 @@
               ],
               "title": "Fecha"
             }
+          },
+          {
+            "name": "horizontes",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Horizontes en meses separados por coma, ej '3,6,12,24,36'",
+              "title": "Horizontes"
+            },
+            "description": "Horizontes en meses separados por coma, ej '3,6,12,24,36'"
           }
         ],
         "responses": {
@@ -6812,6 +6830,173 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AlertasLiveOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/rentabilidad": {
+      "get": {
+        "tags": [
+          "analytics"
+        ],
+        "summary": "Get Rentabilidad",
+        "operationId": "get_rentabilidad_api_v1_analytics_rentabilidad_get",
+        "parameters": [
+          {
+            "name": "dimension",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "producto",
+              "title": "Dimension"
+            }
+          },
+          {
+            "name": "fecha",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fecha"
+            }
+          },
+          {
+            "name": "desde",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Desde"
+            }
+          },
+          {
+            "name": "hasta",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Hasta"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Per Page"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Pagina_RentabilidadItem_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/resumen": {
+      "get": {
+        "tags": [
+          "analytics"
+        ],
+        "summary": "Get Resumen",
+        "operationId": "get_resumen_api_v1_analytics_resumen_get",
+        "parameters": [
+          {
+            "name": "fecha",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fecha"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumenAnalytics"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -8397,6 +8582,17 @@
           "neto": {
             "type": "string",
             "title": "Neto"
+          },
+          "meses": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meses"
           }
         },
         "type": "object",
@@ -9050,6 +9246,14 @@
           "valor_presente": {
             "type": "string",
             "title": "Valor Presente"
+          },
+          "vp_por_horizonte": {
+            "items": {
+              "$ref": "#/components/schemas/VpHorizonte"
+            },
+            "type": "array",
+            "title": "Vp Por Horizonte",
+            "default": []
           }
         },
         "type": "object",
@@ -9072,6 +9276,14 @@
             },
             "type": "array",
             "title": "Escenarios"
+          },
+          "curva": {
+            "items": {
+              "$ref": "#/components/schemas/DCFPuntoCurva"
+            },
+            "type": "array",
+            "title": "Curva",
+            "default": []
           }
         },
         "type": "object",
@@ -9080,6 +9292,25 @@
           "escenarios"
         ],
         "title": "DCFOut"
+      },
+      "DCFPuntoCurva": {
+        "properties": {
+          "mes": {
+            "type": "integer",
+            "title": "Mes"
+          },
+          "vp_acumulado": {
+            "type": "string",
+            "title": "Vp Acumulado"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mes",
+          "vp_acumulado"
+        ],
+        "title": "DCFPuntoCurva",
+        "description": "Punto de la curva de VP acumulado (escenario base) para graficar."
       },
       "DescargoEstadoIn": {
         "properties": {
@@ -11506,6 +11737,37 @@
           "per_page"
         ],
         "title": "Pagina[RendicionOut]"
+      },
+      "Pagina_RentabilidadItem_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/RentabilidadItem"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "per_page": {
+            "type": "integer",
+            "title": "Per Page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "page",
+          "per_page"
+        ],
+        "title": "Pagina[RentabilidadItem]"
       },
       "Pagina_RutaOut_": {
         "properties": {
@@ -14140,6 +14402,69 @@
         ],
         "title": "RendicionOut"
       },
+      "RentabilidadItem": {
+        "properties": {
+          "clave": {
+            "type": "string",
+            "title": "Clave"
+          },
+          "n_prestamos": {
+            "type": "integer",
+            "title": "N Prestamos"
+          },
+          "capital": {
+            "type": "string",
+            "title": "Capital"
+          },
+          "interes_cobrado": {
+            "type": "string",
+            "title": "Interes Cobrado"
+          },
+          "comision": {
+            "type": "string",
+            "title": "Comision"
+          },
+          "gastos": {
+            "type": "string",
+            "title": "Gastos"
+          },
+          "costo_fondeo": {
+            "type": "string",
+            "title": "Costo Fondeo"
+          },
+          "pe_monetaria": {
+            "type": "string",
+            "title": "Pe Monetaria"
+          },
+          "margen_bruto": {
+            "type": "string",
+            "title": "Margen Bruto"
+          },
+          "margen_neto": {
+            "type": "string",
+            "title": "Margen Neto"
+          },
+          "rentabilidad_pct": {
+            "type": "string",
+            "title": "Rentabilidad Pct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "clave",
+          "n_prestamos",
+          "capital",
+          "interes_cobrado",
+          "comision",
+          "gastos",
+          "costo_fondeo",
+          "pe_monetaria",
+          "margen_bruto",
+          "margen_neto",
+          "rentabilidad_pct"
+        ],
+        "title": "RentabilidadItem"
+      },
       "RepactarRapidoIn": {
         "properties": {
           "prestamo_id": {
@@ -14286,6 +14611,63 @@
           "justificacion"
         ],
         "title": "ResolverAlertaIn"
+      },
+      "ResumenAnalytics": {
+        "properties": {
+          "capital_total": {
+            "type": "string",
+            "title": "Capital Total"
+          },
+          "margen_neto_total": {
+            "type": "string",
+            "title": "Margen Neto Total"
+          },
+          "pe_monetaria_total": {
+            "type": "string",
+            "title": "Pe Monetaria Total"
+          },
+          "rentabilidad_global": {
+            "type": "string",
+            "title": "Rentabilidad Global"
+          },
+          "n_prestamos": {
+            "type": "integer",
+            "title": "N Prestamos"
+          },
+          "mejor_producto": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mejor Producto"
+          },
+          "peor_producto": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Peor Producto"
+          }
+        },
+        "type": "object",
+        "required": [
+          "capital_total",
+          "margen_neto_total",
+          "pe_monetaria_total",
+          "rentabilidad_global",
+          "n_prestamos",
+          "mejor_producto",
+          "peor_producto"
+        ],
+        "title": "ResumenAnalytics"
       },
       "ResumenOut": {
         "properties": {
@@ -15733,6 +16115,25 @@
           "resultado"
         ],
         "title": "VisitarOut"
+      },
+      "VpHorizonte": {
+        "properties": {
+          "etiqueta": {
+            "type": "string",
+            "title": "Etiqueta"
+          },
+          "valor_presente": {
+            "type": "string",
+            "title": "Valor Presente"
+          }
+        },
+        "type": "object",
+        "required": [
+          "etiqueta",
+          "valor_presente"
+        ],
+        "title": "VpHorizonte",
+        "description": "Cuanto del valor presente se materializa en una ventana temporal."
       },
       "app__m07_riesgo__schemas__ProcesarOut": {
         "properties": {

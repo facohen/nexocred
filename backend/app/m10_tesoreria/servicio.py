@@ -22,20 +22,49 @@ from app.m04_caja.servicio import (
     posicion_consolidada,
     registrar_movimiento,
 )
+from app.m07_riesgo.metricas import perdida_esperada
 from app.m07_riesgo.servicio import cartera_riesgo
 from app.m10_tesoreria.modelos import AporteRetiro
+from app.m12_auth.router import costo_capital_anual
 from app.modelos_stub import Cuota, Prestamo
 from nexocred_core import CERO, redondear, restar, sumar
 
 # Heuristicas POC documentadas:
-# - DCF: tasa de descuento mensual base 3%; escenarios opt/pes +-1pp (spec §M10 no
-#   fija una tasa, elegimos una consistente con pricing del POC).
-_TASA_DCF = {
-    "base": Decimal("0.03"),
-    "optimista": Decimal("0.02"),
-    "pesimista": Decimal("0.04"),
-}
+# - DCF: tasa de descuento mensual = costo de capital anual / 12 (equivalente
+#   simple). Escenarios opt/pes ajustan la tasa +-1pp Y aplican un haircut por
+#   perdida esperada de cartera sobre los flujos (no solo cambian la tasa).
 _ESCALA_TASA = Decimal("0.0001")
+# Multiplicadores de haircut por escenario sobre la PE ratio de cartera: el
+# optimista asume menos perdida que la esperada, el pesimista mas.
+_HAIRCUT_ESCENARIO = {
+    "optimista": Decimal("0.5"),
+    "base": Decimal("1.0"),
+    "pesimista": Decimal("1.5"),
+}
+# Ajuste de tasa de descuento por escenario (pp mensuales sobre la base).
+_AJUSTE_TASA_ESCENARIO = {
+    "optimista": Decimal("-0.01"),
+    "base": Decimal("0"),
+    "pesimista": Decimal("0.01"),
+}
+
+
+def _tasa_descuento_mensual_base() -> Decimal:
+    """Tasa de descuento mensual base = costo de capital anual / 12."""
+    return (costo_capital_anual() / Decimal(12)).quantize(_ESCALA_TASA)
+
+
+async def _pe_ratio_cartera(session: AsyncSession, fecha: date) -> Decimal:
+    """Ratio de perdida esperada de la cartera (PE monetaria / capital outstanding).
+    Se usa como haircut base de los flujos en el DCF por escenario."""
+    cartera = await cartera_riesgo(session, fecha)
+    if not cartera:
+        return CERO
+    total = sumar(*(c.capital_pendiente for c in cartera))
+    if total == CERO:
+        return CERO
+    pe = perdida_esperada(cartera)
+    return (pe / total).quantize(_ESCALA_TASA)
 
 
 def _ratio(num: Decimal, den: Decimal) -> Decimal:
@@ -90,18 +119,55 @@ async def _cuotas_pendientes(
     return filas
 
 
-async def cashflow(session: AsyncSession, fecha: date, dias: int) -> dict:
+def _egreso_fondeo(capital_colocado: Decimal, dias_tramo: int) -> Decimal:
+    """Costo de fondeo del capital colocado prorrateado al tramo (dias/365)."""
+    if capital_colocado <= CERO:
+        return CERO
+    anual = costo_capital_anual()
+    costo = capital_colocado * anual * Decimal(dias_tramo) / Decimal(365)
+    return redondear(costo)
+
+
+async def cashflow(
+    session: AsyncSession,
+    fecha: date,
+    dias: int,
+    horizontes_meses: list[int] | None = None,
+) -> dict:
+    """Cashflow proyectado. Entradas = cuotas que vencen en el tramo. Egresos =
+    costo de fondeo del capital colocado prorrateado al tramo (antes 0). Si se
+    pasan `horizontes_meses`, los tramos son por meses; si no, se mantiene el
+    comportamiento historico por dias (30/60/90 acotado por `dias`)."""
     cuotas = await _cuotas_pendientes(session, fecha)
+    capital_colocado = await _capital_colocado(session, fecha)
     tramos = []
+
+    if horizontes_meses:
+        for meses in sorted(set(horizontes_meses)):
+            dias_tramo = meses * 30
+            limite = fecha + timedelta(days=dias_tramo)
+            entradas = [m for v, m in cuotas if fecha <= v <= limite]
+            total_ent = redondear(sumar(*entradas)) if entradas else CERO
+            egresos = _egreso_fondeo(capital_colocado, dias_tramo)
+            tramos.append({
+                "dias": dias_tramo,
+                "meses": meses,
+                "entradas": total_ent,
+                "egresos": egresos,
+                "neto": redondear(restar(total_ent, egresos)),
+            })
+        return {"tramos": tramos}
+
     for horizonte in (30, 60, 90):
         if horizonte > dias:
             continue
         limite = fecha + timedelta(days=horizonte)
         entradas = [m for v, m in cuotas if fecha <= v <= limite]
         total_ent = redondear(sumar(*entradas)) if entradas else CERO
-        egresos = CERO  # POC: sin egresos proyectados (sin nomina/gastos planificados)
+        egresos = _egreso_fondeo(capital_colocado, horizonte)
         tramos.append({
             "dias": horizonte,
+            "meses": None,
             "entradas": total_ent,
             "egresos": egresos,
             "neto": redondear(restar(total_ent, egresos)),
@@ -109,23 +175,60 @@ async def cashflow(session: AsyncSession, fecha: date, dias: int) -> dict:
     return {"tramos": tramos}
 
 
+def _ventana(meses: int) -> str:
+    if meses < 6:
+        return "0-6m"
+    if meses < 12:
+        return "6-12m"
+    return "12m+"
+
+
 async def dcf(session: AsyncSession, fecha: date) -> dict:
+    """Valor presente de los flujos futuros. La tasa de descuento base sale del
+    costo de capital; cada escenario ajusta la tasa (+-1pp) Y aplica un haircut por
+    perdida esperada de cartera sobre los flujos. Devuelve ademas el VP repartido
+    por ventana temporal y una curva de VP acumulado (escenario base) para graficar."""
     cuotas = await _cuotas_pendientes(session, fecha)
-    futuras = [(v, m) for v, m in cuotas if v >= fecha]
+    futuras = sorted(((v, m) for v, m in cuotas if v >= fecha), key=lambda t: t[0])
     nominal = redondear(sumar(*(m for _, m in futuras))) if futuras else CERO
+    tasa_base = _tasa_descuento_mensual_base()
+    pe_ratio = await _pe_ratio_cartera(session, fecha)
+
     escenarios = []
-    for nombre, tasa in _TASA_DCF.items():
-        vp = CERO
+    curva: list[dict] = []
+    for nombre in ("base", "optimista", "pesimista"):
+        tasa = tasa_base + _AJUSTE_TASA_ESCENARIO[nombre]
+        if tasa < CERO:
+            tasa = CERO
+        # haircut: fraccion de cada flujo que se asume incobrable en el escenario.
+        haircut = pe_ratio * _HAIRCUT_ESCENARIO[nombre]
+        if haircut > Decimal("1"):
+            haircut = Decimal("1")
+        factor_cobro = Decimal("1") - haircut
+
+        vp_total = CERO
+        por_ventana: dict[str, Decimal] = {"0-6m": CERO, "6-12m": CERO, "12m+": CERO}
+        vp_acum = CERO
         for venc, monto in futuras:
             meses = max((venc - fecha).days // 30, 0)
             factor = (Decimal("1") + tasa) ** meses
-            vp = sumar(vp, (monto / factor).quantize(Decimal("0.01")))
+            vp_flujo = (monto * factor_cobro / factor).quantize(Decimal("0.01"))
+            vp_total = sumar(vp_total, vp_flujo)
+            por_ventana[_ventana(meses)] = sumar(por_ventana[_ventana(meses)], vp_flujo)
+            if nombre == "base":
+                vp_acum = sumar(vp_acum, vp_flujo)
+                curva.append({"mes": meses, "vp_acumulado": redondear(vp_acum)})
+
         escenarios.append({
             "escenario": nombre,
             "tasa_mensual": tasa,
-            "valor_presente": redondear(vp),
+            "valor_presente": redondear(vp_total),
+            "vp_por_horizonte": [
+                {"etiqueta": et, "valor_presente": redondear(por_ventana[et])}
+                for et in ("0-6m", "6-12m", "12m+")
+            ],
         })
-    return {"flujos_nominales": nominal, "escenarios": escenarios}
+    return {"flujos_nominales": nominal, "escenarios": escenarios, "curva": curva}
 
 
 async def rotacion(session: AsyncSession, fecha: date) -> dict:

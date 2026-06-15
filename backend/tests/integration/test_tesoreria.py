@@ -66,8 +66,43 @@ async def test_cashflow_tramos(client, tesoreria_token):
     assert r.status_code == 200, r.text
     tramos = {t["dias"]: t for t in r.json()["tramos"]}
     assert tramos[30]["entradas"] == "110000.00"
-    assert tramos[30]["neto"] == "110000.00"
+    # Egresos = costo de fondeo del capital colocado (100000) al 40% anual, 30/365:
+    # 100000 * 0.40 * 30/365 = 3287.67  →  neto = 110000 - 3287.67 = 106712.33
+    assert tramos[30]["egresos"] == "3287.67"
+    assert tramos[30]["neto"] == "106712.33"
     assert set(tramos) == {30, 60, 90}
+
+
+async def test_cashflow_horizontes_meses(client, tesoreria_token):
+    await _seed()
+    r = await client.get(
+        "/api/v1/tesoreria/cashflow",
+        params={"fecha": HOY.isoformat(), "horizontes": "3,12,36"},
+        headers=_h(tesoreria_token),
+    )
+    assert r.status_code == 200, r.text
+    tramos = r.json()["tramos"]
+    assert [t["meses"] for t in tramos] == [3, 12, 36]
+    # cada tramo tiene egreso de fondeo positivo (capital colocado > 0)
+    assert all(Decimal(t["egresos"]) > 0 for t in tramos)
+
+
+async def test_dcf_curva_y_horizontes(client, tesoreria_token):
+    await _seed()
+    r = await client.get(
+        "/api/v1/tesoreria/dcf", params={"fecha": HOY.isoformat()},
+        headers=_h(tesoreria_token),
+    )
+    body = r.json()
+    # curva de VP acumulado (escenario base), no decreciente
+    curva = body["curva"]
+    assert len(curva) >= 1
+    acum = [Decimal(p["vp_acumulado"]) for p in curva]
+    assert acum == sorted(acum)
+    # cada escenario reparte su VP por ventana temporal
+    base = next(e for e in body["escenarios"] if e["escenario"] == "base")
+    etiquetas = {h["etiqueta"] for h in base["vp_por_horizonte"]}
+    assert etiquetas == {"0-6m", "6-12m", "12m+"}
 
 
 async def test_dcf_escenarios(client, tesoreria_token):

@@ -18,6 +18,7 @@ from app.m10_tesoreria.router import router as m10_router
 from app.m11_torre.router import router as m11_router
 from app.m12_auth.router import router as m12_router
 from app.m13_documentos.router import router as m13_router
+from app.m14_analytics.router import router as m14_router
 from app.m15_catalogo.router import router as m15_router
 from app.workflows.router import router as workflows_router
 
@@ -39,6 +40,7 @@ api_v1.include_router(m09_router)
 api_v1.include_router(m09_metas_router)
 api_v1.include_router(m10_router)
 api_v1.include_router(m11_router)
+api_v1.include_router(m14_router)
 api_v1.include_router(workflows_router)
 api_v1.include_router(m13_router)
 api_v1.include_router(jobs_router)

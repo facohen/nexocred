@@ -40,8 +40,17 @@ async def get_cashflow(
     _: TesoreriaUser,
     dias: Annotated[int, Query()] = 90,
     fecha: Annotated[date | None, Query()] = None,
+    horizontes: Annotated[
+        str | None,
+        Query(description="Horizontes en meses separados por coma, ej '3,6,12,24,36'"),
+    ] = None,
 ) -> CashflowOut:
-    return CashflowOut(**await servicio.cashflow(session, _fecha(fecha), dias))
+    meses = None
+    if horizontes:
+        meses = [int(h) for h in horizontes.split(",") if h.strip().isdigit()]
+    return CashflowOut(
+        **await servicio.cashflow(session, _fecha(fecha), dias, horizontes_meses=meses)
+    )
 
 
 @router.get("/tesoreria/dcf", response_model=DCFOut)

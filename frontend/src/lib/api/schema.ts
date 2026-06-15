@@ -1882,6 +1882,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/analytics/rentabilidad": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Rentabilidad */
+        get: operations["get_rentabilidad_api_v1_analytics_rentabilidad_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analytics/resumen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Resumen */
+        get: operations["get_resumen_api_v1_analytics_resumen_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workflow-reglas": {
         parameters: {
             query?: never;
@@ -2461,6 +2495,8 @@ export interface components {
             egresos: string;
             /** Neto */
             neto: string;
+            /** Meses */
+            meses?: number | null;
         };
         /** CeldaComisionIn */
         CeldaComisionIn: {
@@ -2720,6 +2756,11 @@ export interface components {
             tasa_mensual: string;
             /** Valor Presente */
             valor_presente: string;
+            /**
+             * Vp Por Horizonte
+             * @default []
+             */
+            vp_por_horizonte: components["schemas"]["VpHorizonte"][];
         };
         /** DCFOut */
         DCFOut: {
@@ -2727,6 +2768,21 @@ export interface components {
             flujos_nominales: string;
             /** Escenarios */
             escenarios: components["schemas"]["DCFEscenario"][];
+            /**
+             * Curva
+             * @default []
+             */
+            curva: components["schemas"]["DCFPuntoCurva"][];
+        };
+        /**
+         * DCFPuntoCurva
+         * @description Punto de la curva de VP acumulado (escenario base) para graficar.
+         */
+        DCFPuntoCurva: {
+            /** Mes */
+            mes: number;
+            /** Vp Acumulado */
+            vp_acumulado: string;
         };
         /** DescargoEstadoIn */
         DescargoEstadoIn: {
@@ -3607,6 +3663,17 @@ export interface components {
             /** Per Page */
             per_page: number;
         };
+        /** Pagina[RentabilidadItem] */
+        Pagina_RentabilidadItem_: {
+            /** Data */
+            data: components["schemas"]["RentabilidadItem"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Per Page */
+            per_page: number;
+        };
         /** Pagina[RutaOut] */
         Pagina_RutaOut_: {
             /** Data */
@@ -4471,6 +4538,31 @@ export interface components {
             /** Estado */
             estado: string;
         };
+        /** RentabilidadItem */
+        RentabilidadItem: {
+            /** Clave */
+            clave: string;
+            /** N Prestamos */
+            n_prestamos: number;
+            /** Capital */
+            capital: string;
+            /** Interes Cobrado */
+            interes_cobrado: string;
+            /** Comision */
+            comision: string;
+            /** Gastos */
+            gastos: string;
+            /** Costo Fondeo */
+            costo_fondeo: string;
+            /** Pe Monetaria */
+            pe_monetaria: string;
+            /** Margen Bruto */
+            margen_bruto: string;
+            /** Margen Neto */
+            margen_neto: string;
+            /** Rentabilidad Pct */
+            rentabilidad_pct: string;
+        };
         /** RepactarRapidoIn */
         RepactarRapidoIn: {
             /**
@@ -4526,6 +4618,23 @@ export interface components {
         ResolverAlertaIn: {
             /** Justificacion */
             justificacion: string;
+        };
+        /** ResumenAnalytics */
+        ResumenAnalytics: {
+            /** Capital Total */
+            capital_total: string;
+            /** Margen Neto Total */
+            margen_neto_total: string;
+            /** Pe Monetaria Total */
+            pe_monetaria_total: string;
+            /** Rentabilidad Global */
+            rentabilidad_global: string;
+            /** N Prestamos */
+            n_prestamos: number;
+            /** Mejor Producto */
+            mejor_producto: string | null;
+            /** Peor Producto */
+            peor_producto: string | null;
         };
         /** ResumenOut */
         ResumenOut: {
@@ -5029,6 +5138,16 @@ export interface components {
             resultado: string;
             /** Pago Id */
             pago_id?: string | null;
+        };
+        /**
+         * VpHorizonte
+         * @description Cuanto del valor presente se materializa en una ventana temporal.
+         */
+        VpHorizonte: {
+            /** Etiqueta */
+            etiqueta: string;
+            /** Valor Presente */
+            valor_presente: string;
         };
         /** ProcesarOut */
         app__m07_riesgo__schemas__ProcesarOut: {
@@ -9053,6 +9172,8 @@ export interface operations {
             query?: {
                 dias?: number;
                 fecha?: string | null;
+                /** @description Horizontes en meses separados por coma, ej '3,6,12,24,36' */
+                horizontes?: string | null;
             };
             header?: never;
             path?: never;
@@ -9393,6 +9514,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AlertasLiveOut"];
+                };
+            };
+        };
+    };
+    get_rentabilidad_api_v1_analytics_rentabilidad_get: {
+        parameters: {
+            query?: {
+                dimension?: string;
+                fecha?: string | null;
+                desde?: string | null;
+                hasta?: string | null;
+                page?: number;
+                per_page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Pagina_RentabilidadItem_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_resumen_api_v1_analytics_resumen_get: {
+        parameters: {
+            query?: {
+                fecha?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumenAnalytics"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

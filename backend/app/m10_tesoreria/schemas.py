@@ -18,6 +18,9 @@ class CashflowTramo(BaseModel):
     entradas: MontoStr
     egresos: MontoStr
     neto: MontoStr
+    # Horizonte en meses (nuevo): presente cuando el tramo se pide por meses. Los
+    # tramos por dias (30/60/90) lo dejan en None para no romper el contrato viejo.
+    meses: int | None = None
 
 
 class CashflowOut(BaseModel):
@@ -28,11 +31,30 @@ class DCFEscenario(BaseModel):
     escenario: str
     tasa_mensual: TasaStr
     valor_presente: MontoStr
+    # VP del escenario repartido por horizonte (0-6m / 6-12m / 12m+). Opcional para
+    # backward-compat: los consumidores viejos solo leen valor_presente.
+    vp_por_horizonte: list["VpHorizonte"] = []
+
+
+class VpHorizonte(BaseModel):
+    """Cuanto del valor presente se materializa en una ventana temporal."""
+
+    etiqueta: str  # "0-6m" | "6-12m" | "12m+"
+    valor_presente: MontoStr
+
+
+class DCFPuntoCurva(BaseModel):
+    """Punto de la curva de VP acumulado (escenario base) para graficar."""
+
+    mes: int
+    vp_acumulado: MontoStr
 
 
 class DCFOut(BaseModel):
     flujos_nominales: MontoStr
     escenarios: list[DCFEscenario]
+    # Curva de VP acumulado por mes (escenario base) — nueva, opcional.
+    curva: list[DCFPuntoCurva] = []
 
 
 class RotacionOut(BaseModel):
