@@ -3,15 +3,7 @@ import { MoneyText } from "@/components/MoneyText";
 import { useTablero, useCosechas, useConcentracion } from "./hooks";
 import { formatPercent } from "./format";
 
-function Kpi({
-  label,
-  value,
-  href,
-}: {
-  label: string;
-  value: React.ReactNode;
-  href?: string;
-}) {
+function Kpi({ label, value, href }: { label: string; value: React.ReactNode; href?: string }) {
   const inner = (
     <Card className="p-3">
       <div className="text-xs text-text-muted">{label}</div>
@@ -48,7 +40,10 @@ export function RiesgoBoard() {
   }
   if (tableroQ.isError) {
     return (
-      <div role="alert" className="m-4 rounded-lg border border-neg-border bg-neg-bg p-3 text-sm text-neg">
+      <div
+        role="alert"
+        className="m-4 rounded-lg border border-neg-border bg-neg-bg p-3 text-sm text-neg"
+      >
         No se pudo cargar el tablero de riesgo.
       </div>
     );
@@ -66,7 +61,11 @@ export function RiesgoBoard() {
         <Kpi label="PAR30" value={formatPercent(t.par30)} href="/prestamos?estado=en_mora" />
         <Kpi label="PAR60" value={formatPercent(t.par60)} href="/prestamos?estado=en_mora" />
         <Kpi label="PAR90" value={formatPercent(t.par90)} href="/prestamos?estado=en_mora" />
-        <Kpi label="Cartera total" value={<MoneyText value={t.cartera_total} />} href="/prestamos" />
+        <Kpi
+          label="Cartera total"
+          value={<MoneyText value={t.cartera_total} />}
+          href="/prestamos"
+        />
         <Kpi label="% Refinanciado" value={formatPercent(t.porcentaje_refinanciado)} />
         <Kpi label="Pérdida esperada" value={<MoneyText value={t.perdida_esperada} />} />
       </div>
@@ -101,8 +100,12 @@ export function RiesgoBoard() {
               {cosechas.map((c) => (
                 <tr key={c.mes} className="border-b border-border last:border-0">
                   <td className="py-1">{c.mes}</td>
-                  <td className="py-1"><MoneyText value={c.capital} /></td>
-                  <td className="py-1"><MoneyText value={c.mora} /></td>
+                  <td className="py-1">
+                    <MoneyText value={c.capital} />
+                  </td>
+                  <td className="py-1">
+                    <MoneyText value={c.mora} />
+                  </td>
                   <td className="py-1 tabular-nums">{formatPercent(c.ratio_mora)}</td>
                 </tr>
               ))}

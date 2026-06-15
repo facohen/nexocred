@@ -30,7 +30,10 @@ export function TesoreriaDashboard() {
   }
   if (posQ.isError) {
     return (
-      <div role="alert" className="m-4 rounded-lg border border-neg-border bg-neg-bg p-3 text-sm text-neg">
+      <div
+        role="alert"
+        className="m-4 rounded-lg border border-neg-border bg-neg-bg p-3 text-sm text-neg"
+      >
         No se pudo cargar la posición de tesorería.
       </div>
     );
@@ -80,9 +83,15 @@ export function TesoreriaDashboard() {
             {cashflow.map((tr) => (
               <tr key={tr.dias} className="border-b border-border last:border-0">
                 <td className="py-1">{tr.dias}</td>
-                <td className="py-1"><MoneyText value={tr.entradas} intent="income" /></td>
-                <td className="py-1"><MoneyText value={tr.egresos} intent="expense" /></td>
-                <td className="py-1"><MoneyText value={tr.neto} /></td>
+                <td className="py-1">
+                  <MoneyText value={tr.entradas} intent="income" />
+                </td>
+                <td className="py-1">
+                  <MoneyText value={tr.egresos} intent="expense" />
+                </td>
+                <td className="py-1">
+                  <MoneyText value={tr.neto} />
+                </td>
               </tr>
             ))}
           </tbody>
@@ -96,7 +105,9 @@ export function TesoreriaDashboard() {
             <ul className="space-y-1 text-sm">
               {dcf.escenarios.map((e) => (
                 <li key={e.escenario} className="flex items-center justify-between">
-                  <span className="capitalize">{e.escenario} ({formatPercent(e.tasa_mensual)})</span>
+                  <span className="capitalize">
+                    {e.escenario} ({formatPercent(e.tasa_mensual)})
+                  </span>
                   <MoneyText value={e.valor_presente} />
                 </li>
               ))}
@@ -110,9 +121,18 @@ export function TesoreriaDashboard() {
           <h3 className="mb-3 text-sm font-semibold text-text">Rotación</h3>
           {rot ? (
             <ul className="space-y-1 text-sm">
-              <li className="flex justify-between"><span>Colocación período</span><MoneyText value={rot.colocacion_periodo} /></li>
-              <li className="flex justify-between"><span>Capital promedio</span><MoneyText value={rot.capital_promedio} /></li>
-              <li className="flex justify-between"><span>Rotación anualizada</span><span className="tabular-nums">{rot.rotacion_anualizada}x</span></li>
+              <li className="flex justify-between">
+                <span>Colocación período</span>
+                <MoneyText value={rot.colocacion_periodo} />
+              </li>
+              <li className="flex justify-between">
+                <span>Capital promedio</span>
+                <MoneyText value={rot.capital_promedio} />
+              </li>
+              <li className="flex justify-between">
+                <span>Rotación anualizada</span>
+                <span className="tabular-nums">{rot.rotacion_anualizada}x</span>
+              </li>
             </ul>
           ) : (
             <p className="text-sm text-text-muted">Sin datos.</p>
