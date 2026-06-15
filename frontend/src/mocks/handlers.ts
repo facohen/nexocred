@@ -508,6 +508,18 @@ export const handlers = [
   http.get(`${BASE}/tesoreria/cashflow`, () => HttpResponse.json(fx.tesoreriaCashflow)),
   http.get(`${BASE}/tesoreria/dcf`, () => HttpResponse.json(fx.tesoreriaDcf)),
   http.get(`${BASE}/tesoreria/rotacion`, () => HttpResponse.json(fx.tesoreriaRotacion)),
+
+  // ---- Analytics (rentabilidad) ----
+  http.get(`${BASE}/analytics/resumen`, () => HttpResponse.json(fx.analyticsResumen)),
+  http.get(`${BASE}/analytics/rentabilidad`, ({ request }) => {
+    const dim = new URL(request.url).searchParams.get("dimension") ?? "producto";
+    // El mock devuelve el set de producto para cualquier dimensión (suficiente
+    // para los tests del dashboard); el contrato real agrega por dimensión.
+    const data =
+      fx.analyticsRentabilidad[dim as keyof typeof fx.analyticsRentabilidad] ??
+      fx.analyticsRentabilidad.producto;
+    return HttpResponse.json({ data, total: data.length, page: 1, per_page: 200 });
+  }),
   http.post(`${BASE}/tesoreria/aportes`, () => HttpResponse.json({ ok: true }, { status: 201 })),
   http.post(`${BASE}/tesoreria/retiros`, () => HttpResponse.json({ ok: true }, { status: 201 })),
 

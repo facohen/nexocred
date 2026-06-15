@@ -126,6 +126,7 @@ const routeTree = rootRoute.addChildren([
     page("/vendedores/comisiones", () => import("@/features/vendedores/ComisionesRoute"), "ComisionesRoute"),
     page("/vendedores/liquidaciones", () => import("@/features/vendedores/LiquidacionesPage"), "LiquidacionesPage"),
     page("/tesoreria", () => import("@/features/tesoreria/TesoreriaHome"), "TesoreriaHome"),
+    page("/analisis/cartera", () => import("@/features/analytics/AnalisisCarteraPage"), "AnalisisCarteraPage"),
     page("/torre", () => import("@/features/torre/TorreDashboard"), "TorreDashboard"),
     page("/documentos", () => import("@/features/documentos/DocumentosRoute"), "DocumentosRoute"),
     page("/usuarios", () => import("@/features/admin/UsuariosPage"), "UsuariosPage"),

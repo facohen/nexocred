@@ -135,6 +135,7 @@ export const WORK_AREAS: WorkArea[] = [
     roles: ["admin", "tesoreria", "vendedor"],
     tabs: [
       { label: "Tesorería", to: "/tesoreria" },
+      { label: "Análisis de cartera", to: "/analisis/cartera" },
       { label: "Comisiones", to: "/vendedores/comisiones" },
       { label: "Liquidaciones", to: "/vendedores/liquidaciones" },
     ],

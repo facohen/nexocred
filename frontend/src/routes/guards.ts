@@ -38,6 +38,7 @@ export const ROUTE_ROLES: Record<string, Rol[]> = {
   "/vendedores/comisiones": ["admin", "vendedor"],
   "/vendedores/liquidaciones": ["admin", "tesoreria"],
   "/tesoreria": ["admin", "tesoreria"],
+  "/analisis/cartera": ["admin", "tesoreria"],
   "/torre": ["admin", "tesoreria"],
   "/documentos": ["admin", "analista", "operador"],
 };

@@ -586,8 +586,70 @@ export const tesoreriaCashflow = {
 export const tesoreriaDcf = {
   flujos_nominales: "1500000.00",
   escenarios: [
-    { escenario: "base", tasa_mensual: "3.00", valor_presente: "1180000.00" },
-    { escenario: "estresado", tasa_mensual: "4.50", valor_presente: "980000.00" },
+    {
+      escenario: "base",
+      tasa_mensual: "0.0333",
+      valor_presente: "1180000.00",
+      vp_por_horizonte: [
+        { etiqueta: "0-6m", valor_presente: "600000.00" },
+        { etiqueta: "6-12m", valor_presente: "380000.00" },
+        { etiqueta: "12m+", valor_presente: "200000.00" },
+      ],
+    },
+    {
+      escenario: "optimista",
+      tasa_mensual: "0.0233",
+      valor_presente: "1290000.00",
+      vp_por_horizonte: [
+        { etiqueta: "0-6m", valor_presente: "640000.00" },
+        { etiqueta: "6-12m", valor_presente: "420000.00" },
+        { etiqueta: "12m+", valor_presente: "230000.00" },
+      ],
+    },
+    {
+      escenario: "pesimista",
+      tasa_mensual: "0.0433",
+      valor_presente: "980000.00",
+      vp_por_horizonte: [
+        { etiqueta: "0-6m", valor_presente: "520000.00" },
+        { etiqueta: "6-12m", valor_presente: "300000.00" },
+        { etiqueta: "12m+", valor_presente: "160000.00" },
+      ],
+    },
+  ],
+  curva: [
+    { mes: 0, vp_acumulado: "200000.00" },
+    { mes: 3, vp_acumulado: "600000.00" },
+    { mes: 6, vp_acumulado: "850000.00" },
+    { mes: 12, vp_acumulado: "1080000.00" },
+    { mes: 24, vp_acumulado: "1180000.00" },
+  ],
+};
+
+// ---- Analytics (rentabilidad) ----
+export const analyticsResumen = {
+  capital_total: "1225000.00",
+  margen_neto_total: "210000.00",
+  pe_monetaria_total: "45000.00",
+  rentabilidad_global: "0.1714",
+  n_prestamos: 12,
+  mejor_producto: "Crédito Productivo",
+  peor_producto: "Crédito Express",
+};
+export const analyticsRentabilidad = {
+  producto: [
+    {
+      clave: "Crédito Productivo", n_prestamos: 5, capital: "700000.00",
+      interes_cobrado: "180000.00", comision: "14000.00", gastos: "7000.00",
+      costo_fondeo: "60000.00", pe_monetaria: "12000.00",
+      margen_bruto: "159000.00", margen_neto: "150000.00", rentabilidad_pct: "0.2143",
+    },
+    {
+      clave: "Crédito Express", n_prestamos: 7, capital: "525000.00",
+      interes_cobrado: "60000.00", comision: "10500.00", gastos: "5250.00",
+      costo_fondeo: "45000.00", pe_monetaria: "33000.00",
+      margen_bruto: "44250.00", margen_neto: "-39000.00", rentabilidad_pct: "-0.0743",
+    },
   ],
 };
 export const tesoreriaRotacion = {
