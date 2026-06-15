@@ -280,3 +280,41 @@ export function useNovacion() {
       }),
   });
 }
+
+// ---- Usuarios (admin) ----
+// CRUD de usuarios ya existente en el backend (m12_auth). No mueve plata → sin
+// Idempotency-Key. UsuarioOut expone roles como string[] (nombres de rol).
+export function useUsuarios(page = 1) {
+  return useQuery({
+    queryKey: ["usuarios", page],
+    queryFn: () =>
+      apiFetch<Pagina<Sch["UsuarioOut"]>>("/usuarios", { query: { page } }),
+  });
+}
+
+export function useCrearUsuario() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Sch["UsuarioCreate"]) =>
+      apiFetch<Sch["UsuarioOut"]>("/usuarios", { method: "POST", body }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["usuarios"] }),
+  });
+}
+
+export function useActualizarUsuario() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; body: Sch["UsuarioUpdate"] }) =>
+      apiFetch<Sch["UsuarioOut"]>(`/usuarios/${vars.id}`, { method: "PATCH", body: vars.body }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["usuarios"] }),
+  });
+}
+
+export function useDesactivarUsuario() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<{ estado: string }>(`/usuarios/${id}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["usuarios"] }),
+  });
+}

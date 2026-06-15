@@ -7,6 +7,10 @@ function err(code: string, message: string, status: number) {
   return HttpResponse.json({ error: { code, message } }, { status });
 }
 
+// Copia mutable de usuarios para que el CRUD del mock persista dentro de la sesión
+// de tests (las mutaciones se reflejan en el GET). Se siembra del fixture.
+let usuariosStore: (typeof fx.usuarios)[number][] = [...fx.usuarios];
+
 export const handlers = [
   // ---- Auth ----
   http.post(`${BASE}/auth/login`, async ({ request }) => {
@@ -31,7 +35,50 @@ export const handlers = [
   ),
 
   // ---- Usuarios ----
-  http.get(`${BASE}/usuarios`, () => HttpResponse.json({ data: fx.usuarios, total: fx.usuarios.length, page: 1, per_page: 50 })),
+  // Store mutable en memoria para que POST/PATCH/DELETE se reflejen en el GET
+  // durante los tests. Se siembra desde el fixture en cada arranque del worker.
+  http.get(`${BASE}/usuarios`, () =>
+    HttpResponse.json({ data: usuariosStore, total: usuariosStore.length, page: 1, per_page: 50 }),
+  ),
+  http.post(`${BASE}/usuarios`, async ({ request }) => {
+    const body = (await request.json()) as {
+      email?: string;
+      nombre?: string;
+      roles?: string[];
+    };
+    if (!body.email || !body.nombre) {
+      return err("datos_invalidos", "email y nombre son requeridos", 422);
+    }
+    const nuevo = {
+      id: `user-${usuariosStore.length + 1}`,
+      email: body.email,
+      nombre: body.nombre,
+      roles: body.roles ?? [],
+      activo: true,
+    };
+    usuariosStore = [...usuariosStore, nuevo];
+    return HttpResponse.json(nuevo, { status: 201 });
+  }),
+  http.patch(`${BASE}/usuarios/:id`, async ({ request, params }) => {
+    const id = params.id as string;
+    const body = (await request.json()) as { nombre?: string; roles?: string[] };
+    const actual = usuariosStore.find((u) => u.id === id);
+    if (!actual) return err("usuario_inexistente", "usuario no encontrado", 404);
+    const actualizado = {
+      ...actual,
+      nombre: body.nombre ?? actual.nombre,
+      roles: body.roles ?? actual.roles,
+    };
+    usuariosStore = usuariosStore.map((u) => (u.id === id ? actualizado : u));
+    return HttpResponse.json(actualizado);
+  }),
+  http.delete(`${BASE}/usuarios/:id`, ({ params }) => {
+    const id = params.id as string;
+    const actual = usuariosStore.find((u) => u.id === id);
+    if (!actual) return err("usuario_inexistente", "usuario no encontrado", 404);
+    usuariosStore = usuariosStore.map((u) => (u.id === id ? { ...u, activo: false } : u));
+    return HttpResponse.json({ estado: "desactivado" });
+  }),
 
   // ---- Personas ----
   http.get(`${BASE}/personas`, ({ request }) => {
