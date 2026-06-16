@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { useProductos, useSimular } from "@/lib/api/queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardTitle } from "@/components/ui/card";
 import { MoneyText } from "@/components/MoneyText";
 import { ApiError } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
@@ -16,6 +15,9 @@ export interface DatosPrestamo {
 
 const moneyRegex = /^\d+(\.\d{1,2})?$/;
 const TASA_INDICATIVA_DEFAULT = "0.30";
+
+const selectClass =
+  "h-11 w-full rounded-md border border-input bg-surface px-3 text-sm text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
 
 /**
  * Paso 2: producto, monto y cuotas + una cotización INDICATIVA (simulador libre,
@@ -82,131 +84,154 @@ export function StepPrestamo({
   }
 
   return (
-    <div className="space-y-5">
-      <h2 className="text-lg font-semibold text-text">Condiciones del préstamo</h2>
+    <div className="mx-auto max-w-lg space-y-5">
+      <div>
+        <h2 className="text-lg font-semibold tracking-tight text-text">Condiciones del préstamo</h2>
+        <p className="mt-0.5 text-sm text-text-muted">
+          Definí producto, monto y plazo. Podés ver una cotización antes de continuar.
+        </p>
+      </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="space-y-1">
-          <span className="text-sm font-medium text-text">Producto</span>
-          <select
-            value={productoId}
-            onChange={(e) => {
-              setProductoId(e.target.value);
-              setCuotas("");
-              setCotizacion(null);
-            }}
-            className="h-9 w-full rounded-md border border-input bg-surface px-2 text-sm text-text"
-          >
-            <option value="" disabled>
-              Seleccionar producto…
-            </option>
-            {productos.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nombre}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="space-y-1">
-          <span className="text-sm font-medium text-text">Monto</span>
-          <Input
-            inputMode="decimal"
-            value={monto}
-            onChange={(e) => {
-              setMonto(e.target.value);
-              setCotizacion(null);
-            }}
-            placeholder="100000.00"
-            aria-invalid={monto !== "" && !montoValido}
-          />
-        </label>
-
-        <label className="space-y-1">
-          <span className="text-sm font-medium text-text">Cuotas</span>
-          {plazos.length > 0 ? (
+      <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Campo label="Producto" htmlFor="prod" className="sm:col-span-2">
             <select
-              value={cuotas}
+              id="prod"
+              value={productoId}
               onChange={(e) => {
-                setCuotas(Number(e.target.value));
+                setProductoId(e.target.value);
+                setCuotas("");
                 setCotizacion(null);
               }}
-              className="h-9 w-full rounded-md border border-input bg-surface px-2 text-sm text-text"
+              className={selectClass}
             >
               <option value="" disabled>
-                Seleccionar plazo…
+                Seleccionar producto…
               </option>
-              {plazos.map((n) => (
-                <option key={n} value={n}>
-                  {n} cuotas
+              {productos.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nombre}
                 </option>
               ))}
             </select>
-          ) : (
+          </Campo>
+
+          <Campo
+            label="Monto"
+            htmlFor="monto"
+            hint={monto !== "" && !montoValido ? "Ingresá un número válido" : "En pesos"}
+            error={monto !== "" && !montoValido}
+          >
+            <div className="relative">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-num text-sm text-text-subtle">
+                $
+              </span>
+              <Input
+                id="monto"
+                inputMode="decimal"
+                value={monto}
+                onChange={(e) => {
+                  setMonto(e.target.value);
+                  setCotizacion(null);
+                }}
+                placeholder="100000.00"
+                aria-invalid={monto !== "" && !montoValido}
+                className="h-11 pl-7 font-num tabular-nums"
+              />
+            </div>
+          </Campo>
+
+          <Campo label="Cuotas" htmlFor="cuotas" hint="Cantidad de pagos">
+            {plazos.length > 0 ? (
+              <select
+                id="cuotas"
+                value={cuotas}
+                onChange={(e) => {
+                  setCuotas(Number(e.target.value));
+                  setCotizacion(null);
+                }}
+                className={selectClass}
+              >
+                <option value="" disabled>
+                  Seleccionar plazo…
+                </option>
+                {plazos.map((n) => (
+                  <option key={n} value={n}>
+                    {n} cuotas
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <Input
+                id="cuotas"
+                inputMode="numeric"
+                value={cuotas}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  setCuotas(Number.isFinite(n) && n > 0 ? n : "");
+                  setCotizacion(null);
+                }}
+                placeholder="6"
+                className="h-11 font-num tabular-nums"
+              />
+            )}
+          </Campo>
+
+          <Campo
+            label="Tasa indicativa"
+            htmlFor="tasa"
+            hint="Directa, no vinculante"
+            className="sm:col-span-2"
+          >
             <Input
-              inputMode="numeric"
-              value={cuotas}
+              id="tasa"
+              inputMode="decimal"
+              value={tasa}
               onChange={(e) => {
-                const n = Number(e.target.value);
-                setCuotas(Number.isFinite(n) && n > 0 ? n : "");
+                setTasa(e.target.value);
                 setCotizacion(null);
               }}
-              placeholder="6"
+              placeholder="0.30"
+              className="h-11 font-num tabular-nums"
             />
-          )}
-        </label>
+          </Campo>
+        </div>
 
-        <label className="space-y-1">
-          <span className="text-sm font-medium text-text">Tasa indicativa (directa)</span>
-          <Input
-            inputMode="decimal"
-            value={tasa}
-            onChange={(e) => {
-              setTasa(e.target.value);
-              setCotizacion(null);
-            }}
-            placeholder="0.30"
-          />
-        </label>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <Button variant="outline" onClick={cotizar} disabled={!completo || simular.isPending}>
-          {simular.isPending ? "Cotizando…" : "Ver cotización indicativa"}
-        </Button>
-        <span className="text-xs text-text-subtle">
-          La oferta definitiva la confirma un analista al evaluar.
-        </span>
+        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border pt-4">
+          <Button variant="outline" onClick={cotizar} disabled={!completo || simular.isPending}>
+            {simular.isPending ? "Cotizando…" : "Ver cotización indicativa"}
+          </Button>
+          <span className="text-xs text-text-subtle">
+            La oferta definitiva la confirma un analista al evaluar.
+          </span>
+        </div>
       </div>
 
       {cotizarError && (
-        <p role="alert" className="text-sm text-neg">
-          {cotizarError}
-        </p>
+        <div
+          role="alert"
+          className="flex items-start gap-3 rounded-xl border border-neg-border bg-neg-bg px-4 py-3"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className="mt-0.5 h-4 w-4 shrink-0 text-neg"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 8v4M12 16h.01" />
+          </svg>
+          <p className="text-sm text-neg">{cotizarError}</p>
+        </div>
       )}
 
-      {cotizacion && (
-        <Card>
-          <CardTitle>Cotización indicativa</CardTitle>
-          <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-            <Resumen label="Capital" value={cotizacion.total_capital} />
-            <Resumen label="Interés" value={cotizacion.total_interes} />
-            <Resumen label="Total a pagar" value={cotizacion.total_a_pagar} />
-          </div>
-          <ul className="mt-3 divide-y divide-border text-sm">
-            {cotizacion.cuotas.map((c) => (
-              <li key={c.numero} className="flex justify-between py-1.5">
-                <span className="text-text-muted">
-                  #{c.numero} · {c.vencimiento}
-                </span>
-                <MoneyText value={c.cuota} intent="neutral" />
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
+      {cotizacion && <Cotizacion datos={cotizacion} />}
 
-      <div className="flex items-center justify-between border-t border-border pt-4">
+      <div className="flex items-center justify-between gap-3 border-t border-border pt-5">
         <Button variant="ghost" onClick={onVolver}>
           ← Volver
         </Button>
@@ -228,11 +253,107 @@ export function StepPrestamo({
   );
 }
 
-function Resumen({ label, value }: { label: string; value: string }) {
+/* ── Cotización indicativa: totales destacados + plan de cuotas ───────────── */
+
+function Cotizacion({ datos }: { datos: components["schemas"]["SimuladorOut"] }) {
   return (
-    <div className="rounded-md bg-surface-sunken p-2">
-      <div className="text-xs text-text-subtle">{label}</div>
-      <MoneyText value={value} intent="neutral" className="font-semibold" />
+    <article className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+      <header className="flex items-center justify-between border-b border-border bg-surface-sunken px-5 py-3">
+        <h3 className="text-sm font-semibold text-text">Cotización indicativa</h3>
+        <span className="rounded-full bg-brand-subtle px-2 py-0.5 text-[11px] font-medium text-brand">
+          No vinculante
+        </span>
+      </header>
+
+      <div className="grid grid-cols-3 divide-x divide-border">
+        <Total label="Capital" value={datos.total_capital} />
+        <Total label="Interés" value={datos.total_interes} acento />
+        <Total label="Total" value={datos.total_a_pagar} fuerte />
+      </div>
+
+      <div className="border-t border-border px-5 py-3">
+        <div className="mb-2 flex items-center justify-between text-[11px] font-medium uppercase tracking-wider text-text-subtle">
+          <span>Plan de cuotas</span>
+          <span className="font-num tabular-nums normal-case">{datos.cuotas.length} cuotas</span>
+        </div>
+        <ul className="max-h-56 space-y-px overflow-y-auto">
+          {datos.cuotas.map((c) => (
+            <li
+              key={c.numero}
+              className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-surface-sunken"
+            >
+              <span className="flex items-center gap-2 text-text-muted">
+                <span className="font-num tabular-nums text-xs text-text-subtle">
+                  #{String(c.numero).padStart(2, "0")}
+                </span>
+                <span className="text-xs">{c.vencimiento}</span>
+              </span>
+              <MoneyText value={c.cuota} intent="neutral" className="text-text" />
+            </li>
+          ))}
+        </ul>
+      </div>
+    </article>
+  );
+}
+
+function Total({
+  label,
+  value,
+  acento = false,
+  fuerte = false,
+}: {
+  label: string;
+  value: string;
+  acento?: boolean;
+  fuerte?: boolean;
+}) {
+  return (
+    <div className="px-4 py-4">
+      <div className="text-[11px] font-medium uppercase tracking-wider text-text-subtle">
+        {label}
+      </div>
+      <div className="mt-1.5">
+        <MoneyText
+          value={value}
+          intent="neutral"
+          className={[
+            "block leading-none",
+            fuerte ? "text-lg font-semibold" : "text-base font-medium",
+            acento ? "text-warn" : "",
+          ].join(" ")}
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ── Campo de formulario con label + hint ─────────────────────────────────── */
+
+function Campo({
+  label,
+  htmlFor,
+  hint,
+  error = false,
+  className,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  hint?: string;
+  error?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={["space-y-1.5", className].filter(Boolean).join(" ")}>
+      <label htmlFor={htmlFor} className="block text-sm font-medium text-text">
+        {label}
+      </label>
+      {children}
+      {hint && (
+        <p className={["text-xs", error ? "text-neg" : "text-text-subtle"].join(" ")}>{hint}</p>
+      )}
     </div>
   );
 }
