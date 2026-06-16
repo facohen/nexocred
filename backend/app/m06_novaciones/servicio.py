@@ -17,8 +17,36 @@ from app.m03_prestamos.servicio import payoff as calcular_payoff_prestamo
 from app.m04_caja.servicio import registrar_movimiento
 from app.m06_novaciones.modelos import Novacion, NovacionOrigen
 from app.m06_novaciones.schemas import NovacionOut
+from app.m16_maestros.modelos import Sector, Zona
 from app.modelos_stub import Cuota, Prestamo
 from nexocred_core import Periodicidad, TerminosPrestamo, redondear, restar, sumar
+
+
+async def _zona_id_de_codigo(session: AsyncSession, codigo: str) -> uuid.UUID | None:
+    res = await session.execute(select(Zona.id).where(Zona.codigo == codigo))
+    return res.scalar_one_or_none()
+
+
+async def _sector_id_de_codigo(session: AsyncSession, codigo: str) -> uuid.UUID | None:
+    res = await session.execute(select(Sector.id).where(Sector.codigo == codigo))
+    return res.scalar_one_or_none()
+
+
+async def _zona_sector_de_snap(
+    session: AsyncSession, snap: dict
+) -> tuple[uuid.UUID | None, uuid.UUID | None]:
+    """Extrae zona_id y sector_id desde el snapshot de un préstamo.
+
+    El snapshot almacena el código de zona/sector (ej: "norte"), no el UUID.
+    Se hace el lookup inverso para obtener el UUID necesario por materializar_prestamo.
+    """
+    zona_id: uuid.UUID | None = None
+    sector_id: uuid.UUID | None = None
+    if "zona" in snap:
+        zona_id = await _zona_id_de_codigo(session, snap["zona"])
+    if "sector" in snap:
+        sector_id = await _sector_id_de_codigo(session, snap["sector"])
+    return zona_id, sector_id
 
 
 def _periodicidad(valor: str) -> Periodicidad:
@@ -156,8 +184,7 @@ async def refinanciar(
     _validar_origen(origen)
     capital = await _payoff_total(session, [origen], fecha_negocio)
     snap_origen = origen.snapshot_terminos or {}
-    zona_id_nov = uuid.UUID(snap_origen["zona"]) if "zona" in snap_origen else None
-    sector_id_nov = uuid.UUID(snap_origen["sector"]) if "sector" in snap_origen else None
+    zona_id_nov, sector_id_nov = await _zona_sector_de_snap(session, snap_origen)
     nuevo = await _confirmar(
         session, tipo="refinanciacion", origenes_ids=[prestamo_id],
         persona_id=origen.persona_id, producto_id=origen.producto_id,
@@ -206,8 +233,7 @@ async def consolidar(
         )
     capital = await _payoff_total(session, origenes, fecha_negocio)
     snap_origen = origenes[0].snapshot_terminos or {}
-    zona_id_nov = uuid.UUID(snap_origen["zona"]) if "zona" in snap_origen else None
-    sector_id_nov = uuid.UUID(snap_origen["sector"]) if "sector" in snap_origen else None
+    zona_id_nov, sector_id_nov = await _zona_sector_de_snap(session, snap_origen)
     nuevo = await _confirmar(
         session, tipo="consolidacion", origenes_ids=prestamo_ids,
         persona_id=origenes[0].persona_id, producto_id=origenes[0].producto_id,
@@ -248,8 +274,7 @@ async def transferir(
     capital = await _payoff_total(session, [origen], fecha_negocio)
     snap = origen.snapshot_terminos or {}
     tasa_usada = tasa if tasa is not None else Decimal(str(snap.get("tasa_interes_directo", "0")))
-    zona_id_nov = uuid.UUID(snap["zona"]) if "zona" in snap else None
-    sector_id_nov = uuid.UUID(snap["sector"]) if "sector" in snap else None
+    zona_id_nov, sector_id_nov = await _zona_sector_de_snap(session, snap)
     nuevo = await _confirmar(
         session, tipo="transferencia", origenes_ids=[prestamo_id],
         persona_id=nuevo_deudor_id, producto_id=origen.producto_id,
@@ -316,8 +341,7 @@ async def repactar_rapido(
     total_a_pagar = capital * (Decimal("1") + tasa)
     cantidad_cuotas = max(1, math.ceil(total_a_pagar / nueva_cuota))
     snap_origen_rep = origen.snapshot_terminos or {}
-    zona_id_rep = uuid.UUID(snap_origen_rep["zona"]) if "zona" in snap_origen_rep else None
-    sector_id_rep = uuid.UUID(snap_origen_rep["sector"]) if "sector" in snap_origen_rep else None
+    zona_id_rep, sector_id_rep = await _zona_sector_de_snap(session, snap_origen_rep)
     nuevo = await _confirmar(
         session, tipo="repactar_rapido", origenes_ids=[prestamo_id],
         persona_id=origen.persona_id, producto_id=origen.producto_id,
