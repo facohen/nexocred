@@ -1,13 +1,22 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
+import type { FiltroZonaSector } from "@/components/filters/DashboardFilterBar";
 
 type Sch = components["schemas"];
 
-export function usePosicion() {
+function zonaParams(filtro?: FiltroZonaSector) {
+  return {
+    ...(filtro?.zona_id ? { zona_id: filtro.zona_id } : {}),
+    ...(filtro?.sector_id ? { sector_id: filtro.sector_id } : {}),
+  };
+}
+
+export function usePosicion(filtro?: FiltroZonaSector) {
   return useQuery({
-    queryKey: ["tesoreria-posicion"],
-    queryFn: () => apiFetch<Sch["PosicionOut"]>("/tesoreria/posicion"),
+    queryKey: ["tesoreria-posicion", filtro?.zona_id ?? "", filtro?.sector_id ?? ""],
+    queryFn: () =>
+      apiFetch<Sch["PosicionOut"]>("/tesoreria/posicion", { query: zonaParams(filtro) }),
   });
 }
 // Cashflow proyectado. Opcionalmente por horizontes en meses (ej [3,6,12,24,36]);

@@ -9,11 +9,14 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+from sqlalchemy import select
 
 from app.deps import SessionDep, requiere_rol
 from app.jobs.aging import recalcular_aging
 from app.jobs.punitorios import devengar_punitorios
 from app.jobs.snapshot import generar_snapshot
+from app.m08_crm import servicio as crm_servicio
+from app.m08_crm.modelos import PromesaPago
 from app.m12_auth.modelos import Usuario
 
 router = APIRouter(tags=["jobs"])
@@ -75,4 +78,48 @@ async def correr_aging(
     await session.commit()
     return AgingOut(
         fecha_corte=datos.fecha_corte, buckets={k: str(v) for k, v in buckets.items()}
+    )
+
+
+class ReconciliarPromesasOut(BaseModel):
+    fecha_corte: date
+    promesas_procesadas: int
+    promesas_rotas: int
+
+
+@router.post("/jobs/reconciliar-promesas", response_model=ReconciliarPromesasOut)
+async def reconciliar_promesas(
+    datos: JobIn, session: SessionDep, actor: AdminUser
+) -> ReconciliarPromesasOut:
+    """Recorre todas las promesas vigentes y actualiza su estado.
+
+    Por cada préstamo con promesas vigentes llama a reconciliar_promesas del
+    servicio CRM (que es idempotente: usa dedupe_key para no duplicar tareas).
+    Cada préstamo se commitea individualmente para limitar el scope de errores.
+    """
+    res = await session.execute(
+        select(PromesaPago.prestamo_id)
+        .where(PromesaPago.estado == "vigente")
+        .distinct()
+    )
+    prestamo_ids = list(res.scalars().all())
+
+    total_procesadas = 0
+    total_rotas = 0
+
+    for prestamo_id in prestamo_ids:
+        actualizadas = await crm_servicio.reconciliar_promesas(
+            session,
+            prestamo_id=prestamo_id,
+            actor_id=actor.id,
+            fecha_hoy=datos.fecha_corte,
+        )
+        await session.commit()
+        total_procesadas += len(actualizadas)
+        total_rotas += sum(1 for p in actualizadas if p.estado == "rota")
+
+    return ReconciliarPromesasOut(
+        fecha_corte=datos.fecha_corte,
+        promesas_procesadas=total_procesadas,
+        promesas_rotas=total_rotas,
     )

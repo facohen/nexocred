@@ -25,7 +25,7 @@ from app.m07_riesgo.schemas import (
 )
 from app.m07_riesgo.servicio import cartera_riesgo
 from app.m12_auth.modelos import Usuario
-from app.paginacion import Pagina, paginar
+from app.paginacion import Pagina, paginar_query
 from nexocred_core import CERO, sumar
 
 router = APIRouter(tags=["riesgo"])
@@ -35,8 +35,15 @@ AdminUser = Annotated[Usuario, Depends(requiere_rol("analista_riesgo"))]
 
 
 @router.get("/riesgo/tablero", response_model=TableroOut)
-async def tablero(session: SessionDep, _: RiesgoUser) -> TableroOut:
-    cartera = await cartera_riesgo(session)
+async def tablero(
+    session: SessionDep,
+    _: RiesgoUser,
+    zona_id: Annotated[uuid.UUID | None, Query()] = None,
+    sector_id: Annotated[uuid.UUID | None, Query()] = None,
+    zona: Annotated[str | None, Query(description="Código de zona (texto)")] = None,
+    sector: Annotated[str | None, Query(description="Código de sector (texto)")] = None,
+) -> TableroOut:
+    cartera = await cartera_riesgo(session, zona_id=zona_id, sector_id=sector_id, zona=zona, sector=sector)
     total = sumar(*(c.capital_pendiente for c in cartera)) if cartera else CERO
     return TableroOut(
         par30=par(cartera, 30),
@@ -53,10 +60,14 @@ async def tablero(session: SessionDep, _: RiesgoUser) -> TableroOut:
 async def cosechas_endpoint(
     session: SessionDep,
     _: RiesgoUser,
+    zona_id: Annotated[uuid.UUID | None, Query()] = None,
+    sector_id: Annotated[uuid.UUID | None, Query()] = None,
+    zona: Annotated[str | None, Query(description="Código de zona (texto)")] = None,
+    sector: Annotated[str | None, Query(description="Código de sector (texto)")] = None,
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
 ) -> Pagina[CosechaOut]:
-    cartera = await cartera_riesgo(session)
+    cartera = await cartera_riesgo(session, zona_id=zona_id, sector_id=sector_id, zona=zona, sector=sector)
     cos = cosechas(cartera)
     items = [
         CosechaOut(mes=mes, capital=v["capital"], mora=v["mora"],
@@ -94,8 +105,8 @@ async def listar_alertas(
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
 ) -> Pagina[AlertaOut]:
-    items = await alarmas.listar_alertas(session, estado=estado, severidad=severidad)
-    return paginar([AlertaOut.model_validate(a) for a in items], page, per_page)
+    stmt = alarmas.query_alertas(estado=estado, severidad=severidad)
+    return await paginar_query(session, stmt, AlertaOut.model_validate, page, per_page)
 
 
 async def _get_alerta(session, alerta_id: uuid.UUID):

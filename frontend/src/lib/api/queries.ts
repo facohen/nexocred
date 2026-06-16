@@ -32,6 +32,7 @@ export function usePersona(id: string) {
   return useQuery({
     queryKey: ["persona", id],
     queryFn: () => apiFetch<Sch["PersonaOut"]>(`/personas/${id}`),
+    enabled: !!id,
   });
 }
 
@@ -378,8 +379,7 @@ export function useTareas(filtros?: { estado?: string }) {
   const estado = filtros?.estado;
   return useQuery({
     queryKey: ["tareas", estado ?? ""],
-    queryFn: () =>
-      apiFetch<Pagina<Sch["TareaOut"]>>("/tareas", { query: { estado } }),
+    queryFn: () => apiFetch<Pagina<Sch["TareaOut"]>>("/tareas", { query: { estado } }),
   });
 }
 
@@ -417,8 +417,7 @@ export function useCrearInteraccion() {
   return useMutation({
     mutationFn: (body: Sch["InteraccionIn"]) =>
       apiFetch<Sch["InteraccionOut"]>("/interacciones", { method: "POST", body }),
-    onSuccess: (_data, vars) =>
-      qc.invalidateQueries({ queryKey: ["timeline", vars.persona_id] }),
+    onSuccess: (_data, vars) => qc.invalidateQueries({ queryKey: ["timeline", vars.persona_id] }),
   });
 }
 
@@ -428,5 +427,56 @@ export function useTimelinePersona(personaId: string) {
     queryKey: ["timeline", personaId],
     enabled: Boolean(personaId),
     queryFn: () => apiFetch<Sch["TimelineEvento"][]>(`/personas/${personaId}/timeline`),
+  });
+}
+
+// ---- CRM: promesas de pago ----
+
+export type PromesaEstado = "vigente" | "cumplida" | "parcial" | "rota";
+export type PromesaCanal = "call" | "campo";
+
+export interface PromesaOut {
+  id: string;
+  prestamo_id: string;
+  cuota_id: string | null;
+  monto_prometido: string;
+  fecha_prometida: string;
+  estado: PromesaEstado;
+  canal_origen: PromesaCanal;
+  interaccion_id: string | null;
+  parada_ruta_id: string | null;
+  baseline_exigible: string | null;
+  creada_por: string;
+  created_at: string;
+}
+
+export interface PromesaIn {
+  prestamo_id: string;
+  monto_prometido: string;
+  fecha_prometida: string;
+  canal_origen: PromesaCanal;
+  interaccion_id?: string;
+  cuota_id?: string;
+}
+
+// GET /crm/promesas?prestamo_id= → lista promesas de un préstamo
+export function usePromesas(prestamoId: string, estado?: string) {
+  return useQuery({
+    queryKey: ["promesas", prestamoId, estado ?? ""],
+    enabled: Boolean(prestamoId),
+    queryFn: () =>
+      apiFetch<Pagina<PromesaOut>>("/crm/promesas", {
+        query: { prestamo_id: prestamoId, ...(estado ? { estado } : {}) },
+      }),
+  });
+}
+
+// POST /crm/promesas → crear promesa
+export function useCrearPromesa() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: PromesaIn) =>
+      apiFetch<PromesaOut>("/crm/promesas", { method: "POST", body }),
+    onSuccess: (_data, vars) => qc.invalidateQueries({ queryKey: ["promesas", vars.prestamo_id] }),
   });
 }

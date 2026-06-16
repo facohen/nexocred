@@ -245,6 +245,163 @@ async def test_timeline_incluye_novacion(client, admin_token, session):
     assert nov_evt["referencia"] == nov_id
 
 
+async def test_interaccion_enriquecida_con_maestros(client, admin_token):
+    """Interaccion con tema_id, canal_id, disposicion_id y credito_id → 201 OK."""
+    from tests.integration._helpers_f1c import cuil_valido
+
+    # Crear maestros necesarios
+    tema_r = await client.post(
+        "/api/v1/maestros/temas",
+        json={"codigo": "pago_cuota", "nombre": "Pago de cuota"},
+        headers=_h(admin_token),
+    )
+    assert tema_r.status_code == 201, tema_r.text
+    tema_id = tema_r.json()["id"]
+
+    canal_r = await client.post(
+        "/api/v1/maestros/canales",
+        json={"codigo": "whatsapp", "nombre": "WhatsApp"},
+        headers=_h(admin_token),
+    )
+    assert canal_r.status_code == 201, canal_r.text
+    canal_id = canal_r.json()["id"]
+
+    disp_r = await client.post(
+        "/api/v1/maestros/disposiciones",
+        json={"codigo": "contactado_ok", "nombre": "Contactado OK", "genera_cobro": False},
+        headers=_h(admin_token),
+    )
+    assert disp_r.status_code == 201, disp_r.text
+    disposicion_id = disp_r.json()["id"]
+
+    persona = await crear_persona(
+        client, admin_token, cuil=cuil_valido("50000001"), dni="50000001"
+    )
+    r = await client.post(
+        "/api/v1/interacciones",
+        json={
+            "persona_id": persona,
+            "tipo": "llamada",
+            "detalle": "contacto exitoso",
+            "tema_id": tema_id,
+            "canal_id": canal_id,
+            "disposicion_id": disposicion_id,
+        },
+        headers=_h(admin_token),
+    )
+    assert r.status_code == 201, r.text
+    body = r.json()
+    assert body["tema_id"] == tema_id
+    assert body["canal_id"] == canal_id
+    assert body["disposicion_id"] == disposicion_id
+
+
+async def test_interaccion_con_proximo_paso_crea_tarea(client, admin_token, session):
+    """proximo_paso_fecha presente → tarea de seguimiento_crm creada en la misma transaccion."""
+    from datetime import date, timedelta
+
+    from sqlalchemy import text
+    from tests.integration._helpers_f1c import cuil_valido
+
+    persona = await crear_persona(
+        client, admin_token, cuil=cuil_valido("50000002"), dni="50000002"
+    )
+    fecha_seguimiento = (date.today() + timedelta(days=7)).isoformat()
+
+    r = await client.post(
+        "/api/v1/interacciones",
+        json={
+            "persona_id": persona,
+            "tipo": "nota",
+            "detalle": "prometio pagar el viernes",
+            "proximo_paso_fecha": fecha_seguimiento,
+            "proximo_paso_nota": "Confirmar pago",
+        },
+        headers=_h(admin_token),
+    )
+    assert r.status_code == 201, r.text
+
+    # Verificar que se creo la tarea de seguimiento
+    res = await session.execute(
+        text(
+            "SELECT count(*) FROM tarea "
+            "WHERE origen='seguimiento_crm' AND persona_id=:p"
+        ),
+        {"p": persona},
+    )
+    count = res.scalar_one()
+    assert count == 1, f"Esperaba 1 tarea de seguimiento, encontre {count}"
+
+    # La interaccion tiene los campos de proximo paso
+    assert r.json()["proximo_paso_fecha"] == fecha_seguimiento
+    assert r.json()["proximo_paso_nota"] == "Confirmar pago"
+
+
+async def test_timeline_filtrado_por_tema(client, admin_token):
+    """Timeline con ?tema_id= solo devuelve interacciones de ese tema."""
+    from tests.integration._helpers_f1c import cuil_valido
+
+    persona = await crear_persona(
+        client, admin_token, cuil=cuil_valido("50000003"), dni="50000003"
+    )
+
+    # Crear dos temas
+    tema1_r = await client.post(
+        "/api/v1/maestros/temas",
+        json={"codigo": "pago_t1", "nombre": "Pago T1"},
+        headers=_h(admin_token),
+    )
+    assert tema1_r.status_code == 201, tema1_r.text
+    tema1_id = tema1_r.json()["id"]
+
+    tema2_r = await client.post(
+        "/api/v1/maestros/temas",
+        json={"codigo": "reclamo_t2", "nombre": "Reclamo T2"},
+        headers=_h(admin_token),
+    )
+    assert tema2_r.status_code == 201, tema2_r.text
+    tema2_id = tema2_r.json()["id"]
+
+    # Interaccion con tema1
+    r1 = await client.post(
+        "/api/v1/interacciones",
+        json={"persona_id": persona, "tipo": "llamada", "detalle": "llamada t1",
+              "tema_id": tema1_id},
+        headers=_h(admin_token),
+    )
+    assert r1.status_code == 201, r1.text
+
+    # Interaccion con tema2
+    r2 = await client.post(
+        "/api/v1/interacciones",
+        json={"persona_id": persona, "tipo": "nota", "detalle": "nota t2",
+              "tema_id": tema2_id},
+        headers=_h(admin_token),
+    )
+    assert r2.status_code == 201, r2.text
+
+    # Timeline sin filtro → 2 interacciones (al menos)
+    tl_all = await client.get(
+        f"/api/v1/personas/{persona}/timeline", headers=_h(admin_token)
+    )
+    assert tl_all.status_code == 200, tl_all.text
+    tipos_all = [e["tipo"] for e in tl_all.json()]
+    # Debe haber al menos 2 eventos de interaccion
+    interacciones_all = [t for t in tipos_all if t.startswith("interaccion")]
+    assert len(interacciones_all) >= 2
+
+    # Timeline filtrado por tema1 → solo la interaccion de tema1
+    tl_fil = await client.get(
+        f"/api/v1/personas/{persona}/timeline?tema_id={tema1_id}",
+        headers=_h(admin_token),
+    )
+    assert tl_fil.status_code == 200, tl_fil.text
+    eventos_fil = tl_fil.json()
+    interacciones_fil = [e for e in eventos_fil if e["tipo"].startswith("interaccion")]
+    assert len(interacciones_fil) == 1
+    assert interacciones_fil[0]["detalle"] == "llamada t1"
+
+
 async def test_interaccion_genera_auditoria(client, admin_token, session):
     from sqlalchemy import text
 

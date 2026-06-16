@@ -34,7 +34,7 @@ from nexocred_core import (
 
 
 def _tolerancia_param() -> Decimal:
-    from app.m12_auth.router import PARAMETROS_GLOBALES
+    from app.parametros_globales import PARAMETROS_GLOBALES
 
     return Decimal(str(PARAMETROS_GLOBALES.get("tolerancia_cobro", "0")))
 
@@ -287,7 +287,8 @@ async def registrar_pago(
         actor_id=actor_id,
     )
     await session.commit()
-    assert out is not None
+    if out is None:
+        raise RuntimeError("aplicar_pago devolvio None inesperadamente")
     return out
 
 

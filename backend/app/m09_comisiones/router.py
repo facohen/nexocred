@@ -3,7 +3,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, Query
 
-from app.deps import SessionDep, requiere_rol
+from app.deps import SessionDep, exigir_idem, requiere_rol
 from app.errors import ErrorAPI
 from app.m09_comisiones import servicio
 from app.m09_comisiones.schemas import (
@@ -40,14 +40,6 @@ def _exigir_vendedor_propio(actor: Usuario, vendedor_id: uuid.UUID) -> None:
         )
 
 
-def _exigir_idem(idempotency_key: str | None) -> str:
-    if not idempotency_key:
-        raise ErrorAPI(
-            "idempotency_key_requerida",
-            "esta operacion requiere header Idempotency-Key",
-            status=400,
-        )
-    return idempotency_key
 
 
 # ---------- Devengo / portal vendedor ----------
@@ -201,7 +193,7 @@ async def pagar_liquidacion(
     actor: AdminUser,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> LiquidacionOut:
-    clave = _exigir_idem(idempotency_key)
+    clave = exigir_idem(idempotency_key)
     liq = await servicio.pagar_liquidacion(
         session, liquidacion_id=liquidacion_id, caja_id=datos.caja_id,
         fecha_negocio=datos.fecha_negocio, idempotency_key=clave, actor_id=actor.id,

@@ -91,19 +91,18 @@ async def obtener_alerta(
     return res.scalar_one_or_none()
 
 
-async def listar_alertas(
-    session: AsyncSession,
+def query_alertas(
     *,
     estado: str | None = None,
     severidad: str | None = None,
-) -> list[Alerta]:
+):
+    """Devuelve un Select sin ejecutar, listo para paginar_query."""
     stmt = select(Alerta).order_by(Alerta.created_at.desc())
     if estado is not None:
         stmt = stmt.where(Alerta.estado == estado)
     if severidad is not None:
         stmt = stmt.where(Alerta.severidad == severidad)
-    res = await session.execute(stmt)
-    return list(res.scalars().all())
+    return stmt
 
 
 async def resolver(

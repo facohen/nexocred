@@ -95,9 +95,7 @@ export const handlers = [
     let data = fx.personas;
     if (nombre) {
       data = data.filter(
-        (p) =>
-          p.apellido.toLowerCase().includes(nombre) ||
-          p.nombre.toLowerCase().includes(nombre),
+        (p) => p.apellido.toLowerCase().includes(nombre) || p.nombre.toLowerCase().includes(nombre),
       );
     }
     if (dni) data = data.filter((p) => p.dni.includes(dni));
@@ -672,4 +670,107 @@ export const handlers = [
       motivo_anulacion: body.motivo ?? null,
     });
   }),
+
+  // ---- Maestros ----
+  http.get(`${BASE}/maestros/provincias`, () =>
+    HttpResponse.json({
+      data: [
+        { id: "prov-1", nombre: "Buenos Aires", codigo: "BA", activo: true, orden: 0 },
+        { id: "prov-2", nombre: "CABA", codigo: "CABA", activo: true, orden: 1 },
+      ],
+      total: 2,
+      page: 1,
+      per_page: 500,
+    }),
+  ),
+  http.get(`${BASE}/maestros/localidades`, ({ request }) => {
+    const url = new URL(request.url);
+    const provinciaId = url.searchParams.get("provincia_id");
+    const localidades =
+      provinciaId === "prov-1"
+        ? [{ id: "loc-1", nombre: "La Plata", provincia_id: "prov-1", activo: true, orden: 0 }]
+        : provinciaId === "prov-2"
+          ? [{ id: "loc-2", nombre: "Palermo", provincia_id: "prov-2", activo: true, orden: 0 }]
+          : [];
+    return HttpResponse.json({
+      data: localidades,
+      total: localidades.length,
+      page: 1,
+      per_page: 1000,
+    });
+  }),
+  http.get(`${BASE}/maestros/zonas`, () =>
+    HttpResponse.json({ data: [], total: 0, page: 1, per_page: 500 }),
+  ),
+  http.get(`${BASE}/maestros/sectores`, () =>
+    HttpResponse.json({ data: [], total: 0, page: 1, per_page: 500 }),
+  ),
+  http.get(`${BASE}/maestros/temas`, () =>
+    HttpResponse.json({ data: [], total: 0, page: 1, per_page: 500 }),
+  ),
+  http.get(`${BASE}/maestros/canales`, () =>
+    HttpResponse.json({ data: [], total: 0, page: 1, per_page: 500 }),
+  ),
+  http.get(`${BASE}/maestros/disposiciones`, () =>
+    HttpResponse.json({ data: [], total: 0, page: 1, per_page: 500 }),
+  ),
+
+  // ---- Promesas de pago ----
+  http.get(`${BASE}/promesas`, ({ request }) => {
+    const url = new URL(request.url);
+    const prestamoId = url.searchParams.get("prestamo_id");
+    const estado = url.searchParams.get("estado");
+    let data = (fx.promesas ?? []) as Array<{
+      id: string;
+      prestamo_id: string;
+      estado: string;
+      monto_prometido: string;
+      fecha_prometida: string;
+      canal_origen: string | null;
+    }>;
+    if (prestamoId) data = data.filter((p) => p.prestamo_id === prestamoId);
+    if (estado) data = data.filter((p) => p.estado === estado);
+    return HttpResponse.json({ data, total: data.length, page: 1, per_page: 50 });
+  }),
+  http.post(`${BASE}/promesas`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json(
+      {
+        id: "promesa-new",
+        prestamo_id: body.prestamo_id ?? "prestamo-1",
+        monto_prometido: String(body.monto_prometido ?? "100000"),
+        fecha_prometida: body.fecha_prometida ?? "2026-07-01",
+        estado: "vigente",
+        canal_origen: body.canal_origen ?? null,
+        interaccion_id: body.interaccion_id ?? null,
+        parada_ruta_id: body.parada_ruta_id ?? null,
+        created_at: new Date().toISOString(),
+      },
+      { status: 201 },
+    );
+  }),
+  http.get(`${BASE}/promesas/:id`, ({ params }) => {
+    const p = (fx.promesas ?? []).find((x) => x.id === params.id);
+    if (!p)
+      return HttpResponse.json(
+        { error: { code: "not_found", message: "No encontrado" } },
+        { status: 404 },
+      );
+    return HttpResponse.json(p);
+  }),
+  http.post(`${BASE}/promesas/:id/reconciliar`, ({ params }) => {
+    const p = (fx.promesas ?? []).find((x) => x.id === params.id);
+    return HttpResponse.json({ ...(p ?? {}), id: params.id, estado: "cumplida" });
+  }),
+
+  // ---- Ficha 360 ----
+  http.get(`${BASE}/personas/:id/ficha360`, ({ params }) =>
+    HttpResponse.json({
+      persona_id: params.id,
+      exposicion_total: "300000.00",
+      peor_bucket_dias: 0,
+      prestamos_activos: 1,
+      promesas_vigentes: 0,
+    }),
+  ),
 ];

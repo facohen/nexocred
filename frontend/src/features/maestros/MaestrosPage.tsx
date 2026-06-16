@@ -1,18 +1,37 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { Badge } from "@/components/ui/badge";
 import { CatalogoTab } from "./CatalogoTab";
 import { LocalidadesTab } from "./LocalidadesTab";
 import { VendedoresTab } from "./VendedoresTab";
 import {
-  useZonas, useCrearZona, useActualizarZona,
-  useSectores, useCrearSector, useActualizarSector,
-  useTemas, useCrearTema, useActualizarTema,
-  useCanales, useCrearCanal, useActualizarCanal,
-  useDisposiciones, useCrearDisposicion, useActualizarDisposicion,
+  useZonas,
+  useCrearZona,
+  useActualizarZona,
+  useSectores,
+  useCrearSector,
+  useActualizarSector,
+  useTemas,
+  useCrearTema,
+  useActualizarTema,
+  useCanales,
+  useCrearCanal,
+  useActualizarCanal,
+  useDisposiciones,
+  useCrearDisposicion,
+  useActualizarDisposicion,
   type DisposicionOut,
 } from "./hooks";
 
-type TabId = "zonas" | "sectores" | "temas" | "canales" | "disposiciones" | "localidades" | "vendedores";
+type TabId =
+  | "zonas"
+  | "sectores"
+  | "temas"
+  | "canales"
+  | "disposiciones"
+  | "localidades"
+  | "vendedores";
+
+const MONO: CSSProperties = { fontFamily: "'Geist Mono', monospace" };
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "zonas", label: "Zonas" },
@@ -23,6 +42,62 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "localidades", label: "Localidades" },
   { id: "vendedores", label: "Vendedores" },
 ];
+
+/* ── Tab bar — underline-active, 150ms (mismo lenguaje que InboxPage) ──────── */
+function TabBar({
+  active,
+  onSelect,
+  counts,
+}: {
+  active: TabId;
+  onSelect: (id: TabId) => void;
+  counts: Partial<Record<TabId, number>>;
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label="Secciones de datos fijos"
+      className="flex flex-wrap items-center gap-0 overflow-x-auto"
+      style={{ borderBottom: "1px solid hsl(var(--border))" }}
+    >
+      {TABS.map((t) => {
+        const isActive = t.id === active;
+        const count = counts[t.id];
+        return (
+          <button
+            key={t.id}
+            role="tab"
+            type="button"
+            aria-selected={isActive}
+            onClick={() => onSelect(t.id)}
+            className="group relative -mb-px flex items-center gap-2 whitespace-nowrap px-4 py-3 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand"
+            style={{
+              color: isActive ? "hsl(var(--text))" : "hsl(var(--text-muted))",
+              borderBottom: `2px solid ${isActive ? "hsl(var(--brand))" : "transparent"}`,
+              transition: "color 150ms ease, border-color 150ms ease",
+            }}
+          >
+            <span>{t.label}</span>
+            {typeof count === "number" && (
+              <span
+                className="inline-flex min-w-[1.375rem] items-center justify-center rounded-full px-1.5 py-px text-[10px] font-semibold leading-none"
+                style={{
+                  ...MONO,
+                  color: isActive ? "hsl(var(--brand))" : "hsl(var(--text-subtle))",
+                  background: isActive ? "hsl(var(--brand-subtle))" : "hsl(var(--surface-sunken))",
+                  border: `1px solid ${isActive ? "hsl(var(--brand-subtle))" : "hsl(var(--border))"}`,
+                  transition: "all 150ms ease",
+                }}
+              >
+                {count}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export function MaestrosPage() {
   const [tab, setTab] = useState<TabId>("zonas");
@@ -52,38 +127,31 @@ export function MaestrosPage() {
   const crearDisp = useCrearDisposicion();
   const actualizarDisp = useActualizarDisposicion();
 
+  const counts: Partial<Record<TabId, number>> = {
+    zonas: zonasData?.data.length,
+    sectores: sectoresData?.data.length,
+    temas: temasData?.data.length,
+    canales: canalesData?.data.length,
+    disposiciones: dispData?.data.length,
+  };
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-text">Datos fijos</h1>
-        <p className="mt-0.5 text-sm text-text-muted">
-          Catálogos maestros del sistema: zonas, sectores, canales, disposiciones, geografía y asignaciones.
+    <div className="mx-auto flex max-w-4xl flex-col gap-6">
+      <header>
+        <h1
+          className="text-3xl font-bold tracking-tight text-text"
+          style={{ letterSpacing: "-0.02em" }}
+        >
+          Datos fijos
+        </h1>
+        <p className="mt-1 text-sm text-text-muted">
+          Catálogos maestros del sistema: zonas, sectores, canales, disposiciones, geografía y
+          asignaciones.
         </p>
-      </div>
+      </header>
 
-      {/* Tabs */}
-      <nav
-        aria-label="Secciones de datos fijos"
-        className="flex flex-wrap gap-1 border-b border-border"
-      >
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setTab(t.id)}
-            className={[
-              "px-4 py-2 text-sm font-medium transition-colors",
-              tab === t.id
-                ? "border-b-2 border-brand text-brand"
-                : "text-text-muted hover:text-text",
-            ].join(" ")}
-          >
-            {t.label}
-          </button>
-        ))}
-      </nav>
+      <TabBar active={tab} onSelect={setTab} counts={counts} />
 
-      {/* Tab content */}
       <div>
         {tab === "zonas" && (
           <CatalogoTab
@@ -144,25 +212,11 @@ export function MaestrosPage() {
             items={dispData?.data ?? []}
             isLoading={dLoading}
             isError={dError}
-            columns={[
-              { key: "codigo", label: "Código" },
-              { key: "nombre", label: "Nombre" },
-              {
-                key: "genera_cobro",
-                label: "Genera cobro",
-                render: (v) => (
-                  <Badge tone={v ? "default" : "info"}>{v ? "Sí" : "No"}</Badge>
-                ),
-              },
-              { key: "orden", label: "Orden" },
-              {
-                key: "activo",
-                label: "Estado",
-                render: (v) => (
-                  <Badge tone={v ? "default" : "info"}>{v ? "Activo" : "Inactivo"}</Badge>
-                ),
-              },
-            ]}
+            renderMeta={(item) => (
+              <Badge tone={item.genera_cobro ? "success" : "default"}>
+                {item.genera_cobro ? "Genera cobro" : "Sin cobro"}
+              </Badge>
+            )}
             onCreate={(datos) => crearDisp.mutate(datos)}
             onToggle={(item) => actualizarDisp.mutate({ id: item.id, activo: !item.activo })}
             isCreating={crearDisp.isPending}

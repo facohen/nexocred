@@ -240,3 +240,32 @@ async def test_reasignar_cierra_anterior(client, admin_token):
 async def test_listar_vendedores_403_no_admin(client, analista_token):
     r = await client.get("/api/v1/maestros/vendedores", headers=_H(analista_token))
     assert r.status_code == 403
+
+
+# ---------- Precarga migración ----------
+
+async def test_provincias_precargadas_24(client, admin_token):
+    """La migración 0009 siembra exactamente 24 provincias argentinas."""
+    r = await client.get(
+        "/api/v1/maestros/provincias?per_page=50",
+        headers=_H(admin_token),
+    )
+    assert r.status_code == 200
+    assert r.json()["total"] == 24
+
+
+async def test_sectores_precargados(client, admin_token):
+    """La migración 0009 siembra 3 sectores (call_center, web, presencial)."""
+    r = await client.get("/api/v1/maestros/sectores", headers=_H(admin_token))
+    assert r.status_code == 200
+    codigos = {x["codigo"] for x in r.json()["data"]}
+    assert {"call_center", "web", "presencial"}.issubset(codigos)
+
+
+async def test_disposiciones_precargadas(client, admin_token):
+    """La migración 0009 siembra las disposiciones canónicas."""
+    r = await client.get("/api/v1/maestros/disposiciones", headers=_H(admin_token))
+    assert r.status_code == 200
+    codigos = {x["codigo"] for x in r.json()["data"]}
+    esperados = {"pago", "promesa", "no_contesta", "numero_errado", "se_niega", "ya_pago", "disputa"}
+    assert esperados.issubset(codigos)

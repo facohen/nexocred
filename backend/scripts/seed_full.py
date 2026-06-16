@@ -5,7 +5,7 @@ Construye un portafolio rico de 6 meses a traves de la capa de servicios
 cronogramas materializados, conservacion de caja).
 
 Cubre:
-- 50 personas con BCRA reciente (solo las que pasan filtro se usan para prestamos)
+- 50 personas argentinas verosímiles con BCRA reciente
 - 3 perfiles de pricing con distintas tasas (28% / 32% / 38%)
 - ~35 prestamos con ciclos de vida completos:
     * Lote A: cancelados en su totalidad via m03_prestamos.cancelar()
@@ -13,15 +13,14 @@ Cubre:
     * Lote C: morosos sin ningun pago (primera cuota >30 dias vencida)
     * Lote D: novados (refinanciacion + consolidacion, mismo deudor)
     * Lote E: mix — pagos a cuenta (excedente), pagos parciales, cancelacion anticipada
-- Pagos multi-cuota con waterfall real (capital/interes/punitorio/excedente)
-- Pagos sobredimensionados que generan excedente
-- 2 novaciones: refinanciacion y consolidacion
-- 5 rutas (cobrador A x3 fechas + cobrador B x2 fechas) con visitas variadas
-- 3 periodos de liquidacion de comisiones (aprobadas y pagadas)
-- Snapshots de cartera semanales para 6 meses
-- CRM: tareas e incidentes para personas morosas
-- Documentos: cronograma + recibo por los primeros 10 prestamos
-- Alertas de mora por rango completo
+- Interacciones CRM coherentes con cada ciclo de vida
+- Promesas de pago: vigentes + rotas + cumplidas
+- Catálogos m16: zonas, sectores, temas, canales, disposiciones
+- Historial de asignaciones de vendedor (3 períodos de zona/sector)
+- Múltiples aportes de tesorería de distintos inversores
+- Personas con múltiples créditos (recurrentes, fiel con historial limpio)
+- Espectro temporal completo: desde ene-2026 hasta jun-2026
+- Prospectos CRM con distintos estados
 
 Idempotente y crash-safe: el marcador MARCADOR_COMPLETO se escribe ULTIMO.
 Fechas deterministas: todo se ancla en FECHA_ANCLA (nunca today()).
@@ -67,7 +66,8 @@ from app.m05_ruta.servicio import (
 )
 from app.m06_novaciones import servicio as nov
 from app.m07_riesgo.alarmas import procesar as procesar_alarmas
-from app.m08_crm.servicio import crear_incidente, crear_tarea
+from app.m08_crm.modelos import Interaccion, PromesaPago, Prospecto
+from app.m08_crm.servicio import crear_incidente, crear_interaccion, crear_tarea
 from app.m09_comisiones.modelos import ComisionLiquidacion
 from app.m09_comisiones.servicio import (
     aprobar_liquidacion,
@@ -87,6 +87,14 @@ from app.m15_catalogo.schemas import (
     CeldaTasaIn,
     ProductoCreate,
 )
+from app.m16_maestros.modelos import (
+    AsignacionVendedor,
+    Canal,
+    Disposicion,
+    Sector,
+    Tema,
+    Zona,
+)
 from app.modelos_stub import Prestamo, RutaDiaria, SolicitudCredito
 
 # ---------------------------------------------------------------------------
@@ -95,7 +103,6 @@ from app.modelos_stub import Prestamo, RutaDiaria, SolicitudCredito
 FECHA_ANCLA = date(2026, 6, 1)
 FECHA_INICIO = date(2026, 1, 1)
 SEMILLA = 99
-ADMIN_EMAIL = "admin.full@nexocred.test"
 N_PERSONAS = 50
 PLAZOS = (3, 6, 12)
 ROLES = ("admin_sistema", "analista_riesgo", "administrativo", "vendedor", "ceo")
@@ -104,26 +111,133 @@ MARCADOR_COMPLETO = "seed_full_completo"
 _OP_MARCADOR = "seed_full"
 
 # ---------------------------------------------------------------------------
+# Datos para personas argentinas verosímiles
+# ---------------------------------------------------------------------------
+_NOMBRES_M = [
+    "Martín", "Santiago", "Rodrigo", "Facundo", "Nicolás",
+    "Leandro", "Diego", "Federico", "Gustavo", "Carlos",
+    "Pablo", "Sebastián", "Matías", "Alejandro", "Javier",
+    "Hernán", "Ezequiel", "Claudio", "Marcos", "Roberto",
+]
+_NOMBRES_F = [
+    "Lucía", "Valentina", "Florencia", "Camila", "Natalia",
+    "Paola", "Silvana", "Verónica", "Carolina", "Mónica",
+    "Romina", "Marcela", "Laura", "Daniela", "Sofía",
+    "Ana", "Cecilia", "Karina", "Gisela", "Adriana",
+]
+_APELLIDOS = [
+    "González", "Rodríguez", "Fernández", "López", "Martínez",
+    "García", "Pérez", "Sánchez", "Romero", "Torres",
+    "Díaz", "Álvarez", "Ruiz", "Flores", "Acosta",
+    "Benítez", "Medina", "Molina", "Moreno", "Herrera",
+    "Castro", "Ramos", "Ortiz", "Vega", "Mendoza",
+    "Silva", "Vargas", "Cabrera", "Gómez", "Muñoz",
+]
+_CALLES = [
+    "Av. Corrientes", "Av. Santa Fe", "Av. Rivadavia", "Boyacá", "Av. Cabildo",
+    "Álvarez Thomas", "Laprida", "Scalabrini Ortiz", "Thames", "Av. Boedo",
+    "Gascón", "Av. Juan B. Justo", "Av. Avellaneda", "Uriburu", "Viamonte",
+]
+_LOCALIDADES_DOM = [
+    "CABA", "Palermo", "Belgrano", "Caballito", "Villa del Parque",
+    "Flores", "Lanús", "Lomas de Zamora", "Morón", "Quilmes",
+    "San Martín", "Avellaneda", "Vicente López", "San Isidro", "Tigre",
+    "Tres de Febrero",
+]
+_PROVINCIA_MAP = {
+    "CABA": "Ciudad Autónoma de Buenos Aires",
+    "Palermo": "Ciudad Autónoma de Buenos Aires",
+    "Belgrano": "Ciudad Autónoma de Buenos Aires",
+    "Caballito": "Ciudad Autónoma de Buenos Aires",
+    "Villa del Parque": "Ciudad Autónoma de Buenos Aires",
+    "Flores": "Ciudad Autónoma de Buenos Aires",
+    "Lanús": "Buenos Aires", "Lomas de Zamora": "Buenos Aires",
+    "Morón": "Buenos Aires", "Quilmes": "Buenos Aires",
+    "San Martín": "Buenos Aires", "Avellaneda": "Buenos Aires",
+    "Vicente López": "Buenos Aires", "San Isidro": "Buenos Aires",
+    "Tigre": "Buenos Aires", "Tres de Febrero": "Buenos Aires",
+}
+_EMPLEADORES = [
+    "Molino Cañuelas S.A.", "Mercado Libre", "YPF S.A.", "Banco Galicia",
+    "Coto CICSA", "Carrefour Argentina", "Telecom Argentina", "OSDE",
+    "Grupo Supervielle", "La Anónima", "Arcor S.A.", "Ford Argentina",
+    "Farmacity", "Rapipago", "Edesur",
+]
+_VINCULOS = ["conyuge", "madre", "padre", "hermano", "amigo", "vecino"]
+
+# ---------------------------------------------------------------------------
+# Catálogos m16
+# ---------------------------------------------------------------------------
+_ZONAS_CFG = [
+    ("norte",    "Zona Norte GBA"),
+    ("oeste",    "Zona Oeste GBA"),
+    ("sur",      "Zona Sur GBA"),
+    ("caba",     "CABA"),
+    ("interior", "Interior"),
+]
+_SECTORES_CFG = [
+    ("call_center", "Call Center"),
+    ("presencial",  "Presencial"),
+    ("web",         "Web / Digital"),
+]
+_TEMAS_CFG = [
+    ("pago",           "Pago de cuota"),
+    ("refinanciacion", "Refinanciación"),
+    ("consulta",       "Consulta general"),
+    ("reclamo",        "Reclamo"),
+    ("mora",           "Gestión de mora"),
+]
+_CANALES_CFG = [
+    ("telefono",   "Teléfono"),
+    ("whatsapp",   "WhatsApp"),
+    ("presencial", "Presencial"),
+    ("email",      "Email"),
+]
+_DISPOSICIONES_CFG = [
+    ("pago_total",     "Pago total",           True),
+    ("pago_parcial",   "Pago parcial",          True),
+    ("promesa_pago",   "Promesa de pago",        False),
+    ("no_contesta",    "No contesta",            False),
+    ("numero_errado",  "Número errado",          False),
+    ("se_niega",       "Se niega a pagar",       False),
+    ("ya_pago",        "Ya pagó / sin deuda",    False),
+    ("disputa",        "Disputa el monto",       False),
+    ("acuerdo_cuotas", "Acordó plan de cuotas",  False),
+]
+
+# ---------------------------------------------------------------------------
+# Aportes de tesorería: capital inicial + 2 inversores adicionales
+# ---------------------------------------------------------------------------
+_APORTES = [
+    (FECHA_INICIO,                       Decimal("20000000"), "Inversores Fundadores", "Capital inicial"),
+    (FECHA_INICIO + timedelta(days=45),  Decimal("8000000"),  "Inversor Ángel 1",      "Ampliación serie A"),
+    (FECHA_INICIO + timedelta(days=90),  Decimal("5000000"),  "Inversor Ángel 2",      "Refuerzo de caja Q2"),
+]
+
+# ---------------------------------------------------------------------------
 # Lotes de prestamo
 #
 # Cada entrada: (p_idx, monto, cuotas, delta_des_dias, offset_pc_dias, lote_tag)
 # delta_des_dias: dias desde FECHA_INICIO hasta el desembolso
 # offset_pc_dias: dias desde el desembolso hasta la primera cuota
-#   positivo -> futura; negativo -> ya vencida (moroso)
-# lote_tag: "pagado" | "vigente" | "moroso" | "novar_refi" | "novar_consol_a"
-#           | "novar_consol_b" | "excedente" | "cancelar" | "mix"
+#   positivo -> futura; negativo -> ya vencida (moroso — el abs es el atraso)
+#
+# Personas con múltiples créditos:
+#   p_idx=0: cancelar (slot 0) + vigente reciente (slot 30) — cliente recurrente
+#   p_idx=1: cancelar (slot 1) + vigente (slot 6)           — cliente recurrente
+#   p_idx=3: pagado (slot 3) + pagado2 (slot 32) + vigente (slot 33) — fiel historial limpio
 # ---------------------------------------------------------------------------
 _LOTES: list[tuple[int, Decimal, int, int, int, str]] = [
-    # ---- Lote A: cancelados (pago total via m03.cancelar) ----
+    # ---- Lote A: cancelados ----
     (0,  Decimal("80000.00"),   3,   0,  30, "cancelar"),
     (1,  Decimal("120000.00"),  6,   5,  30, "cancelar"),
     (2,  Decimal("60000.00"),   3,  10,  30, "cancelar"),
-    # ---- Lote B: pagados cuota a cuota (estado final = pagado) ----
+    # ---- Lote B: pagados cuota a cuota ----
     (3,  Decimal("200000.00"),  3,  15,  30, "pagado"),
     (4,  Decimal("150000.00"),  3,  20,  30, "pagado"),
     (5,  Decimal("90000.00"),   3,  25,  30, "pagado"),
     # ---- Lote C: vigentes con pagos puntuales ----
-    (6,  Decimal("180000.00"), 12,  90,  30, "vigente"),
+    (1,  Decimal("180000.00"), 12,  90,  30, "vigente"),   # p_idx=1 2º crédito
     (7,  Decimal("75000.00"),   6,  95,  30, "vigente"),
     (8,  Decimal("110000.00"),  6, 100,  30, "vigente"),
     (9,  Decimal("250000.00"), 12, 105,  30, "vigente"),
@@ -132,21 +246,21 @@ _LOTES: list[tuple[int, Decimal, int, int, int, str]] = [
     (12, Decimal("70000.00"),   3, 120,  30, "vigente"),
     (13, Decimal("160000.00"), 12, 125,  30, "vigente"),
     (14, Decimal("100000.00"),  6, 130,  30, "vigente"),
-    # ---- Lote D: morosos (primera cuota ya vencida) ----
-    (15, Decimal("85000.00"),   6,  30, -45, "moroso"),
-    (16, Decimal("140000.00"),  6,  35, -45, "moroso"),
-    (17, Decimal("200000.00"), 12,  40, -45, "moroso"),
-    (18, Decimal("50000.00"),   3,  45, -45, "moroso"),
-    (19, Decimal("175000.00"),  6,  50, -45, "moroso"),
-    # ---- Lote E: novaciones (refinanciacion) — slot 20 ----
+    # ---- Lote D: morosos con buckets PAR diferenciados ----
+    (15, Decimal("85000.00"),   6,  30, -20, "moroso"),    # PAR30 (20d atraso)
+    (16, Decimal("140000.00"),  6,  35, -45, "moroso"),    # PAR60 (45d atraso)
+    (17, Decimal("200000.00"), 12,  40, -75, "moroso"),    # PAR90 (75d atraso)
+    (18, Decimal("50000.00"),   3,  45,-100, "moroso"),    # castigado (>90d)
+    (19, Decimal("175000.00"),  6,  50, -35, "moroso"),    # PAR30-PAR60
+    # ---- Lote E: novacion refinanciacion ----
     (20, Decimal("100000.00"),  6,  30,  30, "novar_refi"),
-    # ---- Lote F: novacion consolidacion — slots 21 + 22, MISMA persona p_idx=21 ----
+    # ---- Lote F: novacion consolidacion (misma persona p_idx=21) ----
     (21, Decimal("90000.00"),   6,  35,  30, "novar_consol_a"),
     (21, Decimal("80000.00"),   6,  38,  30, "novar_consol_b"),
-    # ---- Lote G: pagos con excedente (monto > deuda) ----
+    # ---- Lote G: pagos con excedente ----
     (22, Decimal("55000.00"),   3,  60,  30, "excedente"),
     (23, Decimal("75000.00"),   3,  65,  30, "excedente"),
-    # ---- Lote H: cancelacion anticipada (pago total antes de vencer todas) ----
+    # ---- Lote H: cancelacion anticipada ----
     (24, Decimal("220000.00"), 12,  62,  30, "cancelar_anticipado"),
     (25, Decimal("170000.00"),  6,  68,  30, "cancelar_anticipado"),
     # ---- Lote I: mix (pagos parciales / tasa alta) ----
@@ -154,6 +268,10 @@ _LOTES: list[tuple[int, Decimal, int, int, int, str]] = [
     (27, Decimal("130000.00"), 12,  78,  30, "mix"),
     (28, Decimal("75000.00"),   6,  83,  30, "mix"),
     (29, Decimal("110000.00"),  6,  86,  30, "mix"),
+    # ---- Lote J: créditos recientes (clientes recurrentes) ----
+    (0,  Decimal("95000.00"),   6, 130,  30, "vigente"),   # p_idx=0 2º crédito
+    (3,  Decimal("180000.00"),  6,  60,  30, "pagado"),    # p_idx=3 2º pagado
+    (3,  Decimal("250000.00"), 12, 140,  30, "vigente"),   # p_idx=3 3º activo
 ]
 
 # Perfiles de pricing con tasas diferenciadas
@@ -163,7 +281,7 @@ _PERFILES_TASAS = [
     ("Riesgo Alto Full", Decimal("0.38")),
 ]
 
-# Asignacion de perfil por slot (ciclico para distribuir)
+
 def _perfil_para_slot(slot: int) -> str:
     return _PERFILES_TASAS[slot % len(_PERFILES_TASAS)][0]
 
@@ -191,38 +309,85 @@ class _SeedBcraClient:
 
 
 def _cuil(i: int) -> str:
-    """CUIL valido y determinista. Base 41M evita que el digito verificador sea 0
-    (CUIL terminado en 0 = BCRA vacio en el fake client → no aprobable)."""
-    dni = 41_000_000 + i
-    base = "20" + str(dni)
+    """CUIL valido y determinista con DNI disperso en rango 30M–44M."""
+    dni = 30_500_000 + i * 487
+    prefijo = "27" if i % 2 == 1 else "20"
+    base = prefijo + str(dni)
     dv = calcular_digito_verificador(base)
     return base + str(dv)
 
 
+def _ascii(s: str) -> str:
+    """Convierte caracteres con tilde a ASCII básico para emails."""
+    return (s.lower()
+            .replace("á", "a").replace("é", "e").replace("í", "i")
+            .replace("ó", "o").replace("ú", "u").replace("ñ", "n")
+            .replace(" ", ""))
+
+
 def _persona_payload(i: int) -> PersonaCreate:
+    es_masculino = i % 2 == 0
+    nombre = _NOMBRES_M[i % 20] if es_masculino else _NOMBRES_F[i % 20]
+    apellido = _APELLIDOS[i % 30]
+    dni = str(30_500_000 + i * 487)
     cuil = _cuil(i)
+    email_dominio = "hotmail.com" if i % 3 == 2 else "gmail.com"
+    email = f"{_ascii(nombre)}{_ascii(apellido)[:4]}{1985 + i % 20}@{email_dominio}"
+    telefono_num = (44_000_000 + i * 1973) % 90_000_000 + 10_000_000
+    telefono = f"11{telefono_num}"
+    fecha_nac = date(1968 + (i * 7) % 27, (i * 3) % 12 + 1, (i * 11) % 27 + 1)
+    estado_civil = ["soltero", "casado", "casado", "divorciado", "union_convivencial"][i % 5]
+    calle = _CALLES[i % len(_CALLES)]
+    numero = str(100 + i * 37 % 900)
+    localidad = _LOCALIDADES_DOM[i % len(_LOCALIDADES_DOM)]
+    provincia = _PROVINCIA_MAP.get(localidad, "Buenos Aires")
+    tipo_vivienda = ["propia", "alquilada", "familiar", "alquilada"][i % 4]
+
+    perfil_ing = i % 3
+    if perfil_ing == 0:
+        ingresos = Decimal(str(250_000 + i * 3_000))
+    elif perfil_ing == 1:
+        ingresos = Decimal(str(400_000 + i * 5_000))
+    else:
+        ingresos = Decimal(str(500_000 + i * 7_000))
+
+    if i % 2 == 0:
+        empleador_nombre: str | None = _EMPLEADORES[i % len(_EMPLEADORES)]
+        ingresos_en_blanco = (ingresos * Decimal("0.80")).quantize(Decimal("1.00"))
+    else:
+        empleador_nombre = None
+        ingresos_en_blanco = (ingresos * Decimal("0.40")).quantize(Decimal("1.00"))
+
+    ref_nombre = _NOMBRES_F[(i + 3) % 20]
+    ref_apellido = _APELLIDOS[(i + 5) % 30]
+    ref_telefono_num = (44_000_000 + (i + 13) * 1973) % 90_000_000 + 10_000_000
+    ref_telefono = f"11{ref_telefono_num}"
+    ref_vinculo = _VINCULOS[i % len(_VINCULOS)]
+
     return PersonaCreate(
-        apellido=f"Full{i:03d}",
-        nombre=f"Cliente{i:03d}",
-        dni=str(41_000_000 + i),
+        apellido=apellido,
+        nombre=nombre,
+        dni=dni,
         cuil=cuil,
-        fecha_nac=date(1975 + (i % 25), (i % 12) + 1, (i % 27) + 1),
-        estado_civil="casado" if i % 3 == 0 else "soltero",
-        email=f"cliente{i:03d}@full.test",
-        telefono=f"11{i:08d}"[:11],
-        domicilio_calle="Calle Full",
-        domicilio_numero=str(200 + i),
-        domicilio_localidad="CABA",
-        domicilio_provincia="Buenos Aires",
-        tipo_vivienda="propia" if i % 2 == 0 else "alquilada",
-        ingresos_declarados=Decimal(str(350_000 + i * 5_000)),
-        ingresos_en_blanco=Decimal(str(280_000 + i * 4_000)),
-        ingresos_totales=Decimal(str(350_000 + i * 5_000)),
+        fecha_nac=fecha_nac,
+        estado_civil=estado_civil,
+        email=email,
+        telefono=telefono,
+        domicilio_calle=calle,
+        domicilio_numero=numero,
+        domicilio_localidad=localidad,
+        domicilio_provincia=provincia,
+        tipo_vivienda=tipo_vivienda,
+        ingresos_declarados=ingresos,
+        ingresos_en_blanco=ingresos_en_blanco,
+        ingresos_totales=ingresos,
+        empleador=empleador_nombre,
         referencias=[
             ReferenciaIn(
-                nombre="Ref", apellido=f"Full{i:03d}",
-                telefono="1144556677",
-                vinculo="conyuge" if i % 3 == 0 else "madre",
+                nombre=ref_nombre,
+                apellido=ref_apellido,
+                telefono=ref_telefono,
+                vinculo=ref_vinculo,
             )
         ],
     )
@@ -251,11 +416,9 @@ async def _marcar_completo(session: AsyncSession) -> None:
         await session.flush()
 
 
-
 async def _seed_localidades(session: AsyncSession) -> None:
-    """Siembra localidades principales por provincia (idempotente)."""
     from sqlalchemy import select as _sel
-    from app.m16_maestros.modelos import Provincia, Localidad
+    from app.m16_maestros.modelos import Localidad, Provincia
     from app.m16_maestros.datos_geo import LOCALIDADES_POR_PROVINCIA
 
     for codigo, localidades in LOCALIDADES_POR_PROVINCIA.items():
@@ -272,6 +435,58 @@ async def _seed_localidades(session: AsyncSession) -> None:
             if existe is None:
                 session.add(Localidad(provincia_id=prov.id, nombre=nombre))
     await session.flush()
+
+
+async def _seed_catalogo_m16(session: AsyncSession) -> tuple[
+    dict[str, Zona], dict[str, Sector], dict[str, Tema], dict[str, Canal], dict[str, Disposicion]
+]:
+    zonas: dict[str, Zona] = {}
+    for orden, (codigo, nombre) in enumerate(_ZONAS_CFG):
+        obj = await session.scalar(select(Zona).where(Zona.codigo == codigo))
+        if obj is None:
+            obj = Zona(codigo=codigo, nombre=nombre, orden=orden)
+            session.add(obj)
+            await session.flush()
+        zonas[codigo] = obj
+
+    sectores: dict[str, Sector] = {}
+    for orden, (codigo, nombre) in enumerate(_SECTORES_CFG):
+        obj = await session.scalar(select(Sector).where(Sector.codigo == codigo))
+        if obj is None:
+            obj = Sector(codigo=codigo, nombre=nombre, orden=orden)
+            session.add(obj)
+            await session.flush()
+        sectores[codigo] = obj
+
+    temas: dict[str, Tema] = {}
+    for orden, (codigo, nombre) in enumerate(_TEMAS_CFG):
+        obj = await session.scalar(select(Tema).where(Tema.codigo == codigo))
+        if obj is None:
+            obj = Tema(codigo=codigo, nombre=nombre, orden=orden)
+            session.add(obj)
+            await session.flush()
+        temas[codigo] = obj
+
+    canales: dict[str, Canal] = {}
+    for orden, (codigo, nombre) in enumerate(_CANALES_CFG):
+        obj = await session.scalar(select(Canal).where(Canal.codigo == codigo))
+        if obj is None:
+            obj = Canal(codigo=codigo, nombre=nombre, orden=orden)
+            session.add(obj)
+            await session.flush()
+        canales[codigo] = obj
+
+    disposiciones: dict[str, Disposicion] = {}
+    for orden, (codigo, nombre, genera_cobro) in enumerate(_DISPOSICIONES_CFG):
+        obj = await session.scalar(select(Disposicion).where(Disposicion.codigo == codigo))
+        if obj is None:
+            obj = Disposicion(codigo=codigo, nombre=nombre, genera_cobro=genera_cobro, orden=orden)
+            session.add(obj)
+            await session.flush()
+        disposiciones[codigo] = obj
+
+    await session.flush()
+    return zonas, sectores, temas, canales, disposiciones
 
 
 async def _asegurar_roles(session: AsyncSession) -> None:
@@ -299,8 +514,7 @@ def _ikey(*partes: str | int) -> str:
 
 
 async def _try(session: AsyncSession, coro) -> bool:  # type: ignore[type-arg]
-    """Ejecuta una coroutine; si falla hace rollback y retorna False.
-    Unico patron seguro con asyncpg: un error deja la txn abortada hasta rollback."""
+    """Ejecuta una coroutine; si falla hace rollback y retorna False."""
     try:
         await coro
         return True
@@ -310,17 +524,11 @@ async def _try(session: AsyncSession, coro) -> bool:  # type: ignore[type-arg]
 
 
 def _fecha_primera_cuota(fecha_des: date, offset_dias: int) -> date:
-    """Normaliza la primera cuota al dia 1 del mes para evitar dias invalidos."""
     raw = fecha_des + timedelta(days=abs(offset_dias)) * (1 if offset_dias >= 0 else -1)
     return raw.replace(day=1)
 
 
-# ---------------------------------------------------------------------------
-# Helpers internos
-# ---------------------------------------------------------------------------
-
-async def _estado_prestamo(session: AsyncSession, prestamo_id) -> str | None:
-    """Consulta el estado actual de un prestamo directo desde la DB."""
+async def _estado_prestamo(session: AsyncSession, prestamo_id: uuid.UUID) -> str | None:
     from sqlalchemy import text as _text
     row = await session.execute(
         _text("SELECT estado FROM prestamo WHERE id = :id"), {"id": str(prestamo_id)}
@@ -330,10 +538,114 @@ async def _estado_prestamo(session: AsyncSession, prestamo_id) -> str | None:
 
 
 # ---------------------------------------------------------------------------
+# Helpers CRM
+# ---------------------------------------------------------------------------
+
+async def _ix(
+    session: AsyncSession,
+    *,
+    persona_id: uuid.UUID,
+    operador_id: uuid.UUID,
+    tipo: str,
+    tema_id: uuid.UUID | None,
+    canal_id: uuid.UUID | None,
+    disposicion_id: uuid.UUID | None,
+    detalle: str,
+    credito_id: uuid.UUID | None = None,
+    proximo_paso_fecha: date | None = None,
+    proximo_paso_nota: str | None = None,
+    actor_id: uuid.UUID,
+) -> bool:
+    return await _try(session, crear_interaccion(
+        session,
+        persona_id=persona_id,
+        tipo=tipo,
+        detalle=detalle,
+        tarea_id=None,
+        operador_id=operador_id,
+        tema_id=tema_id,
+        canal_id=canal_id,
+        disposicion_id=disposicion_id,
+        credito_id=credito_id,
+        proximo_paso_fecha=proximo_paso_fecha,
+        proximo_paso_nota=proximo_paso_nota,
+        actor_id=actor_id,
+        commit=False,
+    ))
+
+
+async def _ix_with_result(
+    session: AsyncSession,
+    *,
+    persona_id: uuid.UUID,
+    operador_id: uuid.UUID,
+    tipo: str,
+    tema_id: uuid.UUID | None,
+    canal_id: uuid.UUID | None,
+    disposicion_id: uuid.UUID | None,
+    detalle: str,
+    credito_id: uuid.UUID | None = None,
+    proximo_paso_fecha: date | None = None,
+    proximo_paso_nota: str | None = None,
+    actor_id: uuid.UUID,
+) -> Interaccion | None:
+    """Como _ix pero devuelve el objeto Interaccion para poder vincular PromesaPago."""
+    try:
+        ix = await crear_interaccion(
+            session,
+            persona_id=persona_id,
+            tipo=tipo,
+            detalle=detalle,
+            tarea_id=None,
+            operador_id=operador_id,
+            tema_id=tema_id,
+            canal_id=canal_id,
+            disposicion_id=disposicion_id,
+            credito_id=credito_id,
+            proximo_paso_fecha=proximo_paso_fecha,
+            proximo_paso_nota=proximo_paso_nota,
+            actor_id=actor_id,
+            commit=False,
+        )
+        await session.flush()
+        return ix
+    except Exception:  # noqa: BLE001
+        await session.rollback()
+        return None
+
+
+async def _promesa_con_ix(
+    session: AsyncSession,
+    *,
+    prestamo_id: uuid.UUID,
+    monto: Decimal,
+    fecha_prometida: date,
+    estado: str,
+    interaccion_id: uuid.UUID,
+    actor_id: uuid.UUID,
+) -> None:
+    """Inserta PromesaPago vinculada a una interaccion (constraint XOR)."""
+    pp = PromesaPago(
+        prestamo_id=prestamo_id,
+        monto_prometido=monto,
+        fecha_prometida=fecha_prometida,
+        estado=estado,
+        canal_origen="call",
+        interaccion_id=interaccion_id,
+        creada_por=actor_id,
+    )
+    session.add(pp)
+    try:
+        await session.flush()
+    except Exception:  # noqa: BLE001
+        await session.rollback()
+
+
+# ---------------------------------------------------------------------------
 # Funcion principal
 # ---------------------------------------------------------------------------
 
-async def sembrar_full(session: AsyncSession) -> dict:
+async def sembrar_full(session: AsyncSession) -> dict:  # noqa: PLR0912, PLR0915
     """Portafolio completo. Idempotente y crash-safe."""
     if await _ya_sembrado(session):
         print("seed_full: ya sembrado.")  # noqa: T201
@@ -342,8 +654,11 @@ async def sembrar_full(session: AsyncSession) -> dict:
     await _asegurar_roles(session)
     await _seed_localidades(session)
 
-    # ---- Usuarios (modelo de 5 roles) ----
-    # admin_sistema actúa como actor de auditoría de la siembra.
+    # ---- Catálogos m16 ----
+    zonas, sectores, temas, canales, disposiciones = await _seed_catalogo_m16(session)
+    await session.commit()
+
+    # ---- Usuarios ----
     admin = await _get_or_create_usuario(
         session, email="sistema.full@nexocred.test", nombre="Admin Sistema Full",
         roles=["admin_sistema"], actor_id=None,
@@ -354,9 +669,6 @@ async def sembrar_full(session: AsyncSession) -> dict:
         session, email="vendedor.full@nexocred.test", nombre="Vendedor Full",
         roles=["vendedor"], actor_id=actor,
     )
-    # cobrador_a/b y operador del modelo viejo se consolidan en "administrativo"
-    # (opera rutas, cobranza, pagos y CRM). Se mantienen como usuarios distintos
-    # para que la siembra de rutas/cobranza siga teniendo varios responsables.
     cobrador_a = await _get_or_create_usuario(
         session, email="administrativo_a.full@nexocred.test", nombre="Administrativo A Full",
         roles=["administrativo"], actor_id=actor,
@@ -378,6 +690,37 @@ async def sembrar_full(session: AsyncSession) -> dict:
         roles=["ceo"], actor_id=actor,
     )
 
+    caja_existente = await session.scalar(select(Caja).where(Caja.nombre == "Caja Full Demo"))
+    if caja_existente is None:
+        caja_existente = await crear_caja(session, nombre="Caja Full Demo", tipo="efectivo", actor_id=actor)
+    caja_id = caja_existente.id
+    vendedor_id = vendedor.id
+    cobrador_a_id = cobrador_a.id
+    cobrador_b_id = cobrador_b.id
+    operador_id = operador.id
+
+    # ---- Historial de asignaciones vendedor → zona/sector (3 períodos) ----
+    asig_existente = await session.scalar(
+        select(AsignacionVendedor).where(AsignacionVendedor.vendedor_id == vendedor_id)
+    )
+    if asig_existente is None:
+        asig_periodos = [
+            (FECHA_INICIO,                       FECHA_INICIO + timedelta(days=59),  "norte", "call_center"),
+            (FECHA_INICIO + timedelta(days=60),  FECHA_INICIO + timedelta(days=119), "caba",  "presencial"),
+            (FECHA_INICIO + timedelta(days=120), None,                                "sur",   "call_center"),
+        ]
+        for desde, hasta, zona_cod, sector_cod in asig_periodos:
+            asig = AsignacionVendedor(
+                vendedor_id=vendedor_id,
+                zona_id=zonas[zona_cod].id,
+                sector_id=sectores[sector_cod].id,
+                vigente_desde=desde,
+                vigente_hasta=hasta,
+            )
+            session.add(asig)
+            await session.flush()
+    await session.commit()
+
     # ---- Producto ----
     producto = await session.scalar(
         select(ProductoCredito).where(ProductoCredito.nombre == "Prestamo Personal Full")
@@ -394,7 +737,6 @@ async def sembrar_full(session: AsyncSession) -> dict:
         )
         await cat.publicar_producto(session, producto, actor_id=actor)
 
-    # ---- 3 perfiles con tasas distintas + comision por perfil ----
     perfiles: dict[str, PerfilPricing] = {}
     for orden, (nombre_perf, tasa_perf) in enumerate(_PERFILES_TASAS, start=1):
         perf = await session.scalar(
@@ -421,29 +763,16 @@ async def sembrar_full(session: AsyncSession) -> dict:
             actor_id=actor,
         )
 
-    # ---- Caja + capital inicial ----
-    caja = await session.scalar(select(Caja).where(Caja.nombre == "Caja Full Demo"))
-    if caja is None:
-        caja = await crear_caja(
-            session, nombre="Caja Full Demo", tipo="efectivo", actor_id=actor,
+    # ---- Tesorería: 3 aportes de distintos inversores ----
+    for k, (fecha_aporte, monto_aporte, inversor_nombre, nota_aporte) in enumerate(_APORTES):
+        await registrar_aporte(
+            session,
+            AporteRetiroIn(
+                monto=monto_aporte, fecha_negocio=fecha_aporte, caja_id=caja_id,
+                inversor=inversor_nombre, nota=nota_aporte,
+            ),
+            actor_id=actor, idempotency_key=_ikey("aporte", k),
         )
-    await session.commit()
-
-    # Extraer IDs como valores Python para que no dependan de ORM lazy-load tras rollback
-    caja_id = caja.id
-    vendedor_id = vendedor.id
-    cobrador_a_id = cobrador_a.id
-    cobrador_b_id = cobrador_b.id
-    operador_id = operador.id
-
-    await registrar_aporte(
-        session,
-        AporteRetiroIn(
-            monto=Decimal("30000000.00"), fecha_negocio=FECHA_INICIO, caja_id=caja_id,
-            inversor="Inversores Fundadores", nota="capital inicial seed full",
-        ),
-        actor_id=actor, idempotency_key=_ikey("aporte-inicial"),
-    )
 
     # ---- Personas + BCRA ----
     bcra = _SeedBcraClient()
@@ -467,27 +796,35 @@ async def sembrar_full(session: AsyncSession) -> dict:
             personas_con_bcra.append(persona.id)
     await session.commit()
 
+    # ---- Prospectos CRM ----
+    prospectos_data = [
+        ("Gonzalo Ferreyra",  "1155443322", "contactado"),
+        ("Miriam Saldaña",    "1166778899", "calificado"),
+        ("Héctor Bravo",      "1177001122", "contactado"),
+        ("Patricia Quispe",   "1188334455", "descartado"),
+        ("Ernesto Villalba",  "1199667788", "calificado"),
+    ]
+    for nombre_p, tel_p, estado_p in prospectos_data:
+        existe_p = await session.scalar(select(Prospecto).where(Prospecto.nombre == nombre_p))
+        if existe_p is None:
+            session.add(Prospecto(nombre=nombre_p, telefono=tel_p, estado=estado_p, operador_id=operador_id))
+    await session.commit()
+
     n_aprobables = len(personas_con_bcra)
 
     def _pid(p_idx: int) -> uuid.UUID:
-        """Mapea p_idx a persona aprobable de forma ciclica."""
         return personas_con_bcra[p_idx % n_aprobables]
 
     # ---- Prestamos: desembolso + devengo de comision ----
-    # prestamos_por_slot[slot] -> UUID del prestamo (evita lazy-load tras rollback)
     prestamos_por_slot: dict[int, uuid.UUID] = {}
 
     for slot, (p_idx, monto, cuotas, delta_des, offset_pc, _tag) in enumerate(_LOTES):
         persona_id = _pid(p_idx)
         fecha_des = FECHA_INICIO + timedelta(days=delta_des)
         fecha_pc = _fecha_primera_cuota(fecha_des, offset_pc)
-
-        # Perfil segun slot (distribuye las 3 tasas)
         nombre_perf = _perfil_para_slot(slot)
         perfil = perfiles[nombre_perf]
 
-        # Resumible: busca prestamo ya existente para este slot (idem key)
-        ikey_des = _ikey("des", slot)
         existente = await session.scalar(
             select(Prestamo)
             .join(SolicitudCredito, Prestamo.solicitud_id == SolicitudCredito.id)
@@ -506,7 +843,6 @@ async def sembrar_full(session: AsyncSession) -> dict:
             monto=monto, cantidad_cuotas=cuotas,
             vendedor_id=vendedor_id, actor_id=actor,
         )
-        # Asignar perfil antes de evaluar para que la tasa sea la correcta
         sol.perfil_id = perfil.id  # type: ignore[attr-defined]
         await session.flush()
         await orig.evaluar(session, sol, actor_id=actor)
@@ -517,7 +853,7 @@ async def sembrar_full(session: AsyncSession) -> dict:
             session, solicitud=sol, caja_id=caja_id,
             fecha_negocio=fecha_des, fecha_primera_cuota=fecha_pc,
             tasa_punitorio_diario=Decimal("0.001"),
-            idempotency_key=ikey_des, actor_id=actor,
+            idempotency_key=_ikey("des", slot), actor_id=actor,
         )
         prestamo = await session.scalar(
             select(Prestamo).where(Prestamo.id == out.prestamo_id)
@@ -532,7 +868,7 @@ async def sembrar_full(session: AsyncSession) -> dict:
 
     # ---- Ciclos de vida por tag ----
 
-    # TAG: "cancelar" — pago total del saldo via m03.cancelar (fecha: 60-90 dias post-des)
+    # TAG: "cancelar"
     for slot, (*_, tag) in enumerate(_LOTES):
         if tag != "cancelar":
             continue
@@ -552,7 +888,7 @@ async def sembrar_full(session: AsyncSession) -> dict:
         if ok:
             await session.commit()
 
-    # TAG: "pagado" — pagar todas las cuotas mes a mes; luego cancelar el saldo restante
+    # TAG: "pagado"
     for slot, (_, monto, cuotas, delta_des, offset_pc, tag) in enumerate(_LOTES):
         if tag != "pagado":
             continue
@@ -562,8 +898,6 @@ async def sembrar_full(session: AsyncSession) -> dict:
         if await _estado_prestamo(session, prestamo_id) in ("cancelado", "novado", "pagado"):
             continue
         cuota_aprox = (monto * Decimal("1.35") / cuotas).quantize(Decimal("100.00"))
-        # Pagar cuotas - 1 y luego cancelar el saldo restante con payoff
-        # (si pagamos todas, saldo = 0 y cancelar falla con monto_invalido)
         for k in range(cuotas - 1):
             fecha_pago = FECHA_INICIO + timedelta(days=delta_des + offset_pc + k * 30 + 5)
             if fecha_pago > FECHA_ANCLA:
@@ -576,7 +910,6 @@ async def sembrar_full(session: AsyncSession) -> dict:
             ))
             if ok:
                 await session.commit()
-        # Cancelar el saldo restante con payoff total
         est_fin = await _estado_prestamo(session, prestamo_id)
         if est_fin in ("vigente", "en_mora"):
             fecha_fin = FECHA_INICIO + timedelta(days=delta_des + offset_pc + cuotas * 30 + 15)
@@ -589,7 +922,7 @@ async def sembrar_full(session: AsyncSession) -> dict:
                 if ok:
                     await session.commit()
 
-    # TAG: "vigente" — pagar cuotas vencidas hasta FECHA_ANCLA
+    # TAG: "vigente"
     for slot, (_, monto, cuotas, delta_des, offset_pc, tag) in enumerate(_LOTES):
         if tag != "vigente":
             continue
@@ -614,9 +947,7 @@ async def sembrar_full(session: AsyncSession) -> dict:
             if ok:
                 await session.commit()
 
-    # TAG: "moroso" — sin pagos; las alarmas los marcan en mora
-
-    # TAG: "novar_refi" — un pago previo + refinanciar
+    # TAG: "novar_refi"
     for slot, (*_, tag) in enumerate(_LOTES):
         if tag != "novar_refi":
             continue
@@ -650,7 +981,7 @@ async def sembrar_full(session: AsyncSession) -> dict:
         if ok:
             await session.commit()
 
-    # TAG: "novar_consol_a" + "novar_consol_b" — consolidar dos prestamos del mismo deudor
+    # TAG: "novar_consol_a" + "novar_consol_b"
     slots_consol_a = [s for s, (*_, t) in enumerate(_LOTES) if t == "novar_consol_a"]
     slots_consol_b = [s for s, (*_, t) in enumerate(_LOTES) if t == "novar_consol_b"]
     for sa, sb in zip(slots_consol_a, slots_consol_b, strict=False):
@@ -658,7 +989,6 @@ async def sembrar_full(session: AsyncSession) -> dict:
         pb_id = prestamos_por_slot.get(sb)
         if pa_id is None or pb_id is None:
             continue
-        # Leer estado y persona fresco desde la DB
         pa = await session.scalar(select(Prestamo).where(Prestamo.id == pa_id))
         pb = await session.scalar(select(Prestamo).where(Prestamo.id == pb_id))
         if pa is None or pb is None:
@@ -682,7 +1012,7 @@ async def sembrar_full(session: AsyncSession) -> dict:
         if ok:
             await session.commit()
 
-    # TAG: "excedente" — pago sobredimensionado (mas que la cuota) para generar excedente
+    # TAG: "excedente"
     for slot, (_, monto, cuotas, delta_des, offset_pc, tag) in enumerate(_LOTES):
         if tag != "excedente":
             continue
@@ -714,7 +1044,7 @@ async def sembrar_full(session: AsyncSession) -> dict:
             if ok:
                 await session.commit()
 
-    # TAG: "cancelar_anticipado" — 1 pago normal + cancelacion anticipada
+    # TAG: "cancelar_anticipado"
     for slot, (_, _, cuotas, delta_des, offset_pc, tag) in enumerate(_LOTES):
         if tag != "cancelar_anticipado":
             continue
@@ -745,7 +1075,7 @@ async def sembrar_full(session: AsyncSession) -> dict:
             if ok:
                 await session.commit()
 
-    # TAG: "mix" — pagos alternando cuota completa / parcial
+    # TAG: "mix"
     for slot, (_, monto, cuotas, delta_des, offset_pc, tag) in enumerate(_LOTES):
         if tag != "mix":
             continue
@@ -771,6 +1101,287 @@ async def sembrar_full(session: AsyncSession) -> dict:
             ))
             if ok:
                 await session.commit()
+
+    # ---- Interacciones CRM coherentes con cada ciclo de vida ----
+
+    # TAG "cancelar": nota de desembolso + confirmación de cancelación
+    for slot, (p_idx, monto, cuotas, delta_des, offset_pc, tag) in enumerate(_LOTES):
+        if tag != "cancelar":
+            continue
+        prestamo_id = prestamos_por_slot.get(slot)
+        if prestamo_id is None:
+            continue
+        persona_id = _pid(p_idx)
+        ok1 = await _ix(
+            session, persona_id=persona_id, operador_id=operador_id,
+            tipo="nota", tema_id=temas["consulta"].id,
+            canal_id=canales["presencial"].id, disposicion_id=disposiciones["ya_pago"].id,
+            detalle="Crédito otorgado. Cliente retiró fondos en sucursal.",
+            credito_id=prestamo_id, actor_id=actor,
+        )
+        if ok1:
+            await session.commit()
+        ok2 = await _ix(
+            session, persona_id=persona_id, operador_id=operador_id,
+            tipo="llamada", tema_id=temas["pago"].id,
+            canal_id=canales["telefono"].id, disposicion_id=disposiciones["pago_total"].id,
+            detalle="Cliente canceló saldo total. Expediente cerrado.",
+            credito_id=prestamo_id, actor_id=actor,
+        )
+        if ok2:
+            await session.commit()
+
+    # TAG "pagado": interacción por cada cuota
+    for slot, (p_idx, monto, cuotas, delta_des, offset_pc, tag) in enumerate(_LOTES):
+        if tag != "pagado":
+            continue
+        prestamo_id = prestamos_por_slot.get(slot)
+        if prestamo_id is None:
+            continue
+        persona_id = _pid(p_idx)
+        for k in range(cuotas - 1):
+            fecha_pago = FECHA_INICIO + timedelta(days=delta_des + offset_pc + k * 30 + 6)
+            if fecha_pago > FECHA_ANCLA:
+                break
+            ok = await _ix(
+                session, persona_id=persona_id, operador_id=operador_id,
+                tipo="llamada", tema_id=temas["pago"].id,
+                canal_id=canales["telefono"].id, disposicion_id=disposiciones["pago_total"].id,
+                detalle=f"Cliente confirmó pago cuota {k+1}/{cuotas}. Sin novedades.",
+                credito_id=prestamo_id, actor_id=actor,
+            )
+            if ok:
+                await session.commit()
+
+    # TAG "vigente": interacción por cada cuota pagada
+    for slot, (p_idx, monto, cuotas, delta_des, offset_pc, tag) in enumerate(_LOTES):
+        if tag != "vigente":
+            continue
+        prestamo_id = prestamos_por_slot.get(slot)
+        if prestamo_id is None:
+            continue
+        persona_id = _pid(p_idx)
+        _fin_pc = FECHA_INICIO + timedelta(days=delta_des + offset_pc)
+        n_vencidas = max(0, (FECHA_ANCLA - _fin_pc).days // 30)
+        for k in range(min(n_vencidas, cuotas - 1)):
+            fecha_pago = FECHA_INICIO + timedelta(days=delta_des + offset_pc + k * 30 + 6)
+            if fecha_pago > FECHA_ANCLA:
+                break
+            ok = await _ix(
+                session, persona_id=persona_id, operador_id=operador_id,
+                tipo="llamada", tema_id=temas["pago"].id,
+                canal_id=canales["telefono"].id, disposicion_id=disposiciones["pago_total"].id,
+                detalle=f"Cuota {k+1} abonada puntualmente. Préstamo al día.",
+                credito_id=prestamo_id, actor_id=actor,
+            )
+            if ok:
+                await session.commit()
+
+    # TAG "moroso": gestión de mora con promesas (vigentes y rotas)
+    slots_morosos = [s for s, (*_, t) in enumerate(_LOTES) if t == "moroso"]
+    for i_m, slot in enumerate(slots_morosos):
+        p_idx, monto, cuotas, delta_des, offset_pc, _ = _LOTES[slot]
+        prestamo_id = prestamos_por_slot.get(slot)
+        if prestamo_id is None:
+            continue
+        persona_id = _pid(p_idx)
+        cuota_aprox = (monto * Decimal("1.35") / cuotas).quantize(Decimal("100.00"))
+
+        ok1 = await _ix(
+            session, persona_id=persona_id, operador_id=operador_id,
+            tipo="llamada", tema_id=temas["mora"].id,
+            canal_id=canales["telefono"].id, disposicion_id=disposiciones["no_contesta"].id,
+            detalle="Primer contacto por mora. Cliente no atiende.",
+            credito_id=prestamo_id, actor_id=actor,
+        )
+        if ok1:
+            await session.commit()
+
+        ok2 = await _ix(
+            session, persona_id=persona_id, operador_id=operador_id,
+            tipo="mensaje", tema_id=temas["mora"].id,
+            canal_id=canales["whatsapp"].id, disposicion_id=disposiciones["no_contesta"].id,
+            detalle="Segundo intento WhatsApp. Sin respuesta del cliente.",
+            credito_id=prestamo_id, actor_id=actor,
+        )
+        if ok2:
+            await session.commit()
+
+        ok3 = await _ix(
+            session, persona_id=persona_id, operador_id=operador_id,
+            tipo="llamada", tema_id=temas["mora"].id,
+            canal_id=canales["telefono"].id, disposicion_id=disposiciones["se_niega"].id,
+            detalle="Cliente atiende. Manifiesta dificultad económica transitoria.",
+            credito_id=prestamo_id, actor_id=actor,
+        )
+        if ok3:
+            await session.commit()
+
+        # Promesa: rota para slots 1 y 3, vigente para el resto
+        if i_m % 3 == 1:
+            fecha_prom = FECHA_ANCLA - timedelta(days=5)
+            prom_estado = "rota"
+            prox_fecha = None
+            prox_nota = None
+        else:
+            fecha_prom = FECHA_ANCLA + timedelta(days=10)
+            prom_estado = "vigente"
+            prox_fecha = fecha_prom + timedelta(days=1)
+            prox_nota = "Verificar cumplimiento de promesa"
+
+        ix_prom = await _ix_with_result(
+            session, persona_id=persona_id, operador_id=operador_id,
+            tipo="llamada", tema_id=temas["mora"].id,
+            canal_id=canales["telefono"].id, disposicion_id=disposiciones["promesa_pago"].id,
+            detalle=f"Acordada promesa de pago para {fecha_prom}. Monto: ${cuota_aprox:,.0f}.",
+            credito_id=prestamo_id,
+            proximo_paso_fecha=prox_fecha,
+            proximo_paso_nota=prox_nota,
+            actor_id=actor,
+        )
+        if ix_prom is not None:
+            await session.commit()
+            await _promesa_con_ix(
+                session, prestamo_id=prestamo_id, monto=cuota_aprox,
+                fecha_prometida=fecha_prom, estado=prom_estado,
+                interaccion_id=ix_prom.id, actor_id=actor,
+            )
+            await session.commit()
+
+    # TAG "novar_refi": interacción de acuerdo previo + confirmación
+    for slot, (p_idx, monto, cuotas, delta_des, offset_pc, tag) in enumerate(_LOTES):
+        if tag != "novar_refi":
+            continue
+        prestamo_id = prestamos_por_slot.get(slot)
+        if prestamo_id is None:
+            continue
+        persona_id = _pid(p_idx)
+        ok = await _ix(
+            session, persona_id=persona_id, operador_id=operador_id,
+            tipo="llamada", tema_id=temas["refinanciacion"].id,
+            canal_id=canales["telefono"].id, disposicion_id=disposiciones["acuerdo_cuotas"].id,
+            detalle="Se acuerda refinanciación. Nuevas condiciones: 12 cuotas al 25%.",
+            credito_id=prestamo_id, actor_id=actor,
+        )
+        if ok:
+            await session.commit()
+        ok2 = await _ix(
+            session, persona_id=persona_id, operador_id=operador_id,
+            tipo="nota", tema_id=temas["refinanciacion"].id,
+            canal_id=canales["presencial"].id, disposicion_id=disposiciones["ya_pago"].id,
+            detalle="Novación de refinanciación confirmada. Nuevo cronograma generado.",
+            credito_id=prestamo_id, actor_id=actor,
+        )
+        if ok2:
+            await session.commit()
+
+    # TAG "novar_consol_a": interacción de acuerdo previo
+    for slot, (p_idx, monto, cuotas, delta_des, offset_pc, tag) in enumerate(_LOTES):
+        if tag != "novar_consol_a":
+            continue
+        prestamo_id = prestamos_por_slot.get(slot)
+        if prestamo_id is None:
+            continue
+        persona_id = _pid(p_idx)
+        ok = await _ix(
+            session, persona_id=persona_id, operador_id=operador_id,
+            tipo="llamada", tema_id=temas["refinanciacion"].id,
+            canal_id=canales["telefono"].id, disposicion_id=disposiciones["acuerdo_cuotas"].id,
+            detalle="Se acuerda consolidación de dos préstamos. Plan de 12 cuotas al 27%.",
+            credito_id=prestamo_id, actor_id=actor,
+        )
+        if ok:
+            await session.commit()
+
+    # TAG "excedente": llamada post-pago
+    for slot, (p_idx, monto, cuotas, delta_des, offset_pc, tag) in enumerate(_LOTES):
+        if tag != "excedente":
+            continue
+        prestamo_id = prestamos_por_slot.get(slot)
+        if prestamo_id is None:
+            continue
+        persona_id = _pid(p_idx)
+        ok = await _ix(
+            session, persona_id=persona_id, operador_id=operador_id,
+            tipo="llamada", tema_id=temas["pago"].id,
+            canal_id=canales["telefono"].id, disposicion_id=disposiciones["pago_total"].id,
+            detalle="Cliente abonó monto mayor al exigido. Excedente aplicado a próximas cuotas.",
+            credito_id=prestamo_id, actor_id=actor,
+        )
+        if ok:
+            await session.commit()
+
+    # TAG "cancelar_anticipado": cuota 1 + cancelación
+    for slot, (p_idx, monto, cuotas, delta_des, offset_pc, tag) in enumerate(_LOTES):
+        if tag != "cancelar_anticipado":
+            continue
+        prestamo_id = prestamos_por_slot.get(slot)
+        if prestamo_id is None:
+            continue
+        persona_id = _pid(p_idx)
+        ok1 = await _ix(
+            session, persona_id=persona_id, operador_id=operador_id,
+            tipo="llamada", tema_id=temas["pago"].id,
+            canal_id=canales["telefono"].id, disposicion_id=disposiciones["pago_total"].id,
+            detalle="Cuota 1 abonada puntualmente.",
+            credito_id=prestamo_id, actor_id=actor,
+        )
+        if ok1:
+            await session.commit()
+        ok2 = await _ix(
+            session, persona_id=persona_id, operador_id=operador_id,
+            tipo="llamada", tema_id=temas["pago"].id,
+            canal_id=canales["presencial"].id, disposicion_id=disposiciones["pago_total"].id,
+            detalle="Cancelación anticipada. Saldo total liquidado. Expediente cerrado.",
+            credito_id=prestamo_id, actor_id=actor,
+        )
+        if ok2:
+            await session.commit()
+
+    # TAG "mix": alternando pago completo / parcial con promesas cumplidas
+    for slot, (p_idx, monto, cuotas, delta_des, offset_pc, tag) in enumerate(_LOTES):
+        if tag != "mix":
+            continue
+        prestamo_id = prestamos_por_slot.get(slot)
+        if prestamo_id is None:
+            continue
+        persona_id = _pid(p_idx)
+        cuota_aprox = (monto * Decimal("1.30") / cuotas).quantize(Decimal("100.00"))
+        diferencia = (cuota_aprox * Decimal("0.40")).quantize(Decimal("100.00"))
+        _fin_pc = FECHA_INICIO + timedelta(days=delta_des + offset_pc)
+        n_vencidas = max(0, (FECHA_ANCLA - _fin_pc).days // 30)
+        for k in range(min(n_vencidas, cuotas - 1)):
+            fecha_ix = FECHA_INICIO + timedelta(days=delta_des + offset_pc + k * 30 + 6)
+            if fecha_ix > FECHA_ANCLA:
+                break
+            if k % 2 == 0:
+                ok = await _ix(
+                    session, persona_id=persona_id, operador_id=operador_id,
+                    tipo="llamada", tema_id=temas["pago"].id,
+                    canal_id=canales["telefono"].id, disposicion_id=disposiciones["pago_total"].id,
+                    detalle=f"Cuota {k+1} abonada completa. Préstamo al día.",
+                    credito_id=prestamo_id, actor_id=actor,
+                )
+                if ok:
+                    await session.commit()
+            else:
+                ix_parcial = await _ix_with_result(
+                    session, persona_id=persona_id, operador_id=operador_id,
+                    tipo="llamada", tema_id=temas["mora"].id,
+                    canal_id=canales["telefono"].id, disposicion_id=disposiciones["pago_parcial"].id,
+                    detalle=f"Abono parcial cuota {k+1}. Diferencia de ${diferencia:,.0f} pendiente.",
+                    credito_id=prestamo_id, actor_id=actor,
+                )
+                if ix_parcial is not None:
+                    await session.commit()
+                    fecha_prom_mix = FECHA_INICIO + timedelta(days=delta_des + offset_pc + (k + 1) * 30)
+                    await _promesa_con_ix(
+                        session, prestamo_id=prestamo_id, monto=diferencia,
+                        fecha_prometida=fecha_prom_mix,
+                        estado="cumplida",
+                        interaccion_id=ix_parcial.id, actor_id=actor,
+                    )
+                    await session.commit()
 
     # ---- Rutas: cobrador A x3 fechas + cobrador B x2 fechas ----
     rutas_cfg = [
@@ -817,7 +1428,6 @@ async def sembrar_full(session: AsyncSession) -> dict:
                 await session.commit()
                 if monto_v is not None:
                     cobros += 1
-            # Re-fetch ruta_obj after potential rollback
             ruta_obj = await obtener_ruta(session, ruta_id_local)
             if ruta_obj is None:
                 break
@@ -905,27 +1515,34 @@ async def sembrar_full(session: AsyncSession) -> dict:
     except Exception:  # noqa: BLE001
         await session.rollback()
 
-    # ---- CRM: tareas e incidentes para morosos (slots tag=="moroso") ----
-    slots_morosos = [s for s, (*_, t) in enumerate(_LOTES) if t == "moroso"]
-    for slot in slots_morosos:
+    # ---- CRM: tareas e incidentes para morosos con tipos variados ----
+    tipos_incidente = [
+        ("mora",    "alta",   "Deuda vencida >30 días. Requiere gestión de cobranza."),
+        ("mora",    "alta",   "Primera cuota sin pago. Cliente no localizado."),
+        ("mora",    "media",  "Atraso en cuota. En seguimiento telefónico."),
+        ("disputa", "media",  "Cliente disputa monto de cuota 2. Revisión pendiente."),
+        ("fraude",  "alta",   "Posible uso fraudulento de datos. Requiere verificación urgente."),
+    ]
+    for i_m, slot in enumerate(slots_morosos):
         p_idx = _LOTES[slot][0]
         persona_id = _pid(p_idx)
         ok = await _try(session, crear_tarea(
             session, persona_id=persona_id, operador_id=operador_id,
             titulo=f"Gestionar mora — slot {slot}",
-            descripcion="Contactar deudor para plan de regularizacion.",
+            descripcion="Contactar deudor para plan de regularización.",
             prioridad="alta",
             vencimiento=FECHA_ANCLA + timedelta(days=7),
             origen="alarma", actor_id=actor, commit=False,
         ))
         if ok:
             await session.commit()
+        tipo_inc, severidad_inc, detalle_inc = tipos_incidente[i_m % len(tipos_incidente)]
         ok2 = await _try(session, crear_incidente(
             session, persona_id=persona_id,
-            tipo="mora",
-            titulo=f"Deuda vencida >30 dias — slot {slot}",
-            severidad="alta",
-            detalle="Primera cuota sin pago. Requiere gestion de cobranza.",
+            tipo=tipo_inc,
+            titulo=f"{tipo_inc.capitalize()} detectado — slot {slot}",
+            severidad=severidad_inc,
+            detalle=detalle_inc,
             operador_id=operador_id, actor_id=actor,
         ))
         if ok2:

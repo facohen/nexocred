@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Header, Query
 
-from app.deps import Administrativo, CurrentUser, SessionDep, scope_vendedor
+from app.deps import Administrativo, CurrentUser, SessionDep, exigir_idem, scope_vendedor
 from app.errors import ErrorAPI
 from app.m03_prestamos import servicio
 from app.m03_prestamos.schemas import CancelarIn, CuotaOut, PayoffOut, PrestamoOut
@@ -12,19 +12,10 @@ from app.m04_pagos import servicio as pagos
 from app.m04_pagos.schemas import ImputacionOut, PagoDetalleOut, PagoOut
 from app.m06_novaciones import servicio as novaciones
 from app.m06_novaciones.schemas import NovacionOut
-from app.paginacion import Pagina, paginar
+from app.paginacion import Pagina, paginar_query
 
 router = APIRouter(tags=["prestamos"])
 
-
-def _exigir_idem(idempotency_key: str | None) -> str:
-    if not idempotency_key:
-        raise ErrorAPI(
-            "idempotency_key_requerida",
-            "esta operacion requiere header Idempotency-Key",
-            status=400,
-        )
-    return idempotency_key
 
 
 async def _get_prestamo(session, prestamo_id: uuid.UUID):
@@ -50,11 +41,11 @@ async def listar_prestamos(
     # Scope por vendedor: un vendedor puro solo ve sus préstamos; los roles de
     # lectura global ven todo o filtran libremente vía ?vendedor_id.
     filtro_vendedor = scope_vendedor(actor, vendedor_id)
-    prestamos = await servicio.listar_prestamos(
-        session, estado=estado, persona_id=persona_id, producto_id=producto_id,
+    stmt = servicio.query_prestamos(
+        estado=estado, persona_id=persona_id, producto_id=producto_id,
         vendedor_id=filtro_vendedor, zona=zona, sector=sector,
     )
-    return paginar([PrestamoOut.model_validate(p) for p in prestamos], page, per_page)
+    return await paginar_query(session, stmt, PrestamoOut.model_validate, page, per_page)
 
 
 @router.get("/prestamos/{prestamo_id}", response_model=PrestamoOut)
@@ -123,7 +114,7 @@ async def cancelar_prestamo(
     actor: Administrativo,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> PagoOut:
-    clave = _exigir_idem(idempotency_key)
+    clave = exigir_idem(idempotency_key)
     return await servicio.cancelar(
         session,
         prestamo_id=prestamo_id,

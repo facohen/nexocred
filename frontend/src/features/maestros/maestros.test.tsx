@@ -9,9 +9,21 @@ import { MaestrosPage } from "./MaestrosPage";
 const BASE = "/api/v1";
 
 const ZONA_FIXTURE = { id: "z1", codigo: "norte", nombre: "Zona Norte", orden: 1, activo: true };
-const SECTOR_FIXTURE = { id: "s1", codigo: "call_center", nombre: "Call Center", orden: 1, activo: true };
+const SECTOR_FIXTURE = {
+  id: "s1",
+  codigo: "call_center",
+  nombre: "Call Center",
+  orden: 1,
+  activo: true,
+};
 const PROV_FIXTURE = { id: "p1", codigo: "AR-B", nombre: "Buenos Aires", orden: 1, activo: true };
-const LOC_FIXTURE = { id: "l1", provincia_id: "p1", codigo: null, nombre: "La Plata", activo: true };
+const LOC_FIXTURE = {
+  id: "l1",
+  provincia_id: "p1",
+  codigo: null,
+  nombre: "La Plata",
+  activo: true,
+};
 
 function mockZonas(items = [ZONA_FIXTURE]) {
   server.use(
@@ -59,7 +71,7 @@ describe("MaestrosPage", () => {
     renderWithProviders(<MaestrosPage />);
     await screen.findByText("Zona Norte");
 
-    await user.click(screen.getByRole("button", { name: /sectores/i }));
+    await user.click(screen.getByRole("tab", { name: /sectores/i }));
     expect(await screen.findByText("Call Center")).toBeInTheDocument();
   });
 
@@ -69,7 +81,7 @@ describe("MaestrosPage", () => {
     const user = userEvent.setup();
     renderWithProviders(<MaestrosPage />);
 
-    await user.click(screen.getByRole("button", { name: /localidades/i }));
+    await user.click(screen.getByRole("tab", { name: /localidades/i }));
     const select = await screen.findByRole("combobox", { name: /provincia/i });
     expect(select).toBeInTheDocument();
 

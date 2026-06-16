@@ -107,7 +107,8 @@ async def generar_snapshot(
         metadata_json={"fecha_corte": fecha_corte.isoformat()},
     )
     snap = await session.get(SnapshotCartera, snap_id)
-    assert snap is not None
+    if snap is None:
+        raise RuntimeError(f"snapshot {snap_id} no encontrado tras insercion")
     await session.refresh(snap)
     log_job(
         "snapshot", fecha=fecha_corte.isoformat(),

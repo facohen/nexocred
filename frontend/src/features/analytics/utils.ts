@@ -26,3 +26,18 @@ export function pctIsNegative(tasa: string | undefined): boolean {
 export function truncarEtiqueta(clave: string): string {
   return clave.length > MAX_LABEL_CHARS ? `${clave.slice(0, MAX_LABEL_CHARS - 2)}…` : clave;
 }
+
+export type IntentSimple = "pos" | "warn" | "neg";
+
+/**
+ * Intención de color para un RATIO de rentabilidad (string del backend, ej
+ * "0.0250"). Geometría/semántica de color únicamente — el valor se muestra con
+ * formatRatioPercent, nunca desde este número. Umbral: < 0 negativo,
+ * 0–`umbralWarn` advertencia, ≥ `umbralWarn` positivo.
+ */
+export function rentabilidadIntent(ratio: string | undefined, umbralWarn = 0.05): IntentSimple {
+  const n = Number(ratio);
+  if (!Number.isFinite(n) || n < 0) return "neg";
+  if (n < umbralWarn) return "warn";
+  return "pos";
+}

@@ -93,6 +93,17 @@ _ROLES_LECTURA_GLOBAL = frozenset(
 )
 
 
+def exigir_idem(idempotency_key: str | None) -> str:
+    """Valida que el header Idempotency-Key esté presente en operaciones que lo requieren."""
+    if not idempotency_key:
+        raise ErrorAPI(
+            "idempotency_key_requerida",
+            "esta operacion requiere header Idempotency-Key",
+            status=400,
+        )
+    return idempotency_key
+
+
 def scope_vendedor(
     actor: Usuario, vendedor_id: uuid.UUID | None
 ) -> uuid.UUID | None:

@@ -71,11 +71,7 @@ export interface AccessoresFiltro<T> {
 }
 
 /** Predicado puro: ¿el item pasa el filtro? Reusable con cualquier T vía accessors. */
-export function pasaFiltro<T>(
-  item: T,
-  acc: AccessoresFiltro<T>,
-  filtro: FiltroCartera,
-): boolean {
+export function pasaFiltro<T>(item: T, acc: AccessoresFiltro<T>, filtro: FiltroCartera): boolean {
   if (filtro.estado && acc.estado(item) !== filtro.estado) return false;
   if (!fechaEnRango(acc.fecha(item), filtro.rango)) return false;
   if (!montoEnRango(acc.monto(item), filtro.montoMin, filtro.montoMax)) return false;

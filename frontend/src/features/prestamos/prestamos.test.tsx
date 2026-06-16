@@ -23,7 +23,7 @@ describe("PrestamoDetail", () => {
     // payoff total
     const payoff = await screen.findByLabelText(/payoff/i);
     expect(payoff).toBeInTheDocument();
-    expect(screen.getByText("$ 429.166,66")).toHaveClass("tabular-nums");
+    expect(screen.getAllByText("$ 429.166,66")[0]).toHaveClass("tabular-nums");
   });
 
   it("lista las cuotas del array PELADO del backend (sin wrapper {data})", async () => {

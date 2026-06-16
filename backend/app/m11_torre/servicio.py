@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.m07_riesgo.metricas import aging, cosechas, perdida_esperada
 from app.m07_riesgo.servicio import cartera_riesgo
 from app.m10_tesoreria.servicio import cashflow
+from app.m08_crm.modelos import PromesaPago
 from app.modelos_stub import (
     Alerta,
     Cuota,
@@ -127,8 +128,8 @@ async def operacion_hoy(session: AsyncSession, fecha: date) -> dict:
         )
     )
     promesas = await session.scalar(
-        select(func.count()).select_from(ParadaRuta).where(
-            ParadaRuta.resultado == "promesa"
+        select(func.count()).select_from(PromesaPago).where(
+            PromesaPago.estado == "vigente"
         )
     )
     pipeline = await session.scalar(

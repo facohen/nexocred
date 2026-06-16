@@ -66,7 +66,8 @@ async def generar(
         if existente is not None:
             doc_id = uuid.UUID(json.loads(existente)["documento_id"])
             doc = await session.get(DocumentoEmitido, doc_id)
-            assert doc is not None
+            if doc is None:
+                raise RuntimeError(f"documento idempotente {doc_id} no encontrado")
             return doc
 
     prestamo = await session.get(Prestamo, prestamo_id)

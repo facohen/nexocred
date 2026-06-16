@@ -39,8 +39,11 @@ async function fillFichaCompleta(cuil = "20-12345678-6") {
   await userEvent.selectOptions(screen.getByLabelText(/tipo de vivienda/i), "propia");
   await userEvent.type(screen.getByLabelText(/^teléfono/i), "11-5555-1111");
   await userEvent.type(screen.getByLabelText(/calle/i), "Av. Siempreviva");
-  await userEvent.type(screen.getByLabelText(/localidad/i), "CABA");
-  await userEvent.type(screen.getByLabelText(/provincia/i), "Buenos Aires");
+  // Provincia/localidad son selects en cascada que cargan del API
+  await screen.findByRole("option", { name: "Buenos Aires" });
+  await userEvent.selectOptions(screen.getByLabelText(/provincia/i), "prov-1");
+  await screen.findByRole("option", { name: "La Plata" });
+  await userEvent.selectOptions(screen.getByLabelText(/localidad/i), "loc-1");
   await userEvent.type(screen.getByLabelText(/ingresos declarados/i), "300000");
   await userEvent.type(screen.getByLabelText(/ingresos en blanco/i), "200000");
   await userEvent.type(screen.getByLabelText(/ingresos totales/i), "300000");

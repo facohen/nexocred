@@ -11,11 +11,14 @@ from app.m08_crm.schemas import (
     AsignacionMasivaIn,
     AsignacionOut,
     CompletarTareaIn,
+    Ficha360Out,
     IncidenteIn,
     IncidenteOut,
     IncidentePatch,
     InteraccionIn,
     InteraccionOut,
+    PromesaIn,
+    PromesaOut,
     ProspectoIn,
     ProspectoOut,
     ProspectoPatch,
@@ -114,6 +117,10 @@ async def crear_interaccion(
     interaccion = await servicio.crear_interaccion(
         session, persona_id=datos.persona_id, tipo=datos.tipo, detalle=datos.detalle,
         tarea_id=datos.tarea_id, operador_id=actor.id, actor_id=actor.id,
+        tema_id=datos.tema_id, canal_id=datos.canal_id,
+        disposicion_id=datos.disposicion_id, credito_id=datos.credito_id,
+        proximo_paso_fecha=datos.proximo_paso_fecha,
+        proximo_paso_nota=datos.proximo_paso_nota,
     )
     return InteraccionOut.model_validate(interaccion)
 
@@ -131,9 +138,15 @@ async def tareas_de_persona(
 
 @router.get("/personas/{persona_id}/timeline", response_model=list[TimelineEvento])
 async def timeline_persona(
-    persona_id: uuid.UUID, session: SessionDep, _: CrmUser
+    persona_id: uuid.UUID,
+    session: SessionDep,
+    _: CrmUser,
+    tema_id: Annotated[uuid.UUID | None, Query()] = None,
+    disposicion_id: Annotated[uuid.UUID | None, Query()] = None,
 ) -> list[TimelineEvento]:
-    return await servicio.timeline(session, persona_id)
+    return await servicio.timeline(
+        session, persona_id, tema_id=tema_id, disposicion_id=disposicion_id
+    )
 
 
 # ---------- Incidentes ----------
@@ -250,3 +263,73 @@ async def actualizar_prospecto(
         telefono=datos.telefono, persona_id=datos.persona_id, actor_id=actor.id,
     )
     return ProspectoOut.model_validate(prospecto)
+
+
+# ---------- Promesas de Pago ----------
+@router.post("/promesas", response_model=PromesaOut, status_code=201)
+async def crear_promesa(
+    datos: PromesaIn, session: SessionDep, actor: CrmUser
+) -> PromesaOut:
+    if datos.interaccion_id is None and datos.parada_ruta_id is None:
+        raise ErrorAPI("origen_requerido", "se requiere interaccion_id o parada_ruta_id", status=422)
+    if datos.interaccion_id is not None and datos.parada_ruta_id is not None:
+        raise ErrorAPI("origen_ambiguo", "solo se acepta interaccion_id o parada_ruta_id, no ambos", status=422)
+    from decimal import Decimal
+    promesa = await servicio.crear_promesa(
+        session,
+        prestamo_id=datos.prestamo_id,
+        monto_prometido=Decimal(datos.monto_prometido),
+        fecha_prometida=datos.fecha_prometida,
+        canal_origen=datos.canal_origen,
+        interaccion_id=datos.interaccion_id,
+        parada_ruta_id=datos.parada_ruta_id,
+        cuota_id=datos.cuota_id,
+        creada_por=actor.id,
+        actor_id=actor.id,
+    )
+    return PromesaOut.model_validate(promesa)
+
+
+@router.get("/promesas", response_model=Pagina[PromesaOut])
+async def listar_promesas(
+    session: SessionDep,
+    actor: CrmUser,
+    prestamo_id: Annotated[uuid.UUID | None, Query()] = None,
+    estado: Annotated[str | None, Query()] = None,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+) -> Pagina[PromesaOut]:
+    promesas = await servicio.listar_promesas(session, prestamo_id=prestamo_id, estado=estado)
+    return paginar([PromesaOut.model_validate(p) for p in promesas], page, per_page)
+
+
+@router.get("/promesas/{promesa_id}", response_model=PromesaOut)
+async def obtener_promesa(
+    promesa_id: uuid.UUID, session: SessionDep, actor: CrmUser
+) -> PromesaOut:
+    promesa = await servicio.obtener_promesa(session, promesa_id)
+    if promesa is None:
+        raise ErrorAPI("promesa_no_encontrada", "promesa inexistente", status=404)
+    return PromesaOut.model_validate(promesa)
+
+
+@router.post("/promesas/{promesa_id}/reconciliar", response_model=list[PromesaOut])
+async def reconciliar_promesa(
+    promesa_id: uuid.UUID, session: SessionDep, actor: CrmUser
+) -> list[PromesaOut]:
+    promesa = await servicio.obtener_promesa(session, promesa_id)
+    if promesa is None:
+        raise ErrorAPI("promesa_no_encontrada", "promesa inexistente", status=404)
+    actualizadas = await servicio.reconciliar_promesas(
+        session, prestamo_id=promesa.prestamo_id, actor_id=actor.id
+    )
+    await session.commit()
+    return [PromesaOut.model_validate(p) for p in actualizadas]
+
+
+# ---------- Ficha Cliente 360 ----------
+@router.get("/personas/{persona_id}/ficha360", response_model=Ficha360Out)
+async def ficha_360(
+    persona_id: uuid.UUID, session: SessionDep, actor: CrmUser
+) -> Ficha360Out:
+    return Ficha360Out(**(await servicio.ficha_cliente_360(session, persona_id)))

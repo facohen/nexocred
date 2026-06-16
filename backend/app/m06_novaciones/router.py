@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Header
 
-from app.deps import ProponeNovacion, CurrentUser, SessionDep
+from app.deps import CurrentUser, ProponeNovacion, SessionDep, exigir_idem
 from app.errors import ErrorAPI
 from app.m06_novaciones import servicio
 from app.m06_novaciones.schemas import (
@@ -17,16 +17,6 @@ from app.m06_novaciones.schemas import (
 router = APIRouter(tags=["novaciones"])
 
 
-def _exigir_idem(idempotency_key: str | None) -> str:
-    if not idempotency_key:
-        raise ErrorAPI(
-            "idempotency_key_requerida",
-            "esta operacion requiere header Idempotency-Key",
-            status=400,
-        )
-    return idempotency_key
-
-
 @router.post("/novaciones/refinanciar", response_model=NovacionOut, status_code=201)
 async def refinanciar(
     datos: RefinanciarIn,
@@ -34,7 +24,7 @@ async def refinanciar(
     actor: ProponeNovacion,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> NovacionOut:
-    clave = _exigir_idem(idempotency_key)
+    clave = exigir_idem(idempotency_key)
     return await servicio.refinanciar(
         session, prestamo_id=datos.prestamo_id, caja_id=datos.caja_id,
         fecha_negocio=datos.fecha_negocio, tasa=datos.tasa_interes_directo,
@@ -51,7 +41,7 @@ async def consolidar(
     actor: ProponeNovacion,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> NovacionOut:
-    clave = _exigir_idem(idempotency_key)
+    clave = exigir_idem(idempotency_key)
     return await servicio.consolidar(
         session, prestamo_ids=datos.prestamo_ids, caja_id=datos.caja_id,
         fecha_negocio=datos.fecha_negocio, tasa=datos.tasa_interes_directo,
@@ -68,7 +58,7 @@ async def transferir(
     actor: ProponeNovacion,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> NovacionOut:
-    clave = _exigir_idem(idempotency_key)
+    clave = exigir_idem(idempotency_key)
     return await servicio.transferir(
         session, prestamo_id=datos.prestamo_id, nuevo_deudor_id=datos.nuevo_deudor_id,
         caja_id=datos.caja_id, fecha_negocio=datos.fecha_negocio,
@@ -85,7 +75,7 @@ async def repactar_rapido(
     actor: ProponeNovacion,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> NovacionOut:
-    clave = _exigir_idem(idempotency_key)
+    clave = exigir_idem(idempotency_key)
     return await servicio.repactar_rapido(
         session, prestamo_id=datos.prestamo_id, caja_id=datos.caja_id,
         fecha_negocio=datos.fecha_negocio, pago_cuenta=datos.pago_cuenta,

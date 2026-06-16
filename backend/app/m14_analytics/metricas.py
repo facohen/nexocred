@@ -31,6 +31,7 @@ class PrestamoRentabilidad:
     cliente_id: str | None
     cosecha: str | None  # YYYY-MM de la fecha de desembolso
     zona: str | None
+    sector: str | None
     capital_desembolsado: Decimal
     interes_cobrado: Decimal
     comision_originacion: Decimal

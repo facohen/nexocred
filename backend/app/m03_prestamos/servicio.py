@@ -26,8 +26,7 @@ async def obtener_prestamo(
     return res.scalar_one_or_none()
 
 
-async def listar_prestamos(
-    session: AsyncSession,
+def query_prestamos(
     *,
     estado: str | None = None,
     persona_id: uuid.UUID | None = None,
@@ -35,7 +34,8 @@ async def listar_prestamos(
     vendedor_id: uuid.UUID | None = None,
     zona: str | None = None,
     sector: str | None = None,
-) -> list[Prestamo]:
+):
+    """Devuelve un Select sin ejecutar, listo para paginar_query."""
     stmt = select(Prestamo).order_by(Prestamo.created_at.desc())
     if estado is not None:
         stmt = stmt.where(Prestamo.estado == estado)
@@ -49,8 +49,7 @@ async def listar_prestamos(
         stmt = stmt.where(Prestamo.snapshot_terminos["zona"].astext == zona)
     if sector is not None:
         stmt = stmt.where(Prestamo.snapshot_terminos["sector"].astext == sector)
-    res = await session.execute(stmt)
-    return list(res.scalars().all())
+    return stmt
 
 
 async def cuotas_de(session: AsyncSession, prestamo_id: uuid.UUID) -> list[Cuota]:
@@ -124,7 +123,8 @@ async def cancelar(
         actor_id=actor_id,
         reservar_idem=False,
     )
-    assert out is not None
+    if out is None:
+        raise RuntimeError("aplicar_pago devolvio None en cancelacion anticipada")
 
     # (d) Estado del prestamo en la MISMA transaccion (mismo prestamo ya bloqueado).
     prestamo.estado = "cancelado"

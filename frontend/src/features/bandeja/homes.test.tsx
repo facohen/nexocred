@@ -28,5 +28,4 @@ describe("Homes de trabajo (inbox-driven)", () => {
     expect(await screen.findByText(/PAR30/i)).toBeInTheDocument();
     expect(await screen.findByText(/cola de riesgo/i)).toBeInTheDocument();
   });
-
 });

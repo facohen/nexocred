@@ -68,11 +68,7 @@ describe("filtrarCartera", () => {
   });
 
   it("combina estado + período + monto", () => {
-    const r = filtrarCartera(
-      filas,
-      acc,
-      con({ rango: "90dias", montoMin: "200000.00" }),
-    );
+    const r = filtrarCartera(filas, acc, con({ rango: "90dias", montoMin: "200000.00" }));
     expect(r.map((f) => f.estado)).toEqual(["en_mora"]);
   });
 });

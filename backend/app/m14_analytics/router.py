@@ -30,6 +30,8 @@ async def get_rentabilidad(
     fecha: Annotated[date | None, Query()] = None,
     desde: Annotated[date | None, Query()] = None,
     hasta: Annotated[date | None, Query()] = None,
+    zona_id: Annotated[str | None, Query()] = None,
+    sector_id: Annotated[str | None, Query()] = None,
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
 ) -> Pagina[RentabilidadItem]:
@@ -40,7 +42,7 @@ async def get_rentabilidad(
             status=422,
         )
     agregados = await servicio.rentabilidad_por(
-        session, dimension, _fecha(fecha), desde, hasta
+        session, dimension, _fecha(fecha), desde, hasta, zona_id, sector_id
     )
     items = [RentabilidadItem(**asdict(a)) for a in agregados]
     return paginar(items, page, per_page)
@@ -51,5 +53,9 @@ async def get_resumen(
     session: SessionDep,
     _: AnalyticsUser,
     fecha: Annotated[date | None, Query()] = None,
+    zona_id: Annotated[str | None, Query()] = None,
+    sector_id: Annotated[str | None, Query()] = None,
 ) -> ResumenAnalytics:
-    return ResumenAnalytics(**await servicio.resumen_cartera(session, _fecha(fecha)))
+    return ResumenAnalytics(
+        **await servicio.resumen_cartera(session, _fecha(fecha), zona_id, sector_id)
+    )

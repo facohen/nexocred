@@ -1,13 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
+import type { FiltroZonaSector } from "@/components/filters/DashboardFilterBar";
 
 type Sch = components["schemas"];
 
-export function useResumen() {
+function zonaParams(filtro?: FiltroZonaSector) {
+  return {
+    ...(filtro?.zona_id ? { zona_id: filtro.zona_id } : {}),
+    ...(filtro?.sector_id ? { sector_id: filtro.sector_id } : {}),
+  };
+}
+
+export function useResumen(filtro?: FiltroZonaSector) {
   return useQuery({
-    queryKey: ["torre-resumen"],
-    queryFn: () => apiFetch<Sch["ResumenOut"]>("/torre/resumen"),
+    queryKey: ["torre-resumen", filtro?.zona_id ?? "", filtro?.sector_id ?? ""],
+    queryFn: () => apiFetch<Sch["ResumenOut"]>("/torre/resumen", { query: zonaParams(filtro) }),
   });
 }
 export function usePulso() {

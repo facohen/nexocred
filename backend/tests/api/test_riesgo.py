@@ -52,3 +52,30 @@ async def test_concentracion_clave_invalida(client, admin_token):
         "/api/v1/riesgo/concentracion?clave=foo", headers=_h(admin_token)
     )
     assert r.status_code == 422, r.text
+
+
+async def test_tablero_filtro_zona_texto_sin_resultados(client, admin_token):
+    """Filtrar por zona='BA' cuando ningun prestamo tiene esa zona → metricas en cero."""
+    r = await client.get(
+        "/api/v1/riesgo/tablero?zona=BA_INEXISTENTE", headers=_h(admin_token)
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    # Sin prestamos en esa zona: PAR debe ser 0 y cartera_total debe ser 0
+    from decimal import Decimal
+    assert Decimal(body["par30"]) == Decimal("0")
+    assert Decimal(body["cartera_total"]) == Decimal("0")
+
+
+async def test_tablero_filtro_zona_texto_acepta_param(client, admin_token, session):
+    """Filtro zona= (texto) se acepta como query param y retorna 200."""
+    await relajar_bcra(client, admin_token)
+    await _prestamo_desembolsado(
+        client, admin_token, session, fpc_offset=-30,
+        cuil=cuil_valido("81000044"), dni="81000044",
+    )
+    # Pasar zona como string → debe aceptar sin 422
+    r = await client.get(
+        "/api/v1/riesgo/tablero?zona=norte&sector=comercial", headers=_h(admin_token)
+    )
+    assert r.status_code == 200, r.text

@@ -996,3 +996,17 @@ export const documentos = [
     anulado_por: "admin",
   },
 ];
+
+export const promesas = [
+  {
+    id: "promesa-1",
+    prestamo_id: "prestamo-1",
+    monto_prometido: "50000.00",
+    fecha_prometida: "2026-07-01",
+    estado: "vigente",
+    canal_origen: "call",
+    interaccion_id: "interaccion-1",
+    parada_ruta_id: null,
+    created_at: "2026-06-01T10:00:00Z",
+  },
+];

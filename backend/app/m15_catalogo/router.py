@@ -51,7 +51,8 @@ async def crear_producto(
     producto = await servicio.crear_producto(session, datos, actor_id=actor.id)
     await session.commit()
     producto = await servicio.obtener_producto(session, producto.id)
-    assert producto is not None
+    if producto is None:
+        raise ErrorAPI("producto_inexistente", "producto no encontrado tras alta", status=500)
     return await _producto_out(session, producto)
 
 
@@ -111,7 +112,8 @@ async def actualizar_producto(
     await servicio.actualizar_producto(session, producto, cambios, actor_id=actor.id)
     await session.commit()
     producto = await servicio.obtener_producto(session, producto_id)
-    assert producto is not None
+    if producto is None:
+        raise ErrorAPI("producto_inexistente", "producto no encontrado tras actualización", status=500)
     return await _producto_out(session, producto)
 
 
@@ -125,7 +127,8 @@ async def publicar_producto(
     await servicio.publicar_producto(session, producto, actor_id=actor.id)
     await session.commit()
     producto = await servicio.obtener_producto(session, producto_id)
-    assert producto is not None
+    if producto is None:
+        raise ErrorAPI("producto_inexistente", "producto no encontrado tras publicación", status=500)
     return await _producto_out(session, producto)
 
 

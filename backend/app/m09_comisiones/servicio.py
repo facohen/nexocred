@@ -291,7 +291,8 @@ async def pagar_liquidacion(
     if previo is not None:
         lid = uuid.UUID(json.loads(previo)["id"])
         liq = await obtener_liquidacion(session, lid)
-        assert liq is not None
+        if liq is None:
+            raise RuntimeError(f"liquidacion idempotente {lid} no encontrada")
         return liq
 
     liquidacion = await bloquear_liquidacion(session, liquidacion_id)

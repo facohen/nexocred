@@ -7,24 +7,36 @@ interface Pagina<T> {
   data: T[];
 }
 
-export function useTablero() {
+interface FiltroZonaSector {
+  zona_id?: string;
+  sector_id?: string;
+}
+
+function buildParams(f?: FiltroZonaSector) {
+  const p = new URLSearchParams();
+  if (f?.zona_id) p.set("zona_id", f.zona_id);
+  if (f?.sector_id) p.set("sector_id", f.sector_id);
+  return p.toString() ? `?${p.toString()}` : "";
+}
+
+export function useTablero(filtro?: FiltroZonaSector) {
   return useQuery({
-    queryKey: ["riesgo-tablero"],
-    queryFn: () => apiFetch<Sch["TableroOut"]>("/riesgo/tablero"),
+    queryKey: ["riesgo-tablero", filtro?.zona_id, filtro?.sector_id],
+    queryFn: () => apiFetch<Sch["TableroOut"]>(`/riesgo/tablero${buildParams(filtro)}`),
   });
 }
 
-export function useCosechas() {
+export function useCosechas(filtro?: FiltroZonaSector) {
   return useQuery({
-    queryKey: ["riesgo-cosechas"],
-    queryFn: () => apiFetch<Pagina<Sch["CosechaOut"]>>("/riesgo/cosechas"),
+    queryKey: ["riesgo-cosechas", filtro?.zona_id, filtro?.sector_id],
+    queryFn: () => apiFetch<Pagina<Sch["CosechaOut"]>>(`/riesgo/cosechas${buildParams(filtro)}`),
   });
 }
 
-export function useConcentracion() {
+export function useConcentracion(filtro?: FiltroZonaSector) {
   return useQuery({
-    queryKey: ["riesgo-concentracion"],
-    queryFn: () => apiFetch<Pagina<Sch["ConcentracionItem"]>>("/riesgo/concentracion"),
+    queryKey: ["riesgo-concentracion", filtro?.zona_id, filtro?.sector_id],
+    queryFn: () => apiFetch<Pagina<Sch["ConcentracionItem"]>>(`/riesgo/concentracion${buildParams(filtro)}`),
   });
 }
 

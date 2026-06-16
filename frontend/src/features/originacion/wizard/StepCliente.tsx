@@ -102,6 +102,7 @@ export function StepCliente({ onElegir }: { onElegir: (cliente: ClienteElegido) 
               <li key={p.id}>
                 <button
                   type="button"
+                  aria-label={`Elegir ${nombreCompleto}`}
                   onClick={() => onElegir({ id: p.id, nombre: nombreCompleto, dni: p.dni })}
                   className="group flex w-full items-center gap-3 rounded-xl border border-border bg-surface px-3.5 py-3 text-left shadow-sm transition-all duration-150 hover:border-brand-subtle hover:bg-surface-sunken hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >

@@ -80,7 +80,12 @@ def _gastos_de(prestamo: Prestamo, gastos_por_producto: dict[uuid.UUID, list]) -
 
 
 async def _snapshots(
-    session: AsyncSession, fecha: date, desde: date | None, hasta: date | None
+    session: AsyncSession,
+    fecha: date,
+    desde: date | None,
+    hasta: date | None,
+    zona_id: str | None = None,
+    sector_id: str | None = None,
 ) -> list[PrestamoRentabilidad]:
     cond = [
         Prestamo.estado.in_(["vigente", "en_mora", "cancelado"]),
@@ -119,6 +124,7 @@ async def _snapshots(
                     else None
                 ),
                 zona=str(snap.get("zona")) if snap.get("zona") else None,
+                sector=str(snap.get("sector")) if snap.get("sector") else None,
                 capital_desembolsado=capital_des,
                 interes_cobrado=redondear(interes.get(p.id, CERO)),
                 comision_originacion=redondear(comision.get(p.id, CERO)),
@@ -129,6 +135,10 @@ async def _snapshots(
                 refinanciado=riesgo.refinanciado,
             )
         )
+    if zona_id:
+        salida = [s for s in salida if s.zona == zona_id]
+    if sector_id:
+        salida = [s for s in salida if s.sector == sector_id]
     return salida
 
 
@@ -138,14 +148,21 @@ async def rentabilidad_por(
     fecha: date,
     desde: date | None = None,
     hasta: date | None = None,
+    zona_id: str | None = None,
+    sector_id: str | None = None,
 ) -> list[AgregadoRentabilidad]:
-    snaps = await _snapshots(session, fecha, desde, hasta)
+    snaps = await _snapshots(session, fecha, desde, hasta, zona_id, sector_id)
     return agregar_por(snaps, dimension, costo_capital_anual())
 
 
-async def resumen_cartera(session: AsyncSession, fecha: date) -> dict:
+async def resumen_cartera(
+    session: AsyncSession,
+    fecha: date,
+    zona_id: str | None = None,
+    sector_id: str | None = None,
+) -> dict:
     """KPIs globales de rentabilidad de la cartera + top/bottom producto."""
-    snaps = await _snapshots(session, fecha, None, None)
+    snaps = await _snapshots(session, fecha, None, None, zona_id, sector_id)
     tasa = costo_capital_anual()
     por_producto = agregar_por(snaps, "producto", tasa)
 

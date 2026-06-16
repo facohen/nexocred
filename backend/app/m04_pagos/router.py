@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Header, Query
 
-from app.deps import Administrativo, CurrentUser, SessionDep
+from app.deps import Administrativo, CurrentUser, SessionDep, exigir_idem
 from app.errors import ErrorAPI
 from app.m04_pagos import servicio
 from app.m04_pagos.schemas import (
@@ -18,16 +18,6 @@ from app.paginacion import Pagina, paginar
 router = APIRouter(tags=["pagos"])
 
 
-def _exigir_idem(idempotency_key: str | None) -> str:
-    if not idempotency_key:
-        raise ErrorAPI(
-            "idempotency_key_requerida",
-            "esta operacion requiere header Idempotency-Key",
-            status=400,
-        )
-    return idempotency_key
-
-
 @router.post("/pagos", response_model=PagoOut, status_code=201)
 async def registrar_pago(
     datos: PagoCreate,
@@ -35,7 +25,7 @@ async def registrar_pago(
     actor: Administrativo,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> PagoOut:
-    clave = _exigir_idem(idempotency_key)
+    clave = exigir_idem(idempotency_key)
     return await servicio.registrar_pago(
         session,
         prestamo_id=datos.prestamo_id,
@@ -67,7 +57,7 @@ async def corregir_pago(
     actor: Administrativo,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> CorreccionOut:
-    clave = _exigir_idem(idempotency_key)
+    clave = exigir_idem(idempotency_key)
     return await servicio.corregir(
         session,
         pago_original_id=pago_id,

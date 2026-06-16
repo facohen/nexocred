@@ -8,10 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auditoria import escribir_evento
 from app.errors import ErrorAPI
 from app.m06_novaciones.modelos import Novacion, NovacionOrigen
-from app.m08_crm.modelos import AsignacionCrm, Interaccion, Prospecto
+from app.m08_crm.modelos import AsignacionCrm, Interaccion, PromesaPago, Prospecto
 from app.m08_crm.schemas import TimelineEvento
 from app.modelos_stub import (
     Alerta,
+    Cuota,
     Incidente,
     Pago,
     Prestamo,
@@ -32,9 +33,24 @@ async def crear_tarea(
     vencimiento: date | None = None,
     origen: str = "manual",
     alerta_id: uuid.UUID | None = None,
+    promesa_id: uuid.UUID | None = None,
+    dedupe_key: str | None = None,
     actor_id: uuid.UUID | None,
     commit: bool = True,
 ) -> Tarea:
+    # Idempotency guard: si hay dedupe_key + origen activos, devolver la existente.
+    if dedupe_key is not None:
+        res = await session.execute(
+            select(Tarea).where(
+                Tarea.dedupe_key == dedupe_key,
+                Tarea.origen == origen,
+                Tarea.estado == "pendiente",
+            )
+        )
+        existente = res.scalar_one_or_none()
+        if existente is not None:
+            return existente
+
     tarea = Tarea(
         persona_id=persona_id,
         operador_id=operador_id,
@@ -44,6 +60,8 @@ async def crear_tarea(
         vencimiento=vencimiento,
         origen=origen,
         alerta_id=alerta_id,
+        promesa_id=promesa_id,
+        dedupe_key=dedupe_key,
         estado="pendiente",
     )
     session.add(tarea)
@@ -144,7 +162,14 @@ async def crear_interaccion(
     detalle: str | None,
     tarea_id: uuid.UUID | None,
     operador_id: uuid.UUID | None,
+    tema_id: uuid.UUID | None = None,
+    canal_id: uuid.UUID | None = None,
+    disposicion_id: uuid.UUID | None = None,
+    credito_id: uuid.UUID | None = None,
+    proximo_paso_fecha: date | None = None,
+    proximo_paso_nota: str | None = None,
     actor_id: uuid.UUID | None,
+    commit: bool = True,
 ) -> Interaccion:
     if tipo not in ("llamada", "visita", "mensaje", "nota"):
         raise ErrorAPI("tipo_invalido", f"tipo invalido: {tipo}", status=422)
@@ -154,6 +179,12 @@ async def crear_interaccion(
         tipo=tipo,
         tarea_id=tarea_id,
         detalle=detalle,
+        tema_id=tema_id,
+        canal_id=canal_id,
+        disposicion_id=disposicion_id,
+        credito_id=credito_id,
+        proximo_paso_fecha=proximo_paso_fecha,
+        proximo_paso_nota=proximo_paso_nota,
     )
     session.add(interaccion)
     await session.flush()
@@ -161,18 +192,40 @@ async def crear_interaccion(
         session, actor_id=actor_id, accion="interaccion_alta", entidad="interaccion",
         entidad_id=interaccion.id, metadata_json={"tipo": tipo},
     )
-    await session.commit()
+    # Si hay próximo paso → crear tarea de seguimiento en la misma transacción.
+    if proximo_paso_fecha is not None:
+        await crear_tarea(
+            session,
+            persona_id=persona_id,
+            operador_id=operador_id,
+            titulo=proximo_paso_nota or "Seguimiento CRM",
+            vencimiento=proximo_paso_fecha,
+            origen="seguimiento_crm",
+            dedupe_key=f"seguimiento_crm:{str(interaccion.id)}",
+            actor_id=actor_id,
+            commit=False,
+        )
+    if commit:
+        await session.commit()
     return interaccion
 
 
 async def interacciones_de(
-    session: AsyncSession, persona_id: uuid.UUID
+    session: AsyncSession,
+    persona_id: uuid.UUID,
+    tema_id: uuid.UUID | None = None,
+    disposicion_id: uuid.UUID | None = None,
 ) -> list[Interaccion]:
-    res = await session.execute(
+    stmt = (
         select(Interaccion)
         .where(Interaccion.persona_id == persona_id)
         .order_by(Interaccion.fecha)
     )
+    if tema_id is not None:
+        stmt = stmt.where(Interaccion.tema_id == tema_id)
+    if disposicion_id is not None:
+        stmt = stmt.where(Interaccion.disposicion_id == disposicion_id)
+    res = await session.execute(stmt)
     return list(res.scalars().all())
 
 
@@ -307,12 +360,15 @@ async def asignar_masivo(
 
 # ---------- Timeline ----------
 async def timeline(
-    session: AsyncSession, persona_id: uuid.UUID
+    session: AsyncSession,
+    persona_id: uuid.UUID,
+    tema_id: uuid.UUID | None = None,
+    disposicion_id: uuid.UUID | None = None,
 ) -> list[TimelineEvento]:
     eventos: list[TimelineEvento] = []
 
-    # Interacciones CRM
-    for i in await interacciones_de(session, persona_id):
+    # Interacciones CRM (con filtros opcionales de tema y disposicion)
+    for i in await interacciones_de(session, persona_id, tema_id=tema_id, disposicion_id=disposicion_id):
         eventos.append(
             TimelineEvento(
                 tipo=f"interaccion:{i.tipo}", fecha=i.fecha, detalle=i.detalle,
@@ -488,3 +544,227 @@ def _suma_segura(valores: list[Decimal]) -> Decimal:
     for v in valores:
         total += v
     return total
+
+
+# ---------- Promesas de Pago ----------
+
+async def crear_promesa(
+    session: AsyncSession,
+    *,
+    prestamo_id: uuid.UUID,
+    monto_prometido: Decimal,
+    fecha_prometida: date,
+    canal_origen: str,
+    interaccion_id: uuid.UUID | None = None,
+    parada_ruta_id: uuid.UUID | None = None,
+    cuota_id: uuid.UUID | None = None,
+    creada_por: uuid.UUID | None,
+    actor_id: uuid.UUID | None,
+    commit: bool = True,
+) -> PromesaPago:
+    from sqlalchemy import func as sqlfunc
+
+    # Calcular saldo exigible como baseline (suma de cuotas pendientes/vencidas).
+    res = await session.execute(
+        select(sqlfunc.coalesce(sqlfunc.sum(Cuota.cuota), 0)).where(
+            Cuota.prestamo_id == prestamo_id,
+            Cuota.estado.in_(["pendiente", "vencida"]),
+        )
+    )
+    saldo_base = res.scalar_one() or Decimal("0")
+
+    promesa = PromesaPago(
+        prestamo_id=prestamo_id,
+        cuota_id=cuota_id,
+        monto_prometido=monto_prometido,
+        monto_exigible_base=saldo_base,
+        fecha_prometida=fecha_prometida,
+        canal_origen=canal_origen,
+        interaccion_id=interaccion_id,
+        parada_ruta_id=parada_ruta_id,
+        creada_por=creada_por,
+        estado="vigente",
+    )
+    session.add(promesa)
+    await session.flush()
+    await escribir_evento(
+        session, actor_id=actor_id, accion="promesa_alta", entidad="promesa_pago",
+        entidad_id=promesa.id,
+        metadata_json={
+            "prestamo_id": str(prestamo_id),
+            "monto": str(monto_prometido),
+            "fecha": str(fecha_prometida),
+        },
+    )
+    if commit:
+        await session.commit()
+    return promesa
+
+
+async def obtener_promesa(
+    session: AsyncSession, promesa_id: uuid.UUID
+) -> PromesaPago | None:
+    res = await session.execute(
+        select(PromesaPago).where(PromesaPago.id == promesa_id)
+    )
+    return res.scalar_one_or_none()
+
+
+async def listar_promesas(
+    session: AsyncSession,
+    *,
+    prestamo_id: uuid.UUID | None = None,
+    estado: str | None = None,
+) -> list[PromesaPago]:
+    stmt = select(PromesaPago).order_by(PromesaPago.created_at.desc())
+    if prestamo_id is not None:
+        stmt = stmt.where(PromesaPago.prestamo_id == prestamo_id)
+    if estado is not None:
+        stmt = stmt.where(PromesaPago.estado == estado)
+    res = await session.execute(stmt)
+    return list(res.scalars().all())
+
+
+async def reconciliar_promesas(
+    session: AsyncSession,
+    *,
+    prestamo_id: uuid.UUID,
+    actor_id: uuid.UUID | None,
+    fecha_hoy: date | None = None,
+) -> list[PromesaPago]:
+    """Recalcula el estado de las promesas vigentes de un préstamo
+    en función del saldo exigible actual (cuotas pendientes/vencidas).
+    Promesa rota → crea tarea de seguimiento (idempotente por dedupe_key).
+    """
+    from datetime import date as _date
+
+    hoy = fecha_hoy or _date.today()
+
+    res = await session.execute(
+        select(PromesaPago).where(
+            PromesaPago.prestamo_id == prestamo_id,
+            PromesaPago.estado == "vigente",
+        )
+    )
+    promesas = list(res.scalars().all())
+    if not promesas:
+        return []
+
+    from sqlalchemy import func as sqlfunc
+
+    saldo_res = await session.execute(
+        select(sqlfunc.coalesce(sqlfunc.sum(Cuota.cuota), 0)).where(
+            Cuota.prestamo_id == prestamo_id,
+            Cuota.estado.in_(["pendiente", "vencida"]),
+        )
+    )
+    saldo_actual = saldo_res.scalar_one() or Decimal("0")
+
+    # Obtener persona_id del prestamo.
+    prestamo = await session.get(Prestamo, prestamo_id)
+    persona_id = prestamo.persona_id if prestamo else None
+
+    actualizadas = []
+    for p in promesas:
+        base = p.monto_exigible_base or Decimal("0")
+        pagado = base - saldo_actual
+        if saldo_actual <= 0:
+            nuevo_estado = "cumplida"
+        elif pagado >= p.monto_prometido:
+            nuevo_estado = "cumplida"
+        elif pagado > 0:
+            nuevo_estado = "parcial"
+        elif p.fecha_prometida < hoy:
+            nuevo_estado = "rota"
+        else:
+            actualizadas.append(p)
+            continue
+
+        p.estado = nuevo_estado
+        await session.flush()
+
+        if nuevo_estado == "rota":
+            await crear_tarea(
+                session,
+                persona_id=persona_id,
+                operador_id=None,
+                titulo=f"Promesa rota — préstamo {str(prestamo_id)[:8]}",
+                descripcion=f"Prometido ${p.monto_prometido} para {p.fecha_prometida}",
+                origen="promesa_rota",
+                promesa_id=p.id,
+                dedupe_key=f"promesa_rota:{str(p.id)}",
+                actor_id=actor_id,
+                commit=False,
+            )
+        actualizadas.append(p)
+
+    return actualizadas
+
+
+# ---------- Ficha Cliente 360 ----------
+
+async def ficha_cliente_360(
+    session: AsyncSession, persona_id: uuid.UUID
+) -> dict:
+    """Exposición consolidada a nivel persona: suma de capital pendiente,
+    peor bucket de mora, promesas vigentes, y préstamos activos."""
+    from sqlalchemy import func as sqlfunc
+    from app.m07_riesgo.servicio import cartera_riesgo
+
+    # Todos los préstamos vigentes/mora de la persona.
+    res = await session.execute(
+        select(Prestamo).where(
+            Prestamo.persona_id == persona_id,
+            Prestamo.estado.in_(["vigente", "en_mora"]),
+        )
+    )
+    prestamos = list(res.scalars().all())
+
+    exposicion_total = Decimal("0")
+    peor_bucket = 0
+    promesas_vigentes = 0
+    prestamo_ids = [p.id for p in prestamos]
+
+    if prestamo_ids:
+        # Capital pendiente: suma de cuotas pendientes/vencidas
+        cap_res = await session.execute(
+            select(sqlfunc.coalesce(sqlfunc.sum(Cuota.cuota), 0)).where(
+                Cuota.prestamo_id.in_(prestamo_ids),
+                Cuota.estado.in_(["pendiente", "vencida"]),
+            )
+        )
+        exposicion_total = cap_res.scalar_one() or Decimal("0")
+
+        # Peor bucket (max dias de atraso via alerta metrica mora_*)
+        # Simplificado: usamos prestamo.estado y la mayor mora por alertas activas.
+        alertas_res = await session.execute(
+            select(Alerta.metrica).where(
+                Alerta.prestamo_id.in_(prestamo_ids),
+                Alerta.estado == "activa",
+                Alerta.metrica.like("mora_%"),
+            )
+        )
+        for metrica in alertas_res.scalars().all():
+            try:
+                dias = int(metrica.replace("mora_", ""))
+                if dias > peor_bucket:
+                    peor_bucket = dias
+            except ValueError:
+                pass
+
+        # Promesas vigentes del cliente
+        prom_res = await session.execute(
+            select(sqlfunc.count()).select_from(PromesaPago).where(
+                PromesaPago.prestamo_id.in_(prestamo_ids),
+                PromesaPago.estado == "vigente",
+            )
+        )
+        promesas_vigentes = prom_res.scalar_one() or 0
+
+    return {
+        "persona_id": str(persona_id),
+        "exposicion_total": str(exposicion_total),
+        "peor_bucket_dias": peor_bucket,
+        "prestamos_activos": len(prestamos),
+        "promesas_vigentes": promesas_vigentes,
+    }

@@ -13,8 +13,8 @@ describe("UsuariosPage", () => {
     renderWithProviders(<UsuariosPage />);
     expect(await screen.findByText("Admin Sistema")).toBeInTheDocument();
     expect(screen.getByText("sistema@nexocred.test")).toBeInTheDocument();
-    // rol como badge
-    expect(screen.getAllByText("admin_sistema").length).toBeGreaterThanOrEqual(1);
+    // rol como badge (etiqueta legible)
+    expect(screen.getAllByText("Admin sistema").length).toBeGreaterThanOrEqual(1);
     // estado activo
     expect(screen.getAllByText(/activo/i).length).toBeGreaterThanOrEqual(1);
   });
