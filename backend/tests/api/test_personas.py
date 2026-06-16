@@ -165,6 +165,8 @@ async def test_alta_persona_con_provincia_localidad_201(client, admin_token):
     body = r.json()
     assert body["provincia_id"] == prov_id
     assert body["localidad_id"] == loc_id
+    assert body["provincia_nombre"] == prov["nombre"]
+    assert body["localidad_nombre"] == "Localidad E2 Test A"
 
 
 async def test_alta_persona_localidad_otra_provincia_422(client, admin_token):
@@ -192,3 +194,15 @@ async def test_alta_persona_localidad_otra_provincia_422(client, admin_token):
     r = await client.post("/api/v1/personas", json=payload, headers=_h(admin_token))
     assert r.status_code == 422, r.text
     assert r.json()["error"]["code"] == "localidad_provincia_mismatch"
+
+
+async def test_alta_persona_sin_ubicacion_sigue_funcionando_201(client, admin_token):
+    """Omitir provincia_id/localidad_id → sigue siendo 201 (retrocompat); nombres nulos."""
+    payload = _persona_payload(cuil="20456789015", dni="45678901")
+    r = await client.post("/api/v1/personas", json=payload, headers=_h(admin_token))
+    assert r.status_code == 201, r.text
+    body = r.json()
+    assert body["provincia_id"] is None
+    assert body["localidad_id"] is None
+    assert body["provincia_nombre"] is None
+    assert body["localidad_nombre"] is None
