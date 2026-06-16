@@ -1,0 +1,83 @@
+"""Datos geográficos para seed — 24 provincias + localidades principales."""
+
+PROVINCIAS = [
+    {"codigo": "AR-B", "nombre": "Buenos Aires", "orden": 1},
+    {"codigo": "AR-C", "nombre": "Ciudad Autónoma de Buenos Aires", "orden": 2},
+    {"codigo": "AR-K", "nombre": "Catamarca", "orden": 3},
+    {"codigo": "AR-H", "nombre": "Chaco", "orden": 4},
+    {"codigo": "AR-U", "nombre": "Chubut", "orden": 5},
+    {"codigo": "AR-X", "nombre": "Córdoba", "orden": 6},
+    {"codigo": "AR-W", "nombre": "Corrientes", "orden": 7},
+    {"codigo": "AR-E", "nombre": "Entre Ríos", "orden": 8},
+    {"codigo": "AR-P", "nombre": "Formosa", "orden": 9},
+    {"codigo": "AR-Y", "nombre": "Jujuy", "orden": 10},
+    {"codigo": "AR-L", "nombre": "La Pampa", "orden": 11},
+    {"codigo": "AR-F", "nombre": "La Rioja", "orden": 12},
+    {"codigo": "AR-M", "nombre": "Mendoza", "orden": 13},
+    {"codigo": "AR-N", "nombre": "Misiones", "orden": 14},
+    {"codigo": "AR-Q", "nombre": "Neuquén", "orden": 15},
+    {"codigo": "AR-R", "nombre": "Río Negro", "orden": 16},
+    {"codigo": "AR-A", "nombre": "Salta", "orden": 17},
+    {"codigo": "AR-J", "nombre": "San Juan", "orden": 18},
+    {"codigo": "AR-D", "nombre": "San Luis", "orden": 19},
+    {"codigo": "AR-Z", "nombre": "Santa Cruz", "orden": 20},
+    {"codigo": "AR-S", "nombre": "Santa Fe", "orden": 21},
+    {"codigo": "AR-G", "nombre": "Santiago del Estero", "orden": 22},
+    {"codigo": "AR-V", "nombre": "Tierra del Fuego", "orden": 23},
+    {"codigo": "AR-T", "nombre": "Tucumán", "orden": 24},
+]
+
+# Localidades por código de provincia (seed inicial, idempotente por (provincia_id, nombre))
+# Barrios CABA + principales del GBA/AMBA
+LOCALIDADES_POR_PROVINCIA: dict[str, list[str]] = {
+    "AR-C": [
+        "Agronomía", "Almagro", "Balvanera", "Barracas", "Belgrano", "Boedo",
+        "Caballito", "Chacarita", "Coghlan", "Colegiales", "Constitución",
+        "Flores", "Floresta", "La Boca", "La Paternal", "Liniers", "Mataderos",
+        "Monte Castro", "Montserrat", "Nueva Pompeya", "Núñez", "Palermo",
+        "Parque Avellaneda", "Parque Chacabuco", "Parque Chas", "Parque Patricios",
+        "Puerto Madero", "Recoleta", "Retiro", "Saavedra", "San Cristóbal",
+        "San Nicolás", "San Telmo", "Vélez Sársfield", "Versalles", "Villa Crespo",
+        "Villa del Parque", "Villa Devoto", "Villa Gral. Mitre", "Villa Lugano",
+        "Villa Luro", "Villa Ortúzar", "Villa Pueyrredón", "Villa Real",
+        "Villa Riachuelo", "Villa Santa Rita", "Villa Soldati", "Villa Urquiza",
+    ],
+    "AR-B": [
+        # GBA Zona Norte
+        "San Isidro", "Vicente López", "San Martín", "Tres de Febrero",
+        "Tigre", "San Fernando", "Pilar", "Escobar", "Campana", "Zárate",
+        # GBA Zona Oeste
+        "Morón", "Ituzaingó", "Hurlingham", "Merlo", "Moreno", "General Rodríguez",
+        "La Matanza", "Marcos Paz",
+        # GBA Zona Sur
+        "Lomas de Zamora", "Lanús", "Avellaneda", "Quilmes", "Berazategui",
+        "Florencio Varela", "Almirante Brown", "Esteban Echeverría",
+        "Ezeiza", "Presidente Perón",
+        # Interior bonaerense
+        "Mar del Plata", "La Plata", "Bahía Blanca", "Tandil", "Olavarría",
+        "Necochea", "Junín", "Pergamino", "Azul", "Chivilcoy", "Mercedes",
+        "Luján", "Lobos", "Cañuelas", "San Antonio de Areco",
+    ],
+    "AR-X": ["Córdoba", "Río Cuarto", "Villa María", "San Francisco", "Villa Carlos Paz"],
+    "AR-S": ["Rosario", "Santa Fe", "Rafaela", "Venado Tuerto", "Santo Tomé"],
+    "AR-M": ["Mendoza", "San Rafael", "Godoy Cruz", "Guaymallén", "Maipú", "Luján de Cuyo"],
+    "AR-A": ["Salta", "Tartagal", "San Ramón de la Nueva Orán", "Metán"],
+    "AR-T": ["San Miguel de Tucumán", "Yerba Buena", "Concepción", "Banda del Río Salí"],
+    "AR-Y": ["San Salvador de Jujuy", "Palpalá", "San Pedro de Jujuy", "Libertador Gral. San Martín"],
+    "AR-N": ["Posadas", "Oberá", "Eldorado", "Puerto Iguazú"],
+    "AR-E": ["Paraná", "Concordia", "Gualeguaychú", "Concepción del Uruguay"],
+    "AR-W": ["Corrientes", "Goya", "Paso de los Libres", "Mercedes"],
+    "AR-H": ["Resistencia", "Presidencia Roque Sáenz Peña", "Villa Ángela"],
+    "AR-P": ["Formosa", "Clorinda", "Pirané"],
+    "AR-G": ["Santiago del Estero", "La Banda", "Termas de Río Hondo"],
+    "AR-K": ["San Fernando del Valle de Catamarca", "Andalgalá"],
+    "AR-F": ["La Rioja", "Chilecito"],
+    "AR-J": ["San Juan", "Rivadavia", "Pocito"],
+    "AR-D": ["San Luis", "Villa Mercedes", "Merlo"],
+    "AR-L": ["Santa Rosa", "General Pico"],
+    "AR-Q": ["Neuquén", "Zapala", "San Martín de los Andes", "Cutral Có"],
+    "AR-R": ["Viedma", "Bariloche", "Cipolletti", "General Roca"],
+    "AR-U": ["Rawson", "Trelew", "Puerto Madryn", "Comodoro Rivadavia"],
+    "AR-Z": ["Río Gallegos", "Caleta Olivia", "Puerto Deseado"],
+    "AR-V": ["Ushuaia", "Río Grande"],
+}

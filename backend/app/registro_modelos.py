@@ -11,3 +11,4 @@ def cargar_todos_los_modelos() -> None:
     from app.m10_tesoreria import modelos as _m10  # noqa: F401
     from app.m12_auth import modelos as _m12  # noqa: F401
     from app.m15_catalogo import modelos as _m15  # noqa: F401
+    from app.m16_maestros import modelos as _m16  # noqa: F401

@@ -155,6 +155,7 @@ const routeTree = rootRoute.addChildren([
     page("/torre", () => import("@/features/torre/TorreDashboard"), "TorreDashboard"),
     page("/documentos", () => import("@/features/documentos/DocumentosRoute"), "DocumentosRoute"),
     page("/usuarios", () => import("@/features/admin/UsuariosPage"), "UsuariosPage"),
+    page("/maestros", () => import("@/features/maestros/MaestrosPage"), "MaestrosPage"),
   ]),
 ]);
 

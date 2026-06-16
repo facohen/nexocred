@@ -223,6 +223,14 @@ export const WORK_AREAS: WorkArea[] = [
     icon: "usuarios",
     roles: ["admin_sistema"],
   },
+  {
+    id: "maestros",
+    label: "Datos fijos",
+    to: "/maestros",
+    seccion: "sistema",
+    icon: "usuarios",
+    roles: ["admin_sistema"],
+  },
 ];
 
 function rolPuedeVer(area: WorkArea, roles: Rol[]): boolean {

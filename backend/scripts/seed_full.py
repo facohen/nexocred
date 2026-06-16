@@ -251,6 +251,29 @@ async def _marcar_completo(session: AsyncSession) -> None:
         await session.flush()
 
 
+
+async def _seed_localidades(session: AsyncSession) -> None:
+    """Siembra localidades principales por provincia (idempotente)."""
+    from sqlalchemy import select as _sel
+    from app.m16_maestros.modelos import Provincia, Localidad
+    from app.m16_maestros.datos_geo import LOCALIDADES_POR_PROVINCIA
+
+    for codigo, localidades in LOCALIDADES_POR_PROVINCIA.items():
+        prov = await session.scalar(_sel(Provincia).where(Provincia.codigo == codigo))
+        if prov is None:
+            continue
+        for nombre in localidades:
+            existe = await session.scalar(
+                _sel(Localidad).where(
+                    Localidad.provincia_id == prov.id,
+                    Localidad.nombre == nombre,
+                )
+            )
+            if existe is None:
+                session.add(Localidad(provincia_id=prov.id, nombre=nombre))
+    await session.flush()
+
+
 async def _asegurar_roles(session: AsyncSession) -> None:
     for nombre in ROLES:
         if await session.scalar(select(Rol).where(Rol.nombre == nombre)) is None:
@@ -317,6 +340,7 @@ async def sembrar_full(session: AsyncSession) -> dict:
         return await _conteos(session)
 
     await _asegurar_roles(session)
+    await _seed_localidades(session)
 
     # ---- Usuarios (modelo de 5 roles) ----
     # admin_sistema actúa como actor de auditoría de la siembra.
