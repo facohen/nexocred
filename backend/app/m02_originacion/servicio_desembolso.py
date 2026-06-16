@@ -12,8 +12,19 @@ from app.idempotencia import guardar_resultado_idempotente
 from app.locking import bloquear_caja, bloquear_solicitud
 from app.m02_originacion.schemas import DesembolsoOut
 from app.m03_prestamos.reconstruccion import snapshot_desde_terminos
+from app.m16_maestros.modelos import Sector, Zona
 from app.modelos_stub import Cuota, MovimientoCaja, Prestamo, SolicitudCredito
 from nexocred_core import Periodicidad, TerminosPrestamo, calcular_cronograma
+
+
+async def _codigo_zona(session: AsyncSession, zona_id: uuid.UUID) -> str:
+    res = await session.execute(select(Zona.codigo).where(Zona.id == zona_id))
+    return res.scalar_one()
+
+
+async def _codigo_sector(session: AsyncSession, sector_id: uuid.UUID) -> str:
+    res = await session.execute(select(Sector.codigo).where(Sector.id == sector_id))
+    return res.scalar_one()
 
 
 def _fecha_primera_cuota_default(fecha_negocio: date) -> date:
@@ -38,9 +49,9 @@ async def materializar_prestamo(
     crono = calcular_cronograma(terminos)
     snap = snapshot_desde_terminos(terminos)
     if zona_id is not None:
-        snap["zona"] = str(zona_id)
+        snap["zona"] = await _codigo_zona(session, zona_id)
     if sector_id is not None:
-        snap["sector"] = str(sector_id)
+        snap["sector"] = await _codigo_sector(session, sector_id)
     prestamo = Prestamo(
         persona_id=persona_id,
         producto_id=producto_id,
@@ -122,41 +133,18 @@ async def desembolsar(
         fecha_primera_cuota=fpc,
         tasa_punitorio_diario=tasa_punitorio_diario,
     )
-    crono = calcular_cronograma(terminos)
-
-    snap = snapshot_desde_terminos(terminos)
-    if solicitud.zona_id is not None:
-        snap["zona"] = str(solicitud.zona_id)
-    if solicitud.sector_id is not None:
-        snap["sector"] = str(solicitud.sector_id)
-    prestamo = Prestamo(
+    prestamo = await materializar_prestamo(
+        session,
         persona_id=solicitud.persona_id,
         producto_id=solicitud.producto_id,
         solicitud_id=solicitud.id,
-        capital=terminos.capital,
-        estado="vigente",
-        snapshot_terminos=snap,
+        terminos=terminos,
         fecha_desembolso=fneg,
-        tasa_punitorio_diario=tasa_punitorio_diario,
         vendedor_id=solicitud.vendedor_id,
-        monto_desembolsado=terminos.capital,
+        estado="vigente",
+        zona_id=solicitud.zona_id,
+        sector_id=solicitud.sector_id,
     )
-    session.add(prestamo)
-    await session.flush()
-
-    for fila in crono.filas:
-        session.add(
-            Cuota(
-                prestamo_id=prestamo.id,
-                numero=fila.numero,
-                vencimiento=fila.vencimiento,
-                capital=fila.capital,
-                interes=fila.interes,
-                cuota=fila.cuota,
-                punitorio_acumulado=Decimal("0"),
-                estado="pendiente",
-            )
-        )
 
     # Egreso de caja por el capital desembolsado.
     mov = MovimientoCaja(
