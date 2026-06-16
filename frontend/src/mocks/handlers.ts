@@ -86,17 +86,22 @@ export const handlers = [
 
   // ---- Personas ----
   http.get(`${BASE}/personas`, ({ request }) => {
-    const q = new URL(request.url).searchParams.get("q")?.toLowerCase();
+    // Espeja el contrato real: GET /personas filtra por ?nombre / ?dni / ?cuil
+    // (y ?vendedor_id para roles de lectura global; en fixtures no scopeamos).
+    const params = new URL(request.url).searchParams;
+    const nombre = params.get("nombre")?.toLowerCase();
+    const dni = params.get("dni");
+    const cuil = params.get("cuil");
     let data = fx.personas;
-    if (q) {
+    if (nombre) {
       data = data.filter(
         (p) =>
-          p.apellido.toLowerCase().includes(q) ||
-          p.nombre.toLowerCase().includes(q) ||
-          p.dni.includes(q) ||
-          p.cuil.includes(q),
+          p.apellido.toLowerCase().includes(nombre) ||
+          p.nombre.toLowerCase().includes(nombre),
       );
     }
+    if (dni) data = data.filter((p) => p.dni.includes(dni));
+    if (cuil) data = data.filter((p) => p.cuil.includes(cuil));
     return HttpResponse.json({ data, total: data.length, page: 1, per_page: 50 });
   }),
   http.get(`${BASE}/personas/buscar`, ({ request }) => {

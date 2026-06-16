@@ -15,7 +15,7 @@ type Persona = components["schemas"]["PersonaListItem"];
 export function PersonasListPage() {
   const [q, setQ] = useState("");
   const [creando, setCreando] = useState(false);
-  const { data, isLoading, isError } = usePersonas(q || undefined);
+  const { data, isLoading, isError } = usePersonas({ nombre: q || undefined });
   const navigate = useNavigate();
 
   const columns = useMemo<ColumnDef<Persona, unknown>[]>(

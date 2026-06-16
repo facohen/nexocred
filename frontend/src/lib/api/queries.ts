@@ -13,10 +13,18 @@ export interface Pagina<T> {
 }
 
 // ---- Personas ----
-export function usePersonas(q?: string) {
+// GET /personas filtra por ?nombre / ?dni / ?cuil y, para roles de lectura
+// global, por ?vendedor_id. Un vendedor recibe SU cartera scopeada por el
+// backend aunque no pase vendedor_id; pasarlo es para que admin/ceo filtren.
+export function usePersonas(filtros?: { nombre?: string; vendedorId?: string }) {
+  const nombre = filtros?.nombre?.trim() || undefined;
+  const vendedorId = filtros?.vendedorId;
   return useQuery({
-    queryKey: ["personas", q ?? ""],
-    queryFn: () => apiFetch<Pagina<Sch["PersonaListItem"]>>("/personas", { query: { q } }),
+    queryKey: ["personas", nombre ?? "", vendedorId ?? ""],
+    queryFn: () =>
+      apiFetch<Pagina<Sch["PersonaListItem"]>>("/personas", {
+        query: { nombre, vendedor_id: vendedorId },
+      }),
   });
 }
 
@@ -198,17 +206,23 @@ export function useAccionSolicitud(id: string) {
 }
 
 // ---- Préstamos ----
-// El backend acepta ?persona_id / ?estado / ?producto_id (filtros en SQL). La
-// ficha 360 del cliente usa `personaId` para traer SOLO sus préstamos; sin él se
-// listan todos (página de préstamos).
-export function usePrestamos(filtros?: { personaId?: string; estado?: string }) {
+// El backend acepta ?persona_id / ?estado / ?producto_id / ?vendedor_id (filtros
+// en SQL). La ficha 360 del cliente usa `personaId` para traer SOLO sus
+// préstamos; `vendedorId` trae la cartera de un vendedor (Mis créditos). Un
+// vendedor recibe lo suyo scopeado por el backend aunque no pase vendedor_id.
+export function usePrestamos(filtros?: {
+  personaId?: string;
+  estado?: string;
+  vendedorId?: string;
+}) {
   const personaId = filtros?.personaId;
   const estado = filtros?.estado;
+  const vendedorId = filtros?.vendedorId;
   return useQuery({
-    queryKey: ["prestamos", personaId ?? "", estado ?? ""],
+    queryKey: ["prestamos", personaId ?? "", estado ?? "", vendedorId ?? ""],
     queryFn: () =>
       apiFetch<Pagina<Sch["PrestamoOut"]>>("/prestamos", {
-        query: { persona_id: personaId, estado },
+        query: { persona_id: personaId, estado, vendedor_id: vendedorId },
       }),
   });
 }
@@ -352,5 +366,67 @@ export function useDesactivarUsuario() {
     mutationFn: (id: string) =>
       apiFetch<{ estado: string }>(`/usuarios/${id}`, { method: "DELETE" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["usuarios"] }),
+  });
+}
+
+// ---- CRM: tareas (tickets), interacciones, timeline ----
+// El backend (m08) auto-scopea las tareas al operador para vendedores: un
+// vendedor solo ve/edita las suyas (§5.11). No mueven plata → sin Idempotency-Key.
+
+// GET /tareas → Pagina[TareaOut]. ?estado opcional (p. ej. "pendiente").
+export function useTareas(filtros?: { estado?: string }) {
+  const estado = filtros?.estado;
+  return useQuery({
+    queryKey: ["tareas", estado ?? ""],
+    queryFn: () =>
+      apiFetch<Pagina<Sch["TareaOut"]>>("/tareas", { query: { estado } }),
+  });
+}
+
+// POST /tareas → TareaOut. Si no se manda operador_id, el backend lo fija al actor.
+export function useCrearTarea() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Sch["TareaIn"]) =>
+      apiFetch<Sch["TareaOut"]>("/tareas", { method: "POST", body }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tareas"] }),
+  });
+}
+
+// POST /tareas/{id}/completar → InteraccionOut. Cierra el ticket y registra la
+// interacción (tipo: llamada/visita/mensaje/nota). Invalida tareas y el timeline.
+export function useCompletarTarea() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { tareaId: string; body: Sch["CompletarTareaIn"] }) =>
+      apiFetch<Sch["InteraccionOut"]>(`/tareas/${vars.tareaId}/completar`, {
+        method: "POST",
+        body: vars.body,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tareas"] });
+      qc.invalidateQueries({ queryKey: ["timeline"] });
+    },
+  });
+}
+
+// POST /interacciones → InteraccionOut. Registra contacto suelto con un cliente
+// (sin cerrar tarea). operador_id lo fija siempre el backend al actor.
+export function useCrearInteraccion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Sch["InteraccionIn"]) =>
+      apiFetch<Sch["InteraccionOut"]>("/interacciones", { method: "POST", body }),
+    onSuccess: (_data, vars) =>
+      qc.invalidateQueries({ queryKey: ["timeline", vars.persona_id] }),
+  });
+}
+
+// GET /personas/{id}/timeline → list[TimelineEvento] (array pelado, sin envelope).
+export function useTimelinePersona(personaId: string) {
+  return useQuery({
+    queryKey: ["timeline", personaId],
+    enabled: Boolean(personaId),
+    queryFn: () => apiFetch<Sch["TimelineEvento"][]>(`/personas/${personaId}/timeline`),
   });
 }

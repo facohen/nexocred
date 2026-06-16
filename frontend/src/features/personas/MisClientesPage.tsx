@@ -1,76 +1,64 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useSolicitudes, usePersonas } from "@/lib/api/queries";
-import { Badge } from "@/components/ui/badge";
+import { usePersonas } from "@/lib/api/queries";
+import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
-import { MoneyText } from "@/components/MoneyText";
+import { Input } from "@/components/ui/input";
 import { WorkInboxHero } from "@/components/WorkInbox";
+import { PersonaForm } from "./PersonaForm";
 import type { components } from "@/lib/api/schema";
 
-type Solicitud = components["schemas"]["SolicitudOut"];
+type Persona = components["schemas"]["PersonaListItem"];
 
-const ESTADO_TONE: Record<string, "default" | "warning" | "success" | "danger"> = {
-  ingresada: "default",
-  en_evaluacion: "warning",
-  evaluada: "warning",
-  aprobada: "success",
-  rechazada: "danger",
-};
-
-type ClienteCartera = { personaId: string; nombre: string; ultima: Solicitud; total: number };
-
-function idCorto(id: string): string {
-  return id.length > 8 ? id.slice(0, 8) : id;
+// Debounce local del término de búsqueda: evita pegarle al backend en cada
+// tecla. Sin dependencia externa; 300ms es suficiente para escritura humana.
+function useTextoDebounced(valor: string, ms: number): string {
+  const [debounced, setDebounced] = useState(valor);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(valor), ms);
+    return () => clearTimeout(id);
+  }, [valor, ms]);
+  return debounced;
 }
 
 /**
- * "Mis clientes" del vendedor. El backend scopea el listado de solicitudes al
- * vendedor (GET /solicitudes respeta el rol), así que derivamos la cartera de
- * clientes desde SUS solicitudes — join en el front, sin endpoint agregador.
- *
- * NOTA: GET /personas no acepta vendedor_id, por eso NO se usa el padrón acá;
- * la cartera sale de las solicitudes propias. Cuando el backend soporte filtrar
- * personas por vendedor, esta vista puede simplificarse.
+ * "Mis clientes" del vendedor. El backend scopea GET /personas al vendedor
+ * (su cartera = personas detrás de sus solicitudes/préstamos), así que esta
+ * vista consume el listado real (sin derivar de solicitudes en el front).
+ * Permite buscar por nombre (?nombre del backend), dar de alta un cliente
+ * (PersonaForm) y abrir la ficha 360 (PersonaDetailPage).
  */
 export function MisClientesPage() {
   const navigate = useNavigate();
-  const solicitudesQ = useSolicitudes();
-  const personasQ = usePersonas();
+  const [busqueda, setBusqueda] = useState("");
+  const [creando, setCreando] = useState(false);
+  const nombre = useTextoDebounced(busqueda.trim(), 300);
 
-  const nombrePorPersona = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const p of personasQ.data?.data ?? []) {
-      map.set(p.id, `${p.nombre} ${p.apellido}`.trim());
-    }
-    return map;
-  }, [personasQ.data]);
+  // El vendedor recibe su cartera scopeada; `nombre` filtra en el backend.
+  const personasQ = usePersonas({ nombre: nombre || undefined });
+  const clientes = useMemo(() => personasQ.data?.data ?? [], [personasQ.data]);
 
-  const cartera = useMemo(() => {
-    const porPersona = new Map<string, ClienteCartera>();
-    for (const s of solicitudesQ.data?.data ?? []) {
-      const existente = porPersona.get(s.persona_id);
-      if (existente) {
-        porPersona.set(s.persona_id, { ...existente, total: existente.total + 1 });
-      } else {
-        porPersona.set(s.persona_id, {
-          personaId: s.persona_id,
-          nombre: nombrePorPersona.get(s.persona_id) ?? `Cliente ${idCorto(s.persona_id)}`,
-          ultima: s,
-          total: 1,
-        });
-      }
-    }
-    return [...porPersona.values()].sort((a, b) => a.nombre.localeCompare(b.nombre));
-  }, [solicitudesQ.data, nombrePorPersona]);
-
-  if (solicitudesQ.isLoading) {
-    return <p className="p-4 text-sm text-text-muted">Cargando…</p>;
-  }
-  if (solicitudesQ.isError) {
+  if (creando) {
     return (
-      <p role="alert" className="p-4 text-sm text-neg">
-        No se pudo cargar tu cartera de clientes.
-      </p>
+      <div className="space-y-6">
+        <WorkInboxHero
+          title="Nuevo cliente"
+          subtitle="Alta de un cliente para tu cartera."
+          action={
+            <Button variant="outline" onClick={() => setCreando(false)}>
+              Volver
+            </Button>
+          }
+        />
+        <Card>
+          <PersonaForm
+            onCreated={(id) => {
+              setCreando(false);
+              navigate({ to: `/personas/${id}` as string });
+            }}
+          />
+        </Card>
+      </div>
     );
   }
 
@@ -78,55 +66,62 @@ export function MisClientesPage() {
     <div className="space-y-6">
       <WorkInboxHero
         title="Mis clientes"
-        subtitle={`${cartera.length} ${cartera.length === 1 ? "cliente" : "clientes"} en tu cartera`}
-        action={
-          <button
-            type="button"
-            onClick={() => navigate({ to: "/originar/nuevo" as string })}
-            className="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-hover"
-          >
-            + Nueva solicitud
-          </button>
-        }
+        subtitle="Tu cartera: buscá, abrí la ficha o sumá un cliente nuevo."
+        action={<Button size="lg" onClick={() => setCreando(true)}>+ Nuevo cliente</Button>}
       />
 
-      {cartera.length === 0 ? (
+      <Input
+        type="search"
+        value={busqueda}
+        onChange={(e) => setBusqueda(e.target.value)}
+        placeholder="Buscar por nombre o apellido…"
+        aria-label="Buscar clientes por nombre"
+        className="max-w-sm"
+      />
+
+      {personasQ.isError ? (
+        <p role="alert" className="text-sm text-neg">
+          No se pudo cargar tu cartera de clientes.
+        </p>
+      ) : personasQ.isLoading ? (
+        <p className="animate-pulse text-sm text-text-subtle">Cargando clientes…</p>
+      ) : clientes.length === 0 ? (
         <Card>
-          <CardTitle>Sin clientes todavía</CardTitle>
+          <CardTitle>{nombre ? "Sin coincidencias" : "Sin clientes todavía"}</CardTitle>
           <p className="text-sm text-text-subtle">
-            Originá una solicitud para sumar tu primer cliente a la cartera.
+            {nombre
+              ? "Ningún cliente coincide con la búsqueda."
+              : "Dá de alta un cliente o originá una solicitud para sumar el primero."}
           </p>
         </Card>
       ) : (
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {cartera.map((c) => (
-            <li key={c.personaId}>
-              <button
-                type="button"
-                onClick={() => navigate({ to: `/personas/${c.personaId}` as string })}
-                className="w-full rounded-lg text-left"
-              >
-                <Card className="space-y-2 transition-colors hover:bg-surface-sunken">
-                  <div className="flex items-start justify-between gap-3">
-                    <CardTitle>{c.nombre}</CardTitle>
-                    <Badge tone={ESTADO_TONE[c.ultima.estado] ?? "default"}>
-                      {c.ultima.estado}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between text-sm text-text-muted">
-                    <span>
-                      {c.total} {c.total === 1 ? "solicitud" : "solicitudes"}
-                    </span>
-                    <span className="font-medium text-text">
-                      <MoneyText value={c.ultima.monto ?? null} />
-                    </span>
-                  </div>
-                </Card>
-              </button>
+          {clientes.map((c) => (
+            <li key={c.id}>
+              <ClienteCard
+                cliente={c}
+                onAbrir={() => navigate({ to: `/personas/${c.id}` as string })}
+              />
             </li>
           ))}
         </ul>
       )}
     </div>
+  );
+}
+
+function ClienteCard({ cliente, onAbrir }: { cliente: Persona; onAbrir: () => void }) {
+  return (
+    <button type="button" onClick={onAbrir} className="w-full rounded-lg text-left">
+      <Card className="space-y-1 transition-colors hover:bg-surface-sunken">
+        <CardTitle>
+          {cliente.apellido}, {cliente.nombre}
+        </CardTitle>
+        <div className="text-sm text-text-muted">
+          DNI {cliente.dni}
+          {cliente.cuil ? ` · CUIL ${cliente.cuil}` : ""}
+        </div>
+      </Card>
+    </button>
   );
 }

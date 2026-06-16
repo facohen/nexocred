@@ -92,6 +92,10 @@ const routeTree = rootRoute.addChildren([
     // ── Homes de trabajo (inbox-driven) ──
     page("/bandeja", () => import("@/features/bandeja/BandejaHome"), "BandejaHome"),
     page("/evaluacion", () => import("@/features/evaluacion/EvaluacionHome"), "EvaluacionHome"),
+    // ── Vendedor: 5 áreas dedicadas ──
+    page("/vendedor", () => import("@/features/vendedor/VendedorHome"), "VendedorHome"),
+    page("/mis-creditos", () => import("@/features/vendedor/MisCreditosPage"), "MisCreditosPage"),
+    page("/gestiones", () => import("@/features/vendedor/GestionesPage"), "GestionesPage"),
     page("/originar", () => import("@/features/originacion/OriginarHome"), "OriginarHome"),
     page(
       "/originar/nuevo",

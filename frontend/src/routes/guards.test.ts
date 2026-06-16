@@ -134,8 +134,8 @@ describe("fallbackRoute", () => {
     expect(fallbackRoute(["admin_sistema"])).toBe("/usuarios");
   });
 
-  it("retorna /originar (home de trabajo) para vendedor", () => {
-    expect(fallbackRoute(["vendedor"])).toBe("/originar");
+  it("retorna /vendedor (Inicio: dashboard de performance) para vendedor", () => {
+    expect(fallbackRoute(["vendedor"])).toBe("/vendedor");
   });
 
   it("retorna /evaluacion (cola de evaluación) para analista_riesgo", () => {

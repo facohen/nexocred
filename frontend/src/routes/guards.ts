@@ -10,10 +10,14 @@ export const ROUTE_ROLES: Record<string, Rol[]> = {
   // Espeja nav.ts (WORK_AREAS): visibilidad de menú y guard de ruta nunca divergen.
   // Modelo de 5 roles: vendedor / analista_riesgo / administrativo / ceo / admin_sistema.
   // Homes de trabajo (inbox-driven)
-  "/bandeja": ["vendedor", "analista_riesgo", "administrativo", "ceo", "admin_sistema"],
+  "/bandeja": ["analista_riesgo", "administrativo", "ceo", "admin_sistema"],
   "/evaluacion": ["analista_riesgo"],
+  // Vendedor: 5 áreas dedicadas (Inicio/Originar/Mis clientes/Mis créditos/Gestiones).
+  "/vendedor": ["vendedor"],
   "/originar": ["vendedor"],
   "/originar/nuevo": ["vendedor"],
+  "/mis-creditos": ["vendedor"],
+  "/gestiones": ["vendedor"],
   // Entidades y vistas (destino de drill-down / tabs)
   "/mis-clientes": ["vendedor"],
   "/personas": ["vendedor", "analista_riesgo"],
@@ -52,7 +56,7 @@ export const ROUTE_ROLES: Record<string, Rol[]> = {
  * de su trabajo de hoy, nunca en una tabla de personas.
  */
 const ROLE_FALLBACK: [Rol, string][] = [
-  ["vendedor", "/originar"], // su pipeline + clientes
+  ["vendedor", "/vendedor"], // su Inicio: dashboard de performance
   ["analista_riesgo", "/evaluacion"], // su cola de solicitudes a evaluar
   ["administrativo", "/bandeja"], // hub operativo (pagos/rutas/CRM/cartera)
   ["ceo", "/torre"], // Tablero Ejecutivo

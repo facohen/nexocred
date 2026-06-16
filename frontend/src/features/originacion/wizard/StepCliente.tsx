@@ -19,7 +19,7 @@ export interface ClienteElegido {
 export function StepCliente({ onElegir }: { onElegir: (cliente: ClienteElegido) => void }) {
   const [modo, setModo] = useState<"buscar" | "crear">("buscar");
   const [q, setQ] = useState("");
-  const personasQ = usePersonas(q.trim() || undefined);
+  const personasQ = usePersonas({ nombre: q.trim() || undefined });
   const resultados = personasQ.data?.data ?? [];
 
   if (modo === "crear") {

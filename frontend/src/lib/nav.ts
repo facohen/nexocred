@@ -48,7 +48,19 @@ export const WORK_AREAS: WorkArea[] = [
     to: "/bandeja",
     seccion: "operacion",
     icon: "inbox",
-    roles: ["vendedor", "analista_riesgo", "administrativo", "ceo", "admin_sistema"],
+    // El vendedor tiene su propio Inicio (/vendedor); la bandeja genérica queda
+    // para los demás roles.
+    roles: ["analista_riesgo", "administrativo", "ceo", "admin_sistema"],
+  },
+  // ---------- VENDEDOR: 5 áreas dedicadas ----------
+  {
+    id: "vendedor-inicio",
+    label: "Inicio",
+    to: "/vendedor",
+    seccion: "operacion",
+    icon: "inbox",
+    // Dashboard de performance del vendedor (meta, pipeline, conversión, comisiones).
+    roles: ["vendedor"],
   },
   {
     id: "originar",
@@ -59,10 +71,26 @@ export const WORK_AREAS: WorkArea[] = [
     roles: ["vendedor"],
     tabs: [
       { label: "Solicitudes", to: "/solicitudes" },
-      { label: "Catálogo", to: "/catalogo/productos" },
-      { label: "Matrices", to: "/catalogo/matrices" },
       { label: "Simulador", to: "/catalogo/simulador" },
     ],
+  },
+  {
+    id: "mis-creditos",
+    label: "Mis créditos",
+    to: "/mis-creditos",
+    seccion: "operacion",
+    icon: "cartera",
+    // Préstamos de la cartera del vendedor (lectura: estado de pagos del cliente).
+    roles: ["vendedor"],
+  },
+  {
+    id: "gestiones",
+    label: "Gestiones",
+    to: "/gestiones",
+    seccion: "operacion",
+    icon: "relacion",
+    // CRM vendedor-céntrico: sus tickets/tareas como bandeja.
+    roles: ["vendedor"],
   },
   {
     id: "evaluar",
@@ -114,7 +142,9 @@ export const WORK_AREAS: WorkArea[] = [
     to: "/crm/inbox",
     seccion: "operacion",
     icon: "relacion",
-    roles: ["vendedor", "administrativo"],
+    // El vendedor usa "Gestiones" (vista vendedor-céntrica); el CRM operativo
+    // completo (inbox/incidentes/prospectos/asignaciones) queda para administrativo.
+    roles: ["administrativo"],
     tabs: [
       { label: "Inbox", to: "/crm/inbox" },
       { label: "Incidentes", to: "/crm/incidentes" },
