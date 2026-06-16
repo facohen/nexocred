@@ -4,10 +4,11 @@ from typing import Annotated
 from fastapi import APIRouter, Header, Query
 
 from app.deps import (
-    OriginaSolicitud,
     AnalistaRiesgo,
     CurrentUser,
+    OriginaSolicitud,
     SessionDep,
+    exigir_idem,
     scope_vendedor,
 )
 from app.errors import ErrorAPI
@@ -23,17 +24,8 @@ from app.m02_originacion.schemas import (
 )
 from app.m02_originacion.servicio_desembolso import desembolsar
 from app.m15_catalogo.schemas import SimuladorOut
-from app.paginacion import Pagina, paginar
+from app.paginacion import Pagina, paginar_query
 
-
-def _exigir_idem(idempotency_key: str | None) -> str:
-    if not idempotency_key:
-        raise ErrorAPI(
-            "idempotency_key_requerida",
-            "esta operacion requiere header Idempotency-Key",
-            status=400,
-        )
-    return idempotency_key
 
 router = APIRouter(tags=["originacion"])
 
@@ -78,16 +70,21 @@ async def listar_solicitudes(
     actor: CurrentUser,
     estado: Annotated[str | None, Query()] = None,
     vendedor_id: Annotated[uuid.UUID | None, Query()] = None,
+    zona_id: Annotated[uuid.UUID | None, Query()] = None,
+    sector_id: Annotated[uuid.UUID | None, Query()] = None,
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
 ) -> Pagina[SolicitudOut]:
     # Scope por vendedor: un vendedor puro solo ve lo suyo; admin/analista/ceo
     # ven todo o filtran libremente vía ?vendedor_id.
     filtro_vendedor = scope_vendedor(actor, vendedor_id)
-    sols = await servicio.listar_solicitudes(
-        session, estado=estado, vendedor_id=filtro_vendedor
+    stmt = servicio.query_solicitudes(
+        estado=estado,
+        vendedor_id=filtro_vendedor,
+        zona_id=zona_id,
+        sector_id=sector_id,
     )
-    return paginar([SolicitudOut.model_validate(s) for s in sols], page, per_page)
+    return await paginar_query(session, stmt, SolicitudOut.model_validate, page, per_page)
 
 
 @router.get("/solicitudes/{solicitud_id}", response_model=SolicitudOut)
@@ -156,7 +153,7 @@ async def desembolsar_solicitud(
     actor: AnalistaRiesgo,
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> DesembolsoOut:
-    clave = _exigir_idem(idempotency_key)
+    clave = exigir_idem(idempotency_key)
     sol = await _get_solicitud(session, solicitud_id)
     return await desembolsar(
         session,

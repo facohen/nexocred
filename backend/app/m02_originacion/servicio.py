@@ -26,7 +26,7 @@ TRANSICIONES: dict[str, set[str]] = {
 
 
 def _parametros() -> dict:
-    from app.m12_auth.router import PARAMETROS_GLOBALES
+    from app.parametros_globales import PARAMETROS_GLOBALES
 
     return PARAMETROS_GLOBALES
 
@@ -92,19 +92,24 @@ async def crear_solicitud(
     return sol
 
 
-async def listar_solicitudes(
-    session: AsyncSession,
+def query_solicitudes(
     *,
     estado: str | None = None,
     vendedor_id: uuid.UUID | None = None,
-) -> list[SolicitudCredito]:
+    zona_id: uuid.UUID | None = None,
+    sector_id: uuid.UUID | None = None,
+):
+    """Devuelve un Select sin ejecutar, listo para paginar_query."""
     stmt = select(SolicitudCredito).order_by(SolicitudCredito.created_at.desc())
     if estado is not None:
         stmt = stmt.where(SolicitudCredito.estado == estado)
     if vendedor_id is not None:
         stmt = stmt.where(SolicitudCredito.vendedor_id == vendedor_id)
-    res = await session.execute(stmt)
-    return list(res.scalars().all())
+    if zona_id is not None:
+        stmt = stmt.where(SolicitudCredito.zona_id == zona_id)
+    if sector_id is not None:
+        stmt = stmt.where(SolicitudCredito.sector_id == sector_id)
+    return stmt
 
 
 async def _bcra_vigente(session: AsyncSession, persona_id: uuid.UUID) -> bool:
