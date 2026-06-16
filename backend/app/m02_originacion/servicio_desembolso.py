@@ -30,17 +30,24 @@ async def materializar_prestamo(
     fecha_desembolso: date,
     vendedor_id: uuid.UUID | None = None,
     estado: str = "vigente",
+    zona_id: uuid.UUID | None = None,
+    sector_id: uuid.UUID | None = None,
 ) -> Prestamo:
     """Crea un prestamo con snapshot inmutable + cronograma materializado en filas cuota.
     Reutilizado por desembolso (M02) y novaciones (M06)."""
     crono = calcular_cronograma(terminos)
+    snap = snapshot_desde_terminos(terminos)
+    if zona_id is not None:
+        snap["zona"] = str(zona_id)
+    if sector_id is not None:
+        snap["sector"] = str(sector_id)
     prestamo = Prestamo(
         persona_id=persona_id,
         producto_id=producto_id,
         solicitud_id=solicitud_id,
         capital=terminos.capital,
         estado=estado,
-        snapshot_terminos=snapshot_desde_terminos(terminos),
+        snapshot_terminos=snap,
         fecha_desembolso=fecha_desembolso,
         tasa_punitorio_diario=terminos.tasa_punitorio_diario,
         vendedor_id=vendedor_id,
@@ -117,13 +124,18 @@ async def desembolsar(
     )
     crono = calcular_cronograma(terminos)
 
+    snap = snapshot_desde_terminos(terminos)
+    if solicitud.zona_id is not None:
+        snap["zona"] = str(solicitud.zona_id)
+    if solicitud.sector_id is not None:
+        snap["sector"] = str(solicitud.sector_id)
     prestamo = Prestamo(
         persona_id=solicitud.persona_id,
         producto_id=solicitud.producto_id,
         solicitud_id=solicitud.id,
         capital=terminos.capital,
         estado="vigente",
-        snapshot_terminos=snapshot_desde_terminos(terminos),
+        snapshot_terminos=snap,
         fecha_desembolso=fneg,
         tasa_punitorio_diario=tasa_punitorio_diario,
         vendedor_id=solicitud.vendedor_id,

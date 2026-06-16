@@ -41,6 +41,13 @@ class Persona(Base, TimestampMixin):
     domicilio_provincia: Mapped[str] = mapped_column(
         Text, nullable=False, server_default="Buenos Aires"
     )
+    # FK estructuradas a catálogos (nullable — retrocompatible con filas previas).
+    provincia_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("provincia.id"), nullable=True
+    )
+    localidad_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("localidad.id"), nullable=True
+    )
     observaciones_domicilio: Mapped[str | None] = mapped_column(Text)
     tipo_vivienda: Mapped[str] = mapped_column(Text, nullable=False)
     # Ingresos

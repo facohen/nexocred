@@ -100,3 +100,52 @@ async def test_e2e_alerta_asignacion_crea_tarea(client, admin_token, session):
         text("SELECT count(*) FROM tarea WHERE alerta_id=:a"), {"a": alerta_id}
     )
     assert res.scalar_one() == 1
+
+
+async def test_snapshot_incluye_zona_sector(client, admin_token, session):
+    """El snapshot_terminos del préstamo contiene zona y sector tras desembolso,
+    cuando el vendedor (admin en tests) tiene asignación vigente."""
+    from datetime import date as _date
+
+    await relajar_bcra(client, admin_token)
+
+    r_zona = await client.post(
+        "/api/v1/maestros/zonas",
+        json={"codigo": "ZONA_E2_SNAP", "nombre": "Zona E2 Snapshot"},
+        headers=_h(admin_token),
+    )
+    assert r_zona.status_code == 201, r_zona.text
+    zona_id = r_zona.json()["id"]
+
+    r_sec = await client.get(
+        "/api/v1/maestros/sectores?per_page=1", headers=_h(admin_token)
+    )
+    assert r_sec.status_code == 200
+    sector_id = r_sec.json()["data"][0]["id"]
+
+    res = await session.execute(text("SELECT id FROM usuario LIMIT 1"))
+    vendedor_id = str(res.scalar_one())
+
+    r_asig = await client.put(
+        f"/api/v1/maestros/vendedores/{vendedor_id}/asignacion",
+        json={
+            "zona_id": zona_id,
+            "sector_id": sector_id,
+            "vigente_desde": _date.today().isoformat(),
+        },
+        headers=_h(admin_token),
+    )
+    assert r_asig.status_code in (200, 201), r_asig.text
+
+    prestamo_id, _caja = await _prestamo_desembolsado(
+        client, admin_token, session, fpc_offset=-30,
+        cuil=cuil_valido("70000088"), dni="70000088",
+    )
+
+    r = await client.get(f"/api/v1/prestamos/{prestamo_id}", headers=_h(admin_token))
+    assert r.status_code == 200, r.text
+    snap = r.json().get("snapshot_terminos") or {}
+    assert "zona" in snap, f"'zona' no está en snapshot: {snap.keys()}"
+    assert "sector" in snap, f"'sector' no está en snapshot: {snap.keys()}"
+    assert snap["zona"] == zona_id
+    assert snap["sector"] == sector_id

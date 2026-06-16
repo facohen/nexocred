@@ -114,6 +114,8 @@ async def _confirmar(
     fecha_primera_cuota: date,
     fecha_negocio: date,
     actor_id: uuid.UUID | None,
+    zona_id: uuid.UUID | None = None,
+    sector_id: uuid.UUID | None = None,
 ) -> Prestamo:
     terminos = TerminosPrestamo(
         capital=capital,
@@ -125,6 +127,7 @@ async def _confirmar(
     nuevo = await materializar_prestamo(
         session, persona_id=persona_id, producto_id=producto_id,
         solicitud_id=None, terminos=terminos, fecha_desembolso=fecha_negocio,
+        zona_id=zona_id, sector_id=sector_id,
     )
     return nuevo
 
@@ -152,12 +155,16 @@ async def refinanciar(
     origen = await bloquear_prestamo(session, prestamo_id)
     _validar_origen(origen)
     capital = await _payoff_total(session, [origen], fecha_negocio)
+    snap_origen = origen.snapshot_terminos or {}
+    zona_id_nov = uuid.UUID(snap_origen["zona"]) if "zona" in snap_origen else None
+    sector_id_nov = uuid.UUID(snap_origen["sector"]) if "sector" in snap_origen else None
     nuevo = await _confirmar(
         session, tipo="refinanciacion", origenes_ids=[prestamo_id],
         persona_id=origen.persona_id, producto_id=origen.producto_id,
         capital=capital, tasa=tasa, cantidad_cuotas=cantidad_cuotas,
         periodicidad=periodicidad, fecha_primera_cuota=fecha_primera_cuota,
         fecha_negocio=fecha_negocio, actor_id=actor_id,
+        zona_id=zona_id_nov, sector_id=sector_id_nov,
     )
     nov = await _crear_novacion(
         session, tipo="refinanciacion", origenes=[origen], nuevo_prestamo=nuevo,
@@ -198,12 +205,16 @@ async def consolidar(
             status=422,
         )
     capital = await _payoff_total(session, origenes, fecha_negocio)
+    snap_origen = origenes[0].snapshot_terminos or {}
+    zona_id_nov = uuid.UUID(snap_origen["zona"]) if "zona" in snap_origen else None
+    sector_id_nov = uuid.UUID(snap_origen["sector"]) if "sector" in snap_origen else None
     nuevo = await _confirmar(
         session, tipo="consolidacion", origenes_ids=prestamo_ids,
         persona_id=origenes[0].persona_id, producto_id=origenes[0].producto_id,
         capital=capital, tasa=tasa, cantidad_cuotas=cantidad_cuotas,
         periodicidad=periodicidad, fecha_primera_cuota=fecha_primera_cuota,
         fecha_negocio=fecha_negocio, actor_id=actor_id,
+        zona_id=zona_id_nov, sector_id=sector_id_nov,
     )
     nov = await _crear_novacion(
         session, tipo="consolidacion", origenes=origenes, nuevo_prestamo=nuevo,
@@ -237,12 +248,15 @@ async def transferir(
     capital = await _payoff_total(session, [origen], fecha_negocio)
     snap = origen.snapshot_terminos or {}
     tasa_usada = tasa if tasa is not None else Decimal(str(snap.get("tasa_interes_directo", "0")))
+    zona_id_nov = uuid.UUID(snap["zona"]) if "zona" in snap else None
+    sector_id_nov = uuid.UUID(snap["sector"]) if "sector" in snap else None
     nuevo = await _confirmar(
         session, tipo="transferencia", origenes_ids=[prestamo_id],
         persona_id=nuevo_deudor_id, producto_id=origen.producto_id,
         capital=capital, tasa=tasa_usada, cantidad_cuotas=cantidad_cuotas,
         periodicidad=periodicidad, fecha_primera_cuota=fecha_primera_cuota,
         fecha_negocio=fecha_negocio, actor_id=actor_id,
+        zona_id=zona_id_nov, sector_id=sector_id_nov,
     )
     nov = await _crear_novacion(
         session, tipo="transferencia", origenes=[origen], nuevo_prestamo=nuevo,
@@ -301,12 +315,16 @@ async def repactar_rapido(
     # cantidad de cuotas derivada para aproximar la nueva_cuota objetivo.
     total_a_pagar = capital * (Decimal("1") + tasa)
     cantidad_cuotas = max(1, math.ceil(total_a_pagar / nueva_cuota))
+    snap_origen_rep = origen.snapshot_terminos or {}
+    zona_id_rep = uuid.UUID(snap_origen_rep["zona"]) if "zona" in snap_origen_rep else None
+    sector_id_rep = uuid.UUID(snap_origen_rep["sector"]) if "sector" in snap_origen_rep else None
     nuevo = await _confirmar(
         session, tipo="repactar_rapido", origenes_ids=[prestamo_id],
         persona_id=origen.persona_id, producto_id=origen.producto_id,
         capital=capital, tasa=tasa, cantidad_cuotas=cantidad_cuotas,
         periodicidad=periodicidad, fecha_primera_cuota=fecha_primera_cuota,
         fecha_negocio=fecha_negocio, actor_id=actor_id,
+        zona_id=zona_id_rep, sector_id=sector_id_rep,
     )
     nov = await _crear_novacion(
         session, tipo="repactar_rapido", origenes=[origen], nuevo_prestamo=nuevo,

@@ -42,6 +42,8 @@ async def listar_prestamos(
     persona_id: Annotated[uuid.UUID | None, Query()] = None,
     producto_id: Annotated[uuid.UUID | None, Query()] = None,
     vendedor_id: Annotated[uuid.UUID | None, Query()] = None,
+    zona: Annotated[str | None, Query()] = None,
+    sector: Annotated[str | None, Query()] = None,
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
 ) -> Pagina[PrestamoOut]:
@@ -50,7 +52,7 @@ async def listar_prestamos(
     filtro_vendedor = scope_vendedor(actor, vendedor_id)
     prestamos = await servicio.listar_prestamos(
         session, estado=estado, persona_id=persona_id, producto_id=producto_id,
-        vendedor_id=filtro_vendedor,
+        vendedor_id=filtro_vendedor, zona=zona, sector=sector,
     )
     return paginar([PrestamoOut.model_validate(p) for p in prestamos], page, per_page)
 

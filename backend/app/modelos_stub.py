@@ -52,6 +52,8 @@ class SolicitudCredito(Base):
     score: Mapped[int | None] = mapped_column(Integer)
     motivo_rechazo: Mapped[str | None] = mapped_column(Text)
     cantidad_cuotas: Mapped[int | None] = mapped_column(Integer)
+    zona_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("zona.id"))
+    sector_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("sector.id"))
     created_at: Mapped[datetime] = _created_at()
 
 

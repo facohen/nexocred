@@ -65,6 +65,8 @@ async def crear_solicitud(
         cantidad_cuotas=datos.cantidad_cuotas,
         vendedor_id=vendedor_id,
         actor_id=actor.id,
+        zona_id=datos.zona_id,
+        sector_id=datos.sector_id,
     )
     await session.commit()
     return SolicitudOut.model_validate(sol)

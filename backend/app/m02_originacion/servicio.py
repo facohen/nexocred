@@ -11,6 +11,7 @@ from app.m01_personas.modelos import Persona, PersonaDeudaBcra, PersonaMarca
 from app.m15_catalogo import servicio as cat
 from app.m15_catalogo.modelos import PerfilPricing
 from app.m15_catalogo.schemas import SimuladorLibreIn, SimuladorOut
+from app.m16_maestros.modelos import AsignacionVendedor
 from app.modelos_stub import Prestamo, SolicitudCredito
 
 # Transiciones validas de solicitud (§5.6). 'desembolsada' es disparada por desembolso.
@@ -28,6 +29,23 @@ def _parametros() -> dict:
     from app.m12_auth.router import PARAMETROS_GLOBALES
 
     return PARAMETROS_GLOBALES
+
+
+async def _zona_sector_de_vendedor(
+    session: AsyncSession, vendedor_id: uuid.UUID
+) -> tuple[uuid.UUID | None, uuid.UUID | None]:
+    res = await session.execute(
+        select(AsignacionVendedor.zona_id, AsignacionVendedor.sector_id)
+        .where(
+            AsignacionVendedor.vendedor_id == vendedor_id,
+            AsignacionVendedor.vigente_hasta.is_(None),
+        )
+        .limit(1)
+    )
+    row = res.one_or_none()
+    if row is None:
+        return None, None
+    return row.zona_id, row.sector_id
 
 
 async def obtener_solicitud(
@@ -48,13 +66,21 @@ async def crear_solicitud(
     cantidad_cuotas: int,
     vendedor_id: uuid.UUID | None,
     actor_id: uuid.UUID | None,
+    zona_id: uuid.UUID | None = None,
+    sector_id: uuid.UUID | None = None,
 ) -> SolicitudCredito:
+    if vendedor_id is not None and (zona_id is None or sector_id is None):
+        z, s = await _zona_sector_de_vendedor(session, vendedor_id)
+        zona_id = zona_id or z
+        sector_id = sector_id or s
     sol = SolicitudCredito(
         persona_id=persona_id,
         producto_id=producto_id,
         monto=monto,
         cantidad_cuotas=cantidad_cuotas,
         vendedor_id=vendedor_id,
+        zona_id=zona_id,
+        sector_id=sector_id,
         estado="borrador",
     )
     session.add(sol)

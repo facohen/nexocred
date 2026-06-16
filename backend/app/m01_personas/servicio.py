@@ -8,8 +8,30 @@ from app.auditoria import escribir_evento
 from app.errors import ErrorAPI
 from app.m01_personas.cuil import validar_cuil
 from app.m01_personas.modelos import Persona, PersonaMarca, PersonaReferencia
+from app.m16_maestros.modelos import Localidad
 from app.modelos_stub import Prestamo, SolicitudCredito
 from app.m01_personas.schemas import MarcaIn, PersonaCreate, ReferenciaIn
+
+
+async def _validar_ubicacion(
+    session: AsyncSession,
+    provincia_id: uuid.UUID | None,
+    localidad_id: uuid.UUID | None,
+) -> None:
+    if localidad_id is None or provincia_id is None:
+        return
+    res = await session.execute(
+        select(Localidad.provincia_id).where(Localidad.id == localidad_id)
+    )
+    prov_real = res.scalar_one_or_none()
+    if prov_real is None:
+        raise ErrorAPI("localidad_inexistente", "localidad no encontrada", status=422)
+    if prov_real != provincia_id:
+        raise ErrorAPI(
+            "localidad_provincia_mismatch",
+            "la localidad no pertenece a la provincia indicada",
+            status=422,
+        )
 
 
 async def crear_persona(
@@ -25,6 +47,8 @@ async def crear_persona(
     )
     if existente.scalar_one_or_none() is not None:
         raise ErrorAPI("cuil_duplicado", "ya existe una persona con ese CUIL", status=409)
+
+    await _validar_ubicacion(session, datos.provincia_id, datos.localidad_id)
 
     campos = datos.model_dump(exclude={"referencias"})
     persona = Persona(**campos)
@@ -65,6 +89,9 @@ async def actualizar_persona(
     # DNI y CUIL nunca se modifican.
     cambios.pop("dni", None)
     cambios.pop("cuil", None)
+    await _validar_ubicacion(
+        session, cambios.get("provincia_id"), cambios.get("localidad_id")
+    )
     for k, v in cambios.items():
         setattr(persona, k, v)
     await session.flush()

@@ -59,6 +59,8 @@ class PersonaCreate(BaseModel):
     fecha_ingreso_laboral: date | None = None
     referido_por_id: uuid.UUID | None = None
     redes_sociales: dict | None = None
+    provincia_id: uuid.UUID | None = None
+    localidad_id: uuid.UUID | None = None
     referencias: list[ReferenciaIn] = Field(min_length=1)
 
 
@@ -83,6 +85,8 @@ class PersonaUpdate(BaseModel):
     cuit_empleador: str | None = None
     fecha_ingreso_laboral: date | None = None
     activo: bool | None = None
+    provincia_id: uuid.UUID | None = None
+    localidad_id: uuid.UUID | None = None
 
 
 class PersonaOut(BaseModel):
@@ -111,6 +115,8 @@ class PersonaOut(BaseModel):
     fecha_ingreso_laboral: date | None
     referido_por_id: uuid.UUID | None
     activo: bool
+    provincia_id: uuid.UUID | None = None
+    localidad_id: uuid.UUID | None = None
     referencias: list[ReferenciaOut] = Field(default_factory=list)
 
 

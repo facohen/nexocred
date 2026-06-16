@@ -1,11 +1,12 @@
 import { useForm } from "react-hook-form";
-import { forwardRef, useState } from "react";
+import { forwardRef, useEffect, useState } from "react";
 import { z } from "zod";
 import { useCrearPersona } from "@/lib/api/queries";
 import { ApiError } from "@/lib/api/client";
 import { FormField } from "@/components/FormField";
 import { Button } from "@/components/ui/button";
 import { validarCuil } from "@/lib/cuil";
+import { useProvincias, useLocalidades } from "@/features/maestros/hooks";
 import type { components } from "@/lib/api/schema";
 
 // CUIL: 2 dígitos - 8 dígitos - 1 dígito verificador (formato AR).
@@ -47,8 +48,10 @@ const schema = z
     }),
     telefono: z.string().min(1, "El teléfono es obligatorio"),
     domicilio_calle: z.string().min(1, "La calle es obligatoria"),
-    domicilio_localidad: z.string().min(1, "La localidad es obligatoria"),
-    domicilio_provincia: z.string().min(1, "La provincia es obligatoria"),
+    domicilio_localidad: z.string().default(""),
+    domicilio_provincia: z.string().default(""),
+    provincia_id: z.string().min(1, "La provincia es obligatoria"),
+    localidad_id: z.string().min(1, "La localidad es obligatoria"),
     ingresos_declarados: z
       .string()
       .min(1, "Los ingresos declarados son obligatorios")
@@ -145,13 +148,28 @@ export function PersonaForm({ onCreated }: { onCreated: (id: string) => void }) 
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
   const crear = useCrearPersona();
   const [apiError, setApiError] = useState<string | null>(null);
 
+  const watchedProvinciaId = watch("provincia_id");
+  const { data: provinciasData } = useProvincias();
+  const { data: localidadesData } = useLocalidades(watchedProvinciaId || undefined);
+
+  // Reset localidad when provincia changes
+  useEffect(() => {
+    setValue("localidad_id", "");
+    setValue("domicilio_localidad", "");
+  }, [watchedProvinciaId, setValue]);
+
   async function onSubmit(values: FormValues) {
     setApiError(null);
+    // Derive text values from selected options
+    const provinciaSeleccionada = provinciasData?.data.find((p) => p.id === values.provincia_id);
+    const localidadSeleccionada = localidadesData?.data.find((l) => l.id === values.localidad_id);
     const body = {
       apellido: values.apellido,
       nombre: values.nombre,
@@ -163,8 +181,10 @@ export function PersonaForm({ onCreated }: { onCreated: (id: string) => void }) 
       tipo_vivienda: values.tipo_vivienda,
       telefono: values.telefono,
       domicilio_calle: values.domicilio_calle,
-      domicilio_localidad: values.domicilio_localidad,
-      domicilio_provincia: values.domicilio_provincia,
+      domicilio_localidad: localidadSeleccionada?.nombre ?? values.domicilio_localidad,
+      domicilio_provincia: provinciaSeleccionada?.nombre ?? values.domicilio_provincia,
+      provincia_id: values.provincia_id || undefined,
+      localidad_id: values.localidad_id || undefined,
       ingresos_declarados: values.ingresos_declarados,
       ingresos_en_blanco: values.ingresos_en_blanco,
       ingresos_totales: values.ingresos_totales,
@@ -226,18 +246,59 @@ export function PersonaForm({ onCreated }: { onCreated: (id: string) => void }) 
             error={errors.domicilio_calle}
             {...register("domicilio_calle")}
           />
-          <FormField
-            label="Localidad"
-            required
-            error={errors.domicilio_localidad}
-            {...register("domicilio_localidad")}
-          />
-          <FormField
-            label="Provincia"
-            required
-            error={errors.domicilio_provincia}
-            {...register("domicilio_provincia")}
-          />
+          <div className="space-y-1">
+            <label htmlFor="provincia_id" className="text-sm font-medium">
+              Provincia <span className="text-neg">*</span>
+            </label>
+            <select
+              id="provincia_id"
+              aria-invalid={Boolean(errors.provincia_id)}
+              defaultValue=""
+              className="h-9 w-full rounded-md border border-input bg-surface px-2 text-sm text-text"
+              {...register("provincia_id")}
+            >
+              <option value="" disabled>
+                Seleccionar…
+              </option>
+              {(provinciasData?.data ?? []).map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nombre}
+                </option>
+              ))}
+            </select>
+            {errors.provincia_id && (
+              <p role="alert" className="text-xs text-neg">
+                {errors.provincia_id.message}
+              </p>
+            )}
+          </div>
+          <div className="space-y-1">
+            <label htmlFor="localidad_id" className="text-sm font-medium">
+              Localidad <span className="text-neg">*</span>
+            </label>
+            <select
+              id="localidad_id"
+              aria-invalid={Boolean(errors.localidad_id)}
+              defaultValue=""
+              disabled={!watchedProvinciaId}
+              className="h-9 w-full rounded-md border border-input bg-surface px-2 text-sm text-text disabled:opacity-50"
+              {...register("localidad_id")}
+            >
+              <option value="" disabled>
+                {watchedProvinciaId ? "Seleccionar…" : "Seleccione primero una provincia"}
+              </option>
+              {(localidadesData?.data ?? []).map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.nombre}
+                </option>
+              ))}
+            </select>
+            {errors.localidad_id && (
+              <p role="alert" className="text-xs text-neg">
+                {errors.localidad_id.message}
+              </p>
+            )}
+          </div>
         </div>
       </fieldset>
 

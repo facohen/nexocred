@@ -14,6 +14,8 @@ class SolicitudCreate(BaseModel):
     monto: MontoStr
     cantidad_cuotas: int = Field(gt=0)
     vendedor_id: uuid.UUID | None = None
+    zona_id: uuid.UUID | None = None
+    sector_id: uuid.UUID | None = None
 
 
 class CambioEstadoIn(BaseModel):
@@ -30,6 +32,8 @@ class SolicitudOut(BaseModel):
     cantidad_cuotas: int | None = None
     estado: str
     vendedor_id: uuid.UUID | None = None
+    zona_id: uuid.UUID | None = None
+    sector_id: uuid.UUID | None = None
     perfil_pricing_id: uuid.UUID | None = None
     tasa_resuelta: TasaStr | None = None
     score: int | None = None

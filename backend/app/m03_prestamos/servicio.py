@@ -33,6 +33,8 @@ async def listar_prestamos(
     persona_id: uuid.UUID | None = None,
     producto_id: uuid.UUID | None = None,
     vendedor_id: uuid.UUID | None = None,
+    zona: str | None = None,
+    sector: str | None = None,
 ) -> list[Prestamo]:
     stmt = select(Prestamo).order_by(Prestamo.created_at.desc())
     if estado is not None:
@@ -43,6 +45,10 @@ async def listar_prestamos(
         stmt = stmt.where(Prestamo.producto_id == producto_id)
     if vendedor_id is not None:
         stmt = stmt.where(Prestamo.vendedor_id == vendedor_id)
+    if zona is not None:
+        stmt = stmt.where(Prestamo.snapshot_terminos["zona"].astext == zona)
+    if sector is not None:
+        stmt = stmt.where(Prestamo.snapshot_terminos["sector"].astext == sector)
     res = await session.execute(stmt)
     return list(res.scalars().all())
 
