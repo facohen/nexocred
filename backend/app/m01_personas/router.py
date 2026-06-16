@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Query
 
-from app.deps import OriginaSolicitud, CurrentUser, SessionDep
+from app.deps import OriginaSolicitud, CurrentUser, SessionDep, scope_vendedor
 from app.errors import ErrorAPI
 from app.m01_personas import servicio
 from app.m01_personas.modelos import Persona
@@ -41,15 +41,20 @@ async def crear_persona(
 @router.get("", response_model=PersonaPagina)
 async def listar_personas(
     session: SessionDep,
-    _: CurrentUser,
+    actor: CurrentUser,
     nombre: str | None = None,
     dni: str | None = None,
     cuil: str | None = None,
+    vendedor_id: uuid.UUID | None = Query(default=None),
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
 ) -> PersonaPagina:
+    # Scope por vendedor: un vendedor puro solo ve su cartera de clientes; los
+    # roles de lectura global ven todo o filtran libremente vía ?vendedor_id.
+    filtro_vendedor = scope_vendedor(actor, vendedor_id)
     personas, total = await servicio.listar_personas(
-        session, nombre=nombre, dni=dni, cuil=cuil, page=page, per_page=per_page
+        session, nombre=nombre, dni=dni, cuil=cuil,
+        vendedor_id=filtro_vendedor, page=page, per_page=per_page,
     )
     return PersonaPagina(
         data=[PersonaListItem.model_validate(p) for p in personas],

@@ -539,6 +539,23 @@
             }
           },
           {
+            "name": "vendedor_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Vendedor Id"
+            }
+          },
+          {
             "name": "page",
             "in": "query",
             "required": false,
@@ -1962,6 +1979,23 @@
             }
           },
           {
+            "name": "vendedor_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Vendedor Id"
+            }
+          },
+          {
             "name": "page",
             "in": "query",
             "required": false,
@@ -2369,6 +2403,23 @@
                 }
               ],
               "title": "Producto Id"
+            }
+          },
+          {
+            "name": "vendedor_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Vendedor Id"
             }
           },
           {

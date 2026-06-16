@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, union
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -8,6 +8,7 @@ from app.auditoria import escribir_evento
 from app.errors import ErrorAPI
 from app.m01_personas.cuil import validar_cuil
 from app.m01_personas.modelos import Persona, PersonaMarca, PersonaReferencia
+from app.modelos_stub import Prestamo, SolicitudCredito
 from app.m01_personas.schemas import MarcaIn, PersonaCreate, ReferenciaIn
 
 
@@ -84,6 +85,7 @@ async def listar_personas(
     nombre: str | None = None,
     dni: str | None = None,
     cuil: str | None = None,
+    vendedor_id: uuid.UUID | None = None,
     page: int = 1,
     per_page: int = 50,
 ) -> tuple[list[Persona], int]:
@@ -100,6 +102,18 @@ async def listar_personas(
         cond = or_(Persona.apellido.ilike(patron), Persona.nombre.ilike(patron))
         q = q.where(cond)
         cq = cq.where(cond)
+    if vendedor_id is not None:
+        # La cartera del vendedor son las personas detrás de sus solicitudes o
+        # préstamos (Persona no tiene vendedor_id). Subquery por unión de ambos.
+        personas_del_vendedor = union(
+            select(SolicitudCredito.persona_id).where(
+                SolicitudCredito.vendedor_id == vendedor_id
+            ),
+            select(Prestamo.persona_id).where(Prestamo.vendedor_id == vendedor_id),
+        ).subquery()
+        cond_vendedor = Persona.id.in_(select(personas_del_vendedor.c[0]))
+        q = q.where(cond_vendedor)
+        cq = cq.where(cond_vendedor)
     total = (await session.execute(cq)).scalar_one()
     q = q.order_by(Persona.apellido, Persona.nombre).limit(per_page).offset(
         (page - 1) * per_page

@@ -23,12 +23,17 @@ os.environ.setdefault(
     "JWT_SECRET_KEY", "test-secret-key-para-pytest-0123456789-abcdef"
 )
 
-ADMIN_URL = "postgresql+asyncpg://nexocred:nexocred@localhost:5432/nexocred"
+# Host de la DB configurable: `localhost` para correr la suite desde el host
+# (puerto 5432 publicado por compose), `db` para correrla dentro de un contenedor
+# en la red de compose, donde el servicio resuelve por nombre.
+DB_HOST = os.environ.get("NEXOCRED_DB_HOST", "localhost")
+
+ADMIN_URL = f"postgresql+asyncpg://nexocred:nexocred@{DB_HOST}:5432/nexocred"
 # Nombre de la DB de test configurable via env (default nexocred_test) para
 # permitir correr suites aisladas en paralelo sin colisionar el DROP/CREATE.
 TEST_DB = os.environ.get("NEXOCRED_TEST_DB", "nexocred_test")
-TEST_URL = f"postgresql+asyncpg://nexocred:nexocred@localhost:5432/{TEST_DB}"
-TEST_URL_SYNC = f"postgresql+psycopg://nexocred:nexocred@localhost:5432/{TEST_DB}"
+TEST_URL = f"postgresql+asyncpg://nexocred:nexocred@{DB_HOST}:5432/{TEST_DB}"
+TEST_URL_SYNC = f"postgresql+psycopg://nexocred:nexocred@{DB_HOST}:5432/{TEST_DB}"
 
 
 def make_test_engine(**kw) -> AsyncEngine:

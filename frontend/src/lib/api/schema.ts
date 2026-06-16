@@ -5502,6 +5502,7 @@ export interface operations {
                 nombre?: string | null;
                 dni?: string | null;
                 cuil?: string | null;
+                vendedor_id?: string | null;
                 page?: number;
                 per_page?: number;
             };
@@ -6477,6 +6478,7 @@ export interface operations {
         parameters: {
             query?: {
                 estado?: string | null;
+                vendedor_id?: string | null;
                 page?: number;
                 per_page?: number;
             };
@@ -6745,6 +6747,7 @@ export interface operations {
                 estado?: string | null;
                 persona_id?: string | null;
                 producto_id?: string | null;
+                vendedor_id?: string | null;
                 page?: number;
                 per_page?: number;
             };

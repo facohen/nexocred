@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Header, Query
 
-from app.deps import Administrativo, CurrentUser, SessionDep
+from app.deps import Administrativo, CurrentUser, SessionDep, scope_vendedor
 from app.errors import ErrorAPI
 from app.m03_prestamos import servicio
 from app.m03_prestamos.schemas import CancelarIn, CuotaOut, PayoffOut, PrestamoOut
@@ -37,15 +37,20 @@ async def _get_prestamo(session, prestamo_id: uuid.UUID):
 @router.get("/prestamos", response_model=Pagina[PrestamoOut])
 async def listar_prestamos(
     session: SessionDep,
-    _: CurrentUser,
+    actor: CurrentUser,
     estado: Annotated[str | None, Query()] = None,
     persona_id: Annotated[uuid.UUID | None, Query()] = None,
     producto_id: Annotated[uuid.UUID | None, Query()] = None,
+    vendedor_id: Annotated[uuid.UUID | None, Query()] = None,
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
 ) -> Pagina[PrestamoOut]:
+    # Scope por vendedor: un vendedor puro solo ve sus préstamos; los roles de
+    # lectura global ven todo o filtran libremente vía ?vendedor_id.
+    filtro_vendedor = scope_vendedor(actor, vendedor_id)
     prestamos = await servicio.listar_prestamos(
-        session, estado=estado, persona_id=persona_id, producto_id=producto_id
+        session, estado=estado, persona_id=persona_id, producto_id=producto_id,
+        vendedor_id=filtro_vendedor,
     )
     return paginar([PrestamoOut.model_validate(p) for p in prestamos], page, per_page)
 

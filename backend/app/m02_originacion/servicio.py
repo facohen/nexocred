@@ -67,11 +67,16 @@ async def crear_solicitud(
 
 
 async def listar_solicitudes(
-    session: AsyncSession, *, estado: str | None = None
+    session: AsyncSession,
+    *,
+    estado: str | None = None,
+    vendedor_id: uuid.UUID | None = None,
 ) -> list[SolicitudCredito]:
     stmt = select(SolicitudCredito).order_by(SolicitudCredito.created_at.desc())
     if estado is not None:
         stmt = stmt.where(SolicitudCredito.estado == estado)
+    if vendedor_id is not None:
+        stmt = stmt.where(SolicitudCredito.vendedor_id == vendedor_id)
     res = await session.execute(stmt)
     return list(res.scalars().all())
 

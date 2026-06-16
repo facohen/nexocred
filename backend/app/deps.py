@@ -85,3 +85,26 @@ ProponeNovacion = Annotated[
 ]
 # CRM: vendedor (su relación con clientes) y administrativo (gestión operativa).
 CrmActor = Annotated[Usuario, Depends(requiere_rol("vendedor", "administrativo"))]
+
+
+# Roles con lectura global de la cartera: ven todo y pueden filtrar libremente.
+_ROLES_LECTURA_GLOBAL = frozenset(
+    {"admin_sistema", "analista_riesgo", "administrativo", "ceo"}
+)
+
+
+def scope_vendedor(
+    actor: Usuario, vendedor_id: uuid.UUID | None
+) -> uuid.UUID | None:
+    """Resuelve a qué vendedor restringir una lectura de cartera.
+
+    Un vendedor *puro* (sin ningún rol de lectura global) solo ve lo suyo: se
+    ignora el `vendedor_id` recibido y se fuerza su propio id. Si además tiene un
+    rol privilegiado (super-usuario con todos los roles), prima la lectura global
+    y se respeta el filtro opcional. Reutilizable en cualquier listado scopeado
+    por vendedor (solicitudes, préstamos, personas).
+    """
+    roles = {r.nombre for r in actor.roles}
+    if "vendedor" in roles and roles.isdisjoint(_ROLES_LECTURA_GLOBAL):
+        return actor.id
+    return vendedor_id

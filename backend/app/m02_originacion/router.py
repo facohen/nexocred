@@ -8,6 +8,7 @@ from app.deps import (
     AnalistaRiesgo,
     CurrentUser,
     SessionDep,
+    scope_vendedor,
 )
 from app.errors import ErrorAPI
 from app.m02_originacion import servicio
@@ -72,12 +73,18 @@ async def crear_solicitud(
 @router.get("/solicitudes", response_model=Pagina[SolicitudOut])
 async def listar_solicitudes(
     session: SessionDep,
-    _: CurrentUser,
+    actor: CurrentUser,
     estado: Annotated[str | None, Query()] = None,
+    vendedor_id: Annotated[uuid.UUID | None, Query()] = None,
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
 ) -> Pagina[SolicitudOut]:
-    sols = await servicio.listar_solicitudes(session, estado=estado)
+    # Scope por vendedor: un vendedor puro solo ve lo suyo; admin/analista/ceo
+    # ven todo o filtran libremente vía ?vendedor_id.
+    filtro_vendedor = scope_vendedor(actor, vendedor_id)
+    sols = await servicio.listar_solicitudes(
+        session, estado=estado, vendedor_id=filtro_vendedor
+    )
     return paginar([SolicitudOut.model_validate(s) for s in sols], page, per_page)
 
 
