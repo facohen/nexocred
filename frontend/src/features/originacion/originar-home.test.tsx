@@ -24,10 +24,11 @@ beforeEach(() => {
 // OriginarHome quedó enfocada SOLO en el pipeline + alta de solicitud. Las metas,
 // conversión y comisiones se movieron al Inicio del vendedor (VendedorHome).
 describe("OriginarHome — pipeline del vendedor", () => {
-  it("muestra el pipeline agrupado y la acción de nueva solicitud", async () => {
+  it("muestra el pipeline agrupado (sin botón de nueva solicitud)", async () => {
     renderWithProviders(<OriginarHome />, { ...vendedor, roles: ["vendedor"] });
     expect(await screen.findByRole("heading", { name: /Originar/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /nueva solicitud/i })).toBeInTheDocument();
+    // Originar es solo el pipeline/carga: el alta NO vive acá.
+    expect(screen.queryByRole("button", { name: /nueva solicitud/i })).not.toBeInTheDocument();
     // Secciones del inbox de pipeline.
     expect(await screen.findByText(/En curso/i)).toBeInTheDocument();
   });

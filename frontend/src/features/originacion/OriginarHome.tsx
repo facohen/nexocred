@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useSolicitudes, usePersonas, useProductos } from "@/lib/api/queries";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { MoneyText } from "@/components/MoneyText";
 import { WorkInbox, WorkInboxHero, InboxRow, type InboxSection } from "@/components/WorkInbox";
 import type { components } from "@/lib/api/schema";
@@ -91,11 +90,6 @@ export function OriginarHome() {
       <WorkInboxHero
         title="Originar"
         subtitle="Tu pipeline de solicitudes, de punta a punta."
-        action={
-          <Button size="lg" onClick={() => navigate({ to: "/originar/nuevo" as string })}>
-            + Nueva solicitud
-          </Button>
-        }
       />
 
       <WorkInbox

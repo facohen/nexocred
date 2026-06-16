@@ -7,9 +7,39 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MoneyText } from "@/components/MoneyText";
 import { WorkInboxHero } from "@/components/WorkInbox";
+import { CarteraFilter, type OpcionEstado } from "@/components/filters/CarteraFilter";
+import {
+  type FiltroCartera,
+  type AccessoresFiltro,
+  FILTRO_CARTERA_VACIO,
+  filtrarCartera,
+} from "@/lib/filtros";
 import type { components } from "@/lib/api/schema";
 
 type Prestamo = components["schemas"]["PrestamoOut"];
+
+// El monto del préstamo para filtrar/mostrar: lo desembolsado, o el capital si
+// todavía no se desembolsó. Misma regla que la fila.
+function montoPrestamo(p: Prestamo): string | null | undefined {
+  return p.monto_desembolsado ?? p.capital;
+}
+
+// Accessors del filtro reutilizable sobre PrestamoOut (fecha = created_at,
+// según lo definido: la ventana es por fecha de alta del préstamo).
+const ACC_PRESTAMO: AccessoresFiltro<Prestamo> = {
+  estado: (p) => p.estado,
+  fecha: (p) => p.created_at,
+  monto: montoPrestamo,
+};
+
+const ESTADO_LABEL: Record<string, string> = {
+  vigente: "Vigente",
+  al_dia: "Al día",
+  en_mora: "En mora",
+  pagado: "Pagado",
+  cancelado: "Cancelado",
+  refinanciado: "Refinanciado",
+};
 
 // Estados de préstamo → tono del badge. El backend usa strings libres; mapeamos
 // los conocidos y caemos a "default" para el resto (sin romper si aparece uno nuevo).
@@ -38,6 +68,7 @@ export function MisCreditosPage() {
   const prestamosQ = usePrestamos({ vendedorId });
   const personasQ = usePersonas();
   const [busqueda, setBusqueda] = useState("");
+  const [filtro, setFiltro] = useState<FiltroCartera>(FILTRO_CARTERA_VACIO);
 
   const nombrePorPersona = useMemo(() => {
     const map = new Map<string, string>();
@@ -49,14 +80,26 @@ export function MisCreditosPage() {
 
   const prestamos = useMemo(() => prestamosQ.data?.data ?? [], [prestamosQ.data]);
 
+  // Opciones de estado del select: los estados realmente presentes en la cartera
+  // (no una lista fija), etiquetados; así el filtro refleja los datos del vendedor.
+  const opcionesEstado = useMemo<OpcionEstado[]>(() => {
+    const vistos = new Set<string>();
+    for (const p of prestamos) if (p.estado) vistos.add(p.estado);
+    return [...vistos]
+      .sort()
+      .map((e) => ({ value: e, label: ESTADO_LABEL[e] ?? e }));
+  }, [prestamos]);
+
+  // Filtro combinado: criterios (estado/período/monto) + búsqueda de texto libre.
   const filtrados = useMemo(() => {
+    const porCriterios = filtrarCartera(prestamos, ACC_PRESTAMO, filtro);
     const q = busqueda.trim().toLowerCase();
-    if (!q) return prestamos;
-    return prestamos.filter((p) => {
+    if (!q) return porCriterios;
+    return porCriterios.filter((p) => {
       const nombre = nombrePorPersona.get(p.persona_id) ?? "";
       return nombre.toLowerCase().includes(q) || p.id.toLowerCase().includes(q);
     });
-  }, [prestamos, busqueda, nombrePorPersona]);
+  }, [prestamos, filtro, busqueda, nombrePorPersona]);
 
   if (prestamosQ.isError) {
     return (
@@ -66,6 +109,8 @@ export function MisCreditosPage() {
     );
   }
 
+  const hayFiltro = busqueda.trim() !== "" || filtrados.length !== prestamos.length;
+
   return (
     <div className="space-y-6">
       <WorkInboxHero
@@ -73,23 +118,36 @@ export function MisCreditosPage() {
         subtitle={`${prestamos.length} ${prestamos.length === 1 ? "préstamo" : "préstamos"} en tu cartera`}
       />
 
-      <Input
-        type="search"
-        value={busqueda}
-        onChange={(e) => setBusqueda(e.target.value)}
-        placeholder="Buscar por cliente…"
-        aria-label="Buscar créditos por cliente"
-        className="max-w-sm"
-      />
+      <div className="space-y-3">
+        <Input
+          type="search"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Buscar por cliente…"
+          aria-label="Buscar créditos por cliente"
+          className="max-w-sm"
+        />
+        <CarteraFilter
+          filtro={filtro}
+          onChange={setFiltro}
+          estados={opcionesEstado}
+          labelMonto="Monto"
+        />
+        {!prestamosQ.isLoading && (
+          <p className="text-xs text-text-subtle">
+            Mostrando {filtrados.length} de {prestamos.length}
+          </p>
+        )}
+      </div>
 
       {prestamosQ.isLoading ? (
         <p className="animate-pulse text-sm text-text-subtle">Cargando créditos…</p>
       ) : filtrados.length === 0 ? (
         <Card>
-          <CardTitle>{busqueda ? "Sin coincidencias" : "Sin créditos todavía"}</CardTitle>
+          <CardTitle>{hayFiltro ? "Sin coincidencias" : "Sin créditos todavía"}</CardTitle>
           <p className="text-sm text-text-subtle">
-            {busqueda
-              ? "Ningún crédito coincide con la búsqueda."
+            {hayFiltro
+              ? "Ningún crédito coincide con los filtros."
               : "Cuando se desembolsen tus solicitudes aprobadas, vas a verlas acá."}
           </p>
         </Card>

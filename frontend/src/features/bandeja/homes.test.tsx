@@ -30,11 +30,12 @@ describe("Homes de trabajo (inbox-driven)", () => {
     expect(await screen.findByText(/cola de riesgo/i)).toBeInTheDocument();
   });
 
-  it("OriginarHome (vendedor) muestra el pipeline con acción de nueva solicitud", async () => {
+  it("OriginarHome (vendedor) muestra el pipeline (sin botón de nueva solicitud)", async () => {
     const vendedor = { email: "v@x", nombre: "Vendedor", roles: ["vendedor"] as const };
     setSessionUser({ ...vendedor, roles: ["vendedor"] });
     renderWithProviders(<OriginarHome />, { ...vendedor, roles: ["vendedor"] });
     expect(await screen.findByText(/Originar/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Nueva solicitud/i })).toBeInTheDocument();
+    // Originar es solo el pipeline/carga: el alta no vive acá.
+    expect(screen.queryByRole("button", { name: /Nueva solicitud/i })).not.toBeInTheDocument();
   });
 });
