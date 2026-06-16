@@ -15,7 +15,6 @@ export const ROUTE_ROLES: Record<string, Rol[]> = {
   // Vendedor: 5 áreas dedicadas (Inicio/Originar/Mis clientes/Mis créditos/Gestiones).
   "/vendedor": ["vendedor"],
   "/originar": ["vendedor"],
-  "/originar/nuevo": ["vendedor"],
   "/mis-creditos": ["vendedor"],
   "/gestiones": ["vendedor"],
   // Entidades y vistas (destino de drill-down / tabs)

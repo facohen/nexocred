@@ -96,12 +96,8 @@ const routeTree = rootRoute.addChildren([
     page("/vendedor", () => import("@/features/vendedor/VendedorHome"), "VendedorHome"),
     page("/mis-creditos", () => import("@/features/vendedor/MisCreditosPage"), "MisCreditosPage"),
     page("/gestiones", () => import("@/features/vendedor/GestionesPage"), "GestionesPage"),
-    page("/originar", () => import("@/features/originacion/OriginarHome"), "OriginarHome"),
-    page(
-      "/originar/nuevo",
-      () => import("@/features/originacion/OriginarWizard"),
-      "OriginarWizard",
-    ),
+    // Originar = SOLO el wizard de carga de un crédito nuevo (sin listado/tabs).
+    page("/originar", () => import("@/features/originacion/OriginarWizard"), "OriginarWizard"),
 
     // ── Entidades y vistas (drill-down / tabs de área) ──
     page("/mis-clientes", () => import("@/features/personas/MisClientesPage"), "MisClientesPage"),

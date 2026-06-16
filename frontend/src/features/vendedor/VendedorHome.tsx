@@ -26,8 +26,8 @@ const ESTADOS_PERDIDOS = new Set(["rechazada", "desistida"]);
 /**
  * Inicio del VENDEDOR: su dashboard de performance. Reúne la meta del mes, el
  * estado de su pipeline, la conversión y sus comisiones, más accesos rápidos a
- * su trabajo. Reemplaza a OriginarHome como landing del rol; Originar queda
- * enfocada solo en el pipeline + alta de solicitud.
+ * su trabajo. Es la landing del rol; "Originar" es solo el wizard de carga de
+ * un crédito nuevo (sin listado ni tabs).
  */
 export function VendedorHome() {
   const navigate = useNavigate();
@@ -79,8 +79,8 @@ export function VendedorHome() {
         title={usuario?.nombre ? `Hola, ${primerNombre(usuario.nombre)}` : "Mi performance"}
         subtitle="Cómo venís este mes, de un vistazo."
         action={
-          <Button size="lg" onClick={() => navigate({ to: "/originar/nuevo" as string })}>
-            + Nueva solicitud
+          <Button size="lg" onClick={() => navigate({ to: "/originar" as string })}>
+            + Nuevo crédito
           </Button>
         }
       />

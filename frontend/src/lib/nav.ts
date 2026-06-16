@@ -68,11 +68,9 @@ export const WORK_AREAS: WorkArea[] = [
     to: "/originar",
     seccion: "operacion",
     icon: "originar",
+    // Originar = solo el wizard de carga de un crédito nuevo. Sin tabs: ni
+    // listado de solicitudes ni simulador (eso vive en otras áreas).
     roles: ["vendedor"],
-    tabs: [
-      { label: "Solicitudes", to: "/solicitudes" },
-      { label: "Simulador", to: "/catalogo/simulador" },
-    ],
   },
   {
     id: "mis-creditos",

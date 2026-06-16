@@ -52,7 +52,7 @@ export function PersonaDetailPage() {
     <div className="space-y-6">
       <FichaHeader
         persona={persona}
-        onNuevaSolicitud={() => navigate({ to: "/originar/nuevo" as string })}
+        onNuevaSolicitud={() => navigate({ to: "/originar" as string })}
       />
 
       <nav className="flex gap-1 border-b border-border" aria-label="Secciones de la ficha">
