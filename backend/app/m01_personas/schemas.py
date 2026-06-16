@@ -117,6 +117,8 @@ class PersonaOut(BaseModel):
     activo: bool
     provincia_id: uuid.UUID | None = None
     localidad_id: uuid.UUID | None = None
+    provincia_nombre: str | None = None
+    localidad_nombre: str | None = None
     referencias: list[ReferenciaOut] = Field(default_factory=list)
 
 

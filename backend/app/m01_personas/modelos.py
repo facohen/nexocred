@@ -1,6 +1,7 @@
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     CHAR,
@@ -18,6 +19,9 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.modelos_base import Base, TimestampMixin, uuid_pk
+
+if TYPE_CHECKING:
+    from app.m16_maestros.modelos import Localidad, Provincia
 
 
 class Persona(Base, TimestampMixin):
@@ -68,6 +72,12 @@ class Persona(Base, TimestampMixin):
 
     referencias_rel: Mapped[list["PersonaReferencia"]] = relationship(
         cascade="all, delete-orphan", lazy="selectin"
+    )
+    provincia_rel: Mapped["Provincia | None"] = relationship(
+        "Provincia", foreign_keys="[Persona.provincia_id]", lazy="selectin"
+    )
+    localidad_rel: Mapped["Localidad | None"] = relationship(
+        "Localidad", foreign_keys="[Persona.localidad_id]", lazy="selectin"
     )
 
     __table_args__ = (

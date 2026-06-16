@@ -24,6 +24,10 @@ router = APIRouter(prefix="/personas", tags=["personas"])
 def _persona_out(p: Persona) -> PersonaOut:
     out = PersonaOut.model_validate(p)
     out.referencias = [ReferenciaOut.model_validate(r) for r in p.referencias_rel]
+    if p.provincia_rel is not None:
+        out.provincia_nombre = p.provincia_rel.nombre
+    if p.localidad_rel is not None:
+        out.localidad_nombre = p.localidad_rel.nombre
     return out
 
 
@@ -34,7 +38,8 @@ async def crear_persona(
     persona = await servicio.crear_persona(session, datos, actor_id=actor.id)
     await session.commit()
     persona = await servicio.obtener_persona(session, persona.id)
-    assert persona is not None
+    if persona is None:
+        raise ErrorAPI("persona_inexistente", "persona no encontrada tras alta", status=500)
     return _persona_out(persona)
 
 
@@ -96,7 +101,8 @@ async def actualizar_persona(
     await servicio.actualizar_persona(session, persona, cambios, actor_id=actor.id)
     await session.commit()
     persona = await servicio.obtener_persona(session, persona_id)
-    assert persona is not None
+    if persona is None:
+        raise ErrorAPI("persona_inexistente", "persona no encontrada tras actualización", status=500)
     return _persona_out(persona)
 
 
