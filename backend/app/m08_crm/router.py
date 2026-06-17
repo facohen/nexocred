@@ -61,7 +61,7 @@ async def crear_tarea(
     datos: TareaIn, session: SessionDep, actor: CrmUser
 ) -> TareaOut:
     tarea = await servicio.crear_tarea(
-        session, persona_id=datos.persona_id,
+        session, persona_id=datos.persona_id, prestamo_id=datos.prestamo_id,
         operador_id=datos.operador_id or actor.id, titulo=datos.titulo,
         descripcion=datos.descripcion, prioridad=datos.prioridad,
         vencimiento=datos.vencimiento, actor_id=actor.id,

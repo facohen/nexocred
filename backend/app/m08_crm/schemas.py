@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict
 
 class TareaIn(BaseModel):
     persona_id: uuid.UUID | None = None
+    prestamo_id: uuid.UUID | None = None
     operador_id: uuid.UUID | None = None
     titulo: str
     descripcion: str | None = None
@@ -24,6 +25,7 @@ class TareaOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
     persona_id: uuid.UUID | None
+    prestamo_id: uuid.UUID | None
     operador_id: uuid.UUID | None
     titulo: str | None
     descripcion: str | None

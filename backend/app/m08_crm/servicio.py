@@ -26,6 +26,7 @@ async def crear_tarea(
     session: AsyncSession,
     *,
     persona_id: uuid.UUID | None,
+    prestamo_id: uuid.UUID | None = None,
     operador_id: uuid.UUID | None,
     titulo: str,
     descripcion: str | None = None,
@@ -53,6 +54,7 @@ async def crear_tarea(
 
     tarea = Tarea(
         persona_id=persona_id,
+        prestamo_id=prestamo_id,
         operador_id=operador_id,
         titulo=titulo,
         descripcion=descripcion,

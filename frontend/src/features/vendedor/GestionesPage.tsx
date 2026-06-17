@@ -1,6 +1,12 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useTareas, useCrearTarea, useCompletarTarea, usePersonas } from "@/lib/api/queries";
+import {
+  useTareas,
+  useCrearTarea,
+  useCompletarTarea,
+  usePersonas,
+  usePrestamos,
+} from "@/lib/api/queries";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -322,8 +328,12 @@ function NuevoTicketForm({
   const crear = useCrearTarea();
   const [titulo, setTitulo] = useState("");
   const [personaId, setPersonaId] = useState("");
+  const [prestamoId, setPrestamoId] = useState("");
   const [prioridad, setPrioridad] = useState("media");
   const [vencimiento, setVencimiento] = useState("");
+
+  const prestamosQ = usePrestamos(personaId ? { personaId, estado: "vigente" } : undefined);
+  const prestamos = personaId ? (prestamosQ.data?.data ?? []) : [];
 
   const puedeGuardar = titulo.trim().length > 0;
 
@@ -333,6 +343,7 @@ function NuevoTicketForm({
       {
         titulo: titulo.trim(),
         persona_id: personaId || null,
+        prestamo_id: prestamoId || null,
         prioridad,
         vencimiento: vencimiento || null,
       },
@@ -340,11 +351,17 @@ function NuevoTicketForm({
         onSuccess: () => {
           setTitulo("");
           setPersonaId("");
+          setPrestamoId("");
           setVencimiento("");
           onCreado();
         },
       },
     );
+  };
+
+  const handlePersonaChange = (id: string) => {
+    setPersonaId(id);
+    setPrestamoId("");
   };
 
   return (
@@ -363,7 +380,7 @@ function NuevoTicketForm({
           Cliente (opcional)
           <select
             value={personaId}
-            onChange={(e) => setPersonaId(e.target.value)}
+            onChange={(e) => handlePersonaChange(e.target.value)}
             className="h-9 rounded-md border border-input bg-surface px-2 text-sm text-text"
           >
             <option value="">— Sin cliente —</option>
@@ -374,6 +391,24 @@ function NuevoTicketForm({
             ))}
           </select>
         </label>
+        {personaId && prestamos.length > 0 && (
+          <label className="flex flex-col gap-1 text-xs text-text-muted">
+            Préstamo (opcional)
+            <select
+              value={prestamoId}
+              onChange={(e) => setPrestamoId(e.target.value)}
+              className="h-9 rounded-md border border-input bg-surface px-2 text-sm text-text"
+            >
+              <option value="">— Sin préstamo —</option>
+              {prestamos.map((pr) => (
+                <option key={pr.id} value={pr.id}>
+                  {pr.capital ? `$${Number(pr.capital).toLocaleString("es-AR")}` : "Préstamo"} ·{" "}
+                  {pr.fecha_desembolso ?? "s/f"}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label className="flex flex-col gap-1 text-xs text-text-muted">
           Prioridad
           <select
